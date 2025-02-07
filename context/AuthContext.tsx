@@ -16,7 +16,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Call the /init endpoint once when the provider mounts.
-    fetch("https://localhost:8000/init", { credentials: "include" })
+    //fetch("https://localhost:8000/init", { credentials: "include" })
+    fetch("https://0ffd0c14d46d.ngrok.app/init", { credentials: "include" })
       .then((res) => res.json())
       .then((data: { token: string }) => {
         setToken(data.token);

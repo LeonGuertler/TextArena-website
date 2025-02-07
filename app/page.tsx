@@ -163,7 +163,8 @@ export default function PlayPage() {
   // Check matchmaking status periodically
   const checkMatchmakingStatus = async () => {
     try {
-      const response = await fetch('https://localhost:8000/check_matchmaking', {
+      //const response = await fetch('https://localhost:8000/check_matchmaking', {
+      const response = await fetch('https://0ffd0c14d46d.ngrok.app/check_matchmaking', {
         method: 'GET',
         credentials: 'include',
       })
@@ -199,7 +200,8 @@ export default function PlayPage() {
   useEffect(() => {
     if (!isInitialized || !token) return
 
-    const ws = new WebSocket(`wss://localhost:8000/ws?token=${token}`)
+    //const ws = new WebSocket(`wss://localhost:8000/ws?token=${token}`)
+    const ws = new WebSocket(`wss://0ffd0c14d46d.ngrok.app/ws?token=${token}`)
     wsRef.current = ws
 
     ws.onopen = () => {
