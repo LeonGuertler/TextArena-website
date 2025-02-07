@@ -201,7 +201,8 @@ export default function PlayPage() {
     if (!isInitialized || !token) return
 
     //const ws = new WebSocket(`wss://localhost:8000/ws?token=${token}`)
-    const ws = new WebSocket(`wss://0ffd0c14d46d.ngrok.app/ws?token=${token}`)
+    // const ws = new WebSocket(`wss://0ffd0c14d46d.ngrok.app/ws?token=${token}`)
+    const ws = new WebSocket(`wss://0ffd0c14d46d.ngrok.app/ws?user_id=${token}`)
     wsRef.current = ws
 
     ws.onopen = () => {
