@@ -62,6 +62,7 @@ const envSubsets: Record<string, string[]> = {
 }
 
 interface ModelData {
+  model_id: number
   model_name: string
   elo: number
   games_played: number
@@ -76,7 +77,7 @@ interface EloHistoryRow {
   model_id: number
   model_name: string
   interval_start: string // timestamp as string
-  elo_map: Record<string, number>
+  elo_value: number
 }
 
 // Custom tooltip for the Elo History chart
@@ -85,7 +86,11 @@ function CustomHistoryTooltip({ active, payload, label }: any) {
     const formattedTime = new Date(label).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
-    })
+    });
+
+    // Sort the payload so that entries with larger values come first.
+    const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
+
     return (
       <div
         style={{
@@ -96,16 +101,17 @@ function CustomHistoryTooltip({ active, payload, label }: any) {
         }}
       >
         <p className="font-bold">{formattedTime}</p>
-        {payload.map((entry: any, index: number) => (
+        {sortedPayload.map((entry: any, index: number) => (
           <p key={index} style={{ color: entry.color }}>
             {entry.name}: {Math.round(entry.value)}
           </p>
         ))}
       </div>
-    )
+    );
   }
-  return null
+  return null;
 }
+
 
 export function Leaderboard() {
   const [selectedSubset, setSelectedSubset] = useState<string>("BalancedSubset")
@@ -125,14 +131,10 @@ export function Leaderboard() {
   }, [])
 
   useEffect(() => {
-    if (selectedSubset !== "BalancedSubset" && environments.length === 0) return
+    if (selectedSubset !== "All" && environments.length === 0) return
     fetchModels()
-  }, [selectedSubset, currentPage, environments])
-
-  // Re-fetch Elo history whenever the selected subset changes.
-  useEffect(() => {
     fetchEloHistory()
-  }, [selectedSubset])
+  }, [selectedSubset, currentPage, environments])
 
   async function fetchEnvironments() {
     try {
@@ -143,7 +145,6 @@ export function Leaderboard() {
         .eq("active", true)
         .order("env_name")
       if (error) throw error
-      // Prepend a special "All" option.
       setEnvironments([{ id: -1, env_name: "All" }, ...(data ?? [])])
     } catch (err) {
       console.error("Error fetching environments:", err)
@@ -167,15 +168,12 @@ export function Leaderboard() {
           subsetEnvIds = (envData ?? []).map((env: any) => env.id)
         }
       }
-      console.log("subsetEnvIds:", subsetEnvIds)
-      const { data, error } = await supabase.rpc("get_leaderboard", {
-        subset_env_ids: subsetEnvIds,
+      const { data, error } = await supabase.rpc("get_leaderboard_from_mv", {
+        selected_env_ids: subsetEnvIds,
       })
-      console.log("RPC Data (get_leaderboard):", data)
       if (error) throw error
       if (!data) {
         setModels([])
-        setIsLoading(false)
         return
       }
       setModels(data)
@@ -187,72 +185,89 @@ export function Leaderboard() {
     }
   }
 
+  
   async function fetchEloHistory() {
-    setIsLoadingHistory(true)
+    setIsLoadingHistory(true);
     try {
-      console.log("Fetching Elo History pivot data...")
-      const { data, error } = await supabase.rpc("get_elo_history_pivot")
-      console.log("RPC Data (get_elo_history_pivot):", data)
-      if (error) throw error
-      setEloHistory(data || [])
+      let subsetEnvIds: number[] | null = null;
+      if (selectedSubset !== "All") {
+        const subsetNames = envSubsets[selectedSubset] || [];
+        if (subsetNames.length > 0) {
+          const { data: envData, error: envError } = await supabase
+            .from("environments")
+            .select("id")
+            .in("env_name", subsetNames);
+          if (envError) throw envError;
+          subsetEnvIds = (envData ?? []).map((env: any) => env.id);
+        }
+      }
+      console.log("subsetEnvIds (chart):", subsetEnvIds);
+      // Fixed version:
+      const { data, error } = await supabase.rpc("get_elo_history", {
+        selected_env_ids: subsetEnvIds,
+      });
+      console.log("RPC Data (get_elo_history):", data);
+      if (error) throw error;
+      setEloHistory(data || []);
     } catch (err) {
-      console.error("Error fetching elo history:", err)
+      console.error("Error fetching elo history:", err);
     } finally {
-      setIsLoadingHistory(false)
+      setIsLoadingHistory(false);
     }
   }
+  
+
+
+  
+  
 
   const paginatedModels = models.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   )
 
-  // Compute chart data:
-  const chartData = useMemo(() => {
-    if (!eloHistory || eloHistory.length === 0) return []
-    const grouped: Record<string, any> = {}
-    // Determine selected environment names:
-    const selectedEnvNames =
-      selectedSubset === "All"
-        ? environments.filter((env) => env.id !== -1).map((env) => env.env_name)
-        : envSubsets[selectedSubset] || []
-    // Also, collect model names from eloHistory:
-    const modelNamesSet = new Set<string>()
-    eloHistory.forEach((row) => modelNamesSet.add(row.model_name))
-    const modelNames = Array.from(modelNamesSet)
-    // Group rows by interval_start (as ISO string)
-    eloHistory.forEach((row) => {
-      const date = new Date(row.interval_start).toISOString()
-      if (!grouped[date]) {
-        grouped[date] = { date }
-      }
-      const eloMap = row.elo_map || {}
-      // Average Elo over selected environments:
-      const keys = Object.keys(eloMap).filter((key) => selectedEnvNames.includes(key))
-      let avg = 1000
-      if (keys.length > 0) {
-        avg = keys.reduce((sum, key) => sum + Number(eloMap[key]), 0) / keys.length
-      }
-      grouped[date][row.model_name] = avg
-    })
-    const sortedData = Object.values(grouped).sort(
-      (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    )
-    // Carry-forward missing values for each model:
-    modelNames.forEach((modelName) => {
-      let lastValue: number | undefined = undefined
-      sortedData.forEach((row: any) => {
-        if (row[modelName] === undefined) {
-          row[modelName] = lastValue !== undefined ? lastValue : 1000
-        } else {
-          lastValue = row[modelName]
-        }
-      })
-    })
-    return sortedData
-  }, [eloHistory, selectedSubset, environments])
 
-  // Compute model names for the chart from eloHistory safely.
+// Pivot the fetched Elo history into a format for Recharts.
+const chartData = useMemo(() => {
+  if (!eloHistory || eloHistory.length === 0) return [];
+  const grouped: Record<string, any> = {};
+  // Collect all model names present in the history.
+  const modelNamesSet = new Set<string>();
+  eloHistory.forEach((row) => modelNamesSet.add(row.model_name));
+  const modelNames = Array.from(modelNamesSet);
+  // Group rows by truncated hour (i.e. same bucket for any timestamp in that hour)
+  eloHistory.forEach((row) => {
+    const dt = new Date(row.interval_start);
+    dt.setMinutes(0, 0, 0); // truncate minutes, seconds, and milliseconds
+    const dateKey = dt.toISOString();
+    if (!grouped[dateKey]) {
+      grouped[dateKey] = { date: dateKey };
+    }
+    // If there's already a value for this model in this bucket, take the maximum.
+    if (
+      grouped[dateKey][row.model_name] === undefined ||
+      row.elo_value > grouped[dateKey][row.model_name]
+    ) {
+      grouped[dateKey][row.model_name] = row.elo_value;
+    }
+  });
+  const sortedData = Object.values(grouped).sort(
+    (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  // Carry-forward missing values for each model.
+  modelNames.forEach((modelName) => {
+    let lastValue: number | undefined = undefined;
+    sortedData.forEach((row: any) => {
+      if (row[modelName] === undefined) {
+        row[modelName] = lastValue !== undefined ? lastValue : 1000;
+      } else {
+        lastValue = row[modelName];
+      }
+    });
+  });
+  return sortedData;
+}, [eloHistory]);
+
   const chartModelNames = useMemo(() => {
     if (!eloHistory) return []
     const names = new Set<string>()
@@ -318,7 +333,7 @@ export function Leaderboard() {
               ) : (
                 paginatedModels.map((model, index) => (
                   <TableRow
-                    key={model.model_name}
+                    key={model.model_id}
                     onMouseEnter={() => setHoveredModel(model.model_name)}
                     onMouseLeave={() => setHoveredModel(null)}
                   >
@@ -326,12 +341,12 @@ export function Leaderboard() {
                       {(currentPage - 1) * itemsPerPage + index + 1}
                     </TableCell>
                     <TableCell>
-                    <Link
-                      href={`/leaderboard/${encodeURIComponent(model.model_name)}`}
-                      className="text-muted-foreground hover:underline"
-                    >
-                      {model.model_name}
-                    </Link>
+                      <Link
+                        href={`/leaderboard/${encodeURIComponent(model.model_name)}`}
+                        className="text-muted-foreground hover:underline"
+                      >
+                        {model.model_name}
+                      </Link>
                     </TableCell>
                     <TableCell className="text-right font-semibold">
                       {Math.round(model.elo)}
@@ -376,7 +391,7 @@ export function Leaderboard() {
 
           {/* Elo History Chart */}
           <div>
-            <h3 className="text-xl font-bold mb-2">Elo History</h3>
+            <h3 className="text-xl font-bold mb-2">Elo History (Past 48h + Current)</h3>
             {isLoadingHistory ? (
               <p>Loading elo history...</p>
             ) : (
@@ -416,3 +431,4 @@ export function Leaderboard() {
     </Card>
   )
 }
+

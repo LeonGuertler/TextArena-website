@@ -920,6 +920,11 @@
   dependencies:
     "@types/node" "*"
 
+"@vercel/analytics@^1.4.1":
+  version "1.4.1"
+  resolved "https://registry.npmjs.org/@vercel/analytics/-/analytics-1.4.1.tgz"
+  integrity sha512-ekpL4ReX2TH3LnrRZTUKjHHNpNy9S1I7QmS+g/RQXoSUQ8ienzosuX7T9djZ/s8zPhBx1mpHP/Rw5875N+zQIQ==
+
 ai@latest:
   version "4.1.21"
   resolved "https://registry.npmjs.org/ai/-/ai-4.1.21.tgz"

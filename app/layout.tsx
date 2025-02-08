@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Sidebar } from "@/components/sidebar"
 import { AuthProvider } from "@/context/AuthContext"  // Import the AuthProvider
 import type React from "react"
+import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ["latin"] })
 

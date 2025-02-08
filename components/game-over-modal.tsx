@@ -38,6 +38,8 @@ interface SharedGameData {
     }
   }
 
+
+
 export function GameOverModal({ 
   gameResult, 
   onClose, 
@@ -134,6 +136,14 @@ export function GameOverModal({
       return null;
     }
   };
+function truncateName(name) {
+    const maxLength = 20;
+    if (name.length <= maxLength) {
+      return name;
+    }
+    // Take the first 9 characters, then add "..."
+    return name.slice(0, 9) + "...";
+  }
 
 const handleShare = async () => {
     try {
@@ -319,96 +329,96 @@ const handleShare = async () => {
     );
   }
   
-  // Normal game end return
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-background p-8 rounded-lg shadow-xl w-full max-w-md relative">
-        <button 
-          onClick={handleMinimize}
-          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Minimize2 className="h-5 w-5" />
-        </button>
-  
-        <div className="flex flex-col items-center text-center">
-          <div className={`rounded-full ${outcomeDisplay.bgColor} p-6 mb-4`}>
-            {outcomeDisplay.icon}
+return (
+  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div className="bg-background p-8 rounded-lg shadow-xl w-full max-w-md relative">
+      <button 
+        onClick={handleMinimize}
+        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Minimize2 className="h-5 w-5" />
+      </button>
+
+      <div className="flex flex-col items-center text-center">
+        <div className={`rounded-full ${outcomeDisplay.bgColor} p-6 mb-4`}>
+          {outcomeDisplay.icon}
+        </div>
+
+        <h2 className={`text-2xl font-bold mb-6 ${outcomeDisplay.textColor}`}>
+          {outcomeDisplay.title}
+        </h2>
+
+        <div className="w-full space-y-4 mb-6">
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Opponent</span>
+            {/* Truncate opponent name if it exceeds 12 characters */}
+            <span className="font-medium">{truncateName(gameResult.opponent_name)}</span>
           </div>
-  
-          <h2 className={`text-2xl font-bold mb-6 ${outcomeDisplay.textColor}`}>
-            {outcomeDisplay.title}
-          </h2>
-  
-          <div className="w-full space-y-4 mb-6">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Opponent</span>
-              <span className="font-medium">{gameResult.opponent_name}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Opponent Rating</span>
-              <span className="font-medium">{gameResult.opponent_elo}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Rating Change</span>
-              <span className={`font-medium ${gameResult.change_in_elo >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {gameResult.change_in_elo >= 0 ? '+' : ''}{gameResult.change_in_elo}
-              </span>
-            </div>
-            <div className="pt-4 border-t border-border">
-              <span className="text-sm text-muted-foreground">
-                {gameResult.reason}
-              </span>
-            </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Opponent Rating</span>
+            <span className="font-medium">{gameResult.opponent_elo}</span>
           </div>
-  
-          <div className="w-full space-y-3">
-            <Button onClick={onReturnToQueue} className="w-full">
-              Return to Queue
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Rating Change</span>
+            <span className={`font-medium ${gameResult.change_in_elo >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {gameResult.change_in_elo >= 0 ? '+' : ''}{gameResult.change_in_elo}
+            </span>
+          </div>
+          <div className="pt-4 border-t border-border">
+            <span className="text-sm text-muted-foreground">
+              {gameResult.reason}
+            </span>
+          </div>
+        </div>
+
+        <div className="w-full space-y-3">
+          <Button onClick={onReturnToQueue} className="w-full">
+            Return to Queue
+          </Button>
+          
+          <div className="grid grid-cols-3 gap-3">
+            <Button 
+              variant="outline" 
+              onClick={handleShare}
+              className="flex items-center justify-center"
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
             </Button>
             
-            <div className="grid grid-cols-3 gap-3">
-              <Button 
-                variant="outline" 
-                onClick={handleShare}
-                className="flex items-center justify-center"
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                onClick={handleCopyGame}
-                className="flex items-center justify-center"
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                Copy
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                onClick={handleReportBug}
-                disabled={bugReported}
-                className={`flex items-center justify-center ${
-                  bugReported ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20' : ''
-                }`}
-              >
-                {bugReported ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Reported
-                  </>
-                ) : (
-                  <>
-                    <Bug className="h-4 w-4 mr-2" />
-                    Report
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button 
+              variant="outline" 
+              onClick={handleCopyGame}
+              className="flex items-center justify-center"
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copy
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              onClick={handleReportBug}
+              disabled={bugReported}
+              className={`flex items-center justify-center ${
+                bugReported ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20' : ''
+              }`}
+            >
+              {bugReported ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Reported
+                </>
+              ) : (
+                <>
+                  <Bug className="h-4 w-4 mr-2" />
+                  Report
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
