@@ -17,6 +17,15 @@ import { ModelDetails } from "@/components/model-details";
 //   return <ModelDetails modelName={modelName} />;
 // }
 
+// export default function ModelPage({ params }) {
+//   return <ModelDetails modelName={params.modelName} />
+// }
 export default function ModelPage({ params }) {
-  return <ModelDetails modelName={params.modelName} />
+  const modelName = decodeURIComponent(params.modelName);
+  return <ModelDetails modelName={modelName} />;
 }
+// export default function ModelPage({ params }) {
+//   // params.modelName will be an array of URL segments, e.g., ["Model", "One"]
+//   const modelName = params.modelName.join("/");
+//   return <ModelDetails modelName={modelName} />;
+// }

@@ -326,12 +326,12 @@ export function Leaderboard() {
                       {(currentPage - 1) * itemsPerPage + index + 1}
                     </TableCell>
                     <TableCell>
-                      <Link
-                        href={`/leaderboard/${model.model_name}`}
-                        className="text-muted-foreground hover:underline"
-                      >
-                        {model.model_name}
-                      </Link>
+                    <Link
+                      href={`/leaderboard/${encodeURIComponent(model.model_name)}`}
+                      className="text-muted-foreground hover:underline"
+                    >
+                      {model.model_name}
+                    </Link>
                     </TableCell>
                     <TableCell className="text-right font-semibold">
                       {Math.round(model.elo)}

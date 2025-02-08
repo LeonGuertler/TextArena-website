@@ -75,7 +75,7 @@ function NavItem({ item, isCollapsed }: { item: { name: string; icon: any; href:
 }
 
 export function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true)
 
   return (
     <div className={cn("flex flex-col border-r bg-background", isCollapsed ? "w-[70px]" : "w-[240px]")}>

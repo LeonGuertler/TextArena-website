@@ -6,9 +6,9 @@ import { EnvironmentSelector } from "@/components/environment-selector"
 import AnimatedQueueDisplay from "@/components/animated-queue-display"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { GameOverModal } from '@/components/game-over-modal'
-import { Toaster } from 'sonner'
-import { HumanStats } from '@/components/HumanStats'
+import { GameOverModal } from "@/components/game-over-modal"
+import { Toaster } from "sonner"
+import { HumanStats } from "@/components/HumanStats"
 import { useAuth } from "@/context/AuthContext"
 import { 
   BarChart2, 
@@ -69,6 +69,8 @@ function formatQueueTime(seconds: number): string {
 }
 
 export default function PlayPage() {
+  const DEFAULT_SELECTED_ENVIRONMENTS = [1, 2]
+
   // Environment & queue states
   const [envOptions, setEnvOptions] = useState<EnvOption[]>([])
   const [selectedGames, setSelectedGames] = useState<number[]>([])
@@ -99,7 +101,7 @@ export default function PlayPage() {
   const [queueStartTime, setQueueStartTime] = useState<number | null>(null)
   const [elapsedTime, setElapsedTime] = useState("00:00")
 
-  // opponent time
+  // Opponent time
   const [opponentTimeLeft, setOpponentTimeLeft] = useState(0)
   const opponentIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -138,7 +140,7 @@ export default function PlayPage() {
     setIsInQueue(false)
     setQueueStartTime(null)
     stopTurnTimer()
-    stopOpponentTimer() // Add this line
+    stopOpponentTimer()
     setPlayerId(null)
     playerIdRef.current = null
     setShowGameSelection(true)
@@ -154,8 +156,11 @@ export default function PlayPage() {
           console.error("Error fetching environments:", error)
         } else if (data) {
           setEnvOptions(data)
-          const activeEnvIds = data.filter(e => e.active).map(e => parseInt(e.id))
-          setSelectedGames(activeEnvIds)
+          // Filter the environments based on your default selection.
+          const defaultEnvIds = data
+            .filter((e) => DEFAULT_SELECTED_ENVIRONMENTS.includes(parseInt(e.id)))
+            .map((e) => parseInt(e.id))
+          setSelectedGames(defaultEnvIds)
         }
       })
   }, [])
@@ -163,7 +168,6 @@ export default function PlayPage() {
   // Check matchmaking status periodically
   const checkMatchmakingStatus = async () => {
     try {
-      //const response = await fetch('https://localhost:8000/check_matchmaking', {
       const response = await fetch('https://0ffd0c14d46d.ngrok.app/check_matchmaking', {
         method: 'GET',
         credentials: 'include',
@@ -200,8 +204,6 @@ export default function PlayPage() {
   useEffect(() => {
     if (!isInitialized || !token) return
 
-    //const ws = new WebSocket(`wss://localhost:8000/ws?token=${token}`)
-    // const ws = new WebSocket(`wss://0ffd0c14d46d.ngrok.app/ws?token=${token}`)
     const ws = new WebSocket(`wss://0ffd0c14d46d.ngrok.app/ws?user_id=${token}`)
     wsRef.current = ws
 
@@ -229,7 +231,7 @@ export default function PlayPage() {
       console.log("WebSocket closed")
       setWsStatus("Disconnected")
       stopTurnTimer()
-      stopOpponentTimer() // Add this line
+      stopOpponentTimer()
       setConnectionLost(true)
     }
 
@@ -305,7 +307,7 @@ export default function PlayPage() {
         setQueueStartTime(null)
         setPlayerId(msg.player_id)
         playerIdRef.current = msg.player_id
-        setOpponentTimeLeft(180)  // Initialize opponent timer
+        setOpponentTimeLeft(180)
         playMatchFoundSound()
 
         if (msg.observation) {
@@ -349,56 +351,31 @@ export default function PlayPage() {
     }
   }
 
-  // function startMyTurn(observation: any[], myPlayer: number) {
-  //   appendObservation(observation, myPlayer)
-  //   setMyTurn(true)
-  //   setTimeLeft(180)
-  //   new Audio(SOUND_MYTURN).play()
-  //   inputRef.current?.focus()
-
-  //   if (intervalRef.current) clearInterval(intervalRef.current)
-  //   intervalRef.current = setInterval(() => {
-  //     setTimeLeft(t => {
-  //       if (t <= 1) {
-  //         stopTurnTimer()
-  //         setMyTurn(false)
-  //         wsRef.current?.send(JSON.stringify({ command: "action", action: "TIMEOUT" }))
-  //         return 0
-  //       }
-  //       return t - 1
-  //     })
-  //   }, 1000)
-  // }
-  // Sound effect: match found with rare chance
+  // Sound effect: match found (with rare chance)
   function playMatchFoundSound() {
-    if (isMuted) return;
+    if (isMuted) return
     const rnd = Math.random()
     if (rnd < 0.1) {
-      // 10% chance for rare sound
       new Audio(SOUND_MATCHFOUND_RARE).play()
     } else {
-      // 90% chance for common sound
       new Audio(SOUND_MATCHFOUND_COMMON).play()
     }
   }
 
   // Sound effect: my turn
   function playMyTurnSound() {
-    if (isMuted) return;
+    if (isMuted) return
     new Audio(SOUND_MYTURN).play()
   }
-
 
   function startMyTurn(observation: any[], myPlayer: number) {
     appendObservation(observation, myPlayer)
     setMyTurn(true)
     setTimeLeft(180)
   
-    // Stop opponent timer if it's running
     stopOpponentTimer()  
     playMyTurnSound()
   
-    // Auto-focus the input bar
     inputRef.current?.focus()
   
     if (intervalRef.current) clearInterval(intervalRef.current)
@@ -490,11 +467,22 @@ export default function PlayPage() {
     ws.send(JSON.stringify({ command: "queue", environments: selectedGames }))
   }
 
+  // function handleLeaveQueue() {
+  //   const ws = wsRef.current
+  //   if (!ws || ws.readyState !== WebSocket.OPEN) return
+  //   ws.send(JSON.stringify({ command: "leave" }))
+  // }
   function handleLeaveQueue() {
     const ws = wsRef.current
     if (!ws || ws.readyState !== WebSocket.OPEN) return
+  
     ws.send(JSON.stringify({ command: "leave" }))
+    // Update local state to reflect that the user has left the queue.
+    setIsInQueue(false)
+    setQueueStartTime(null)
+    setShowGameSelection(true)
   }
+  
 
   function handleConnectionLostClose() {
     setConnectionLost(false)
@@ -507,9 +495,8 @@ export default function PlayPage() {
 
   return (
     <div className="flex flex-col h-screen relative">
-      {/* <HumanStats /> */}
-
-      <div ref={chatContainerRef} className="flex-1 overflow-auto p-4 font-mono">
+      {/* Chat Messages */}
+      <div ref={chatContainerRef} className="flex-1 overflow-auto pt-16 px-4 pb-4 font-mono"> 
         {messages.map((m, i) => {
           let containerClass = "flex justify-center mb-2"
           let maxWidthClass = "max-w-[60%]"
@@ -543,7 +530,7 @@ export default function PlayPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Connection limit overlay */}
+      {/* Connection Limit Overlay */}
       {!serverStats.allowConnection && (
         <div className="absolute inset-0 bg-background/95 flex items-center justify-center z-50">
           <div className="max-w-md p-6 text-center space-y-4">
@@ -562,32 +549,7 @@ export default function PlayPage() {
         </div>
       )}
 
-      {/* Match input bar */}
-      {/* {isInMatch && (
-        <div className="p-4 border-t border-gray-300 flex items-center gap-2">
-          <input
-            ref={inputRef}
-            className="border p-2 flex-1 text-sm font-mono"
-            type="text"
-            placeholder={myTurn ? "Type your move..." : "Waiting for opponent..."}
-            value={playerInput}
-            onChange={(e) => setPlayerInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault()
-                sendAction()
-              }
-            }}
-            disabled={!myTurn}
-          />
-          <Button onClick={sendAction} disabled={!myTurn || !playerInput.trim()}>
-            Send
-          </Button>
-          {myTurn && (
-            <span className="ml-2 text-sm text-muted-foreground">Time Left: {timeLeft}s</span>
-          )}
-        </div>
-      )} */}
+      {/* Match Input Bar */}
       {isInMatch && (
         <div className="p-4 border-t border-gray-300 flex items-center gap-2">
           {myTurn ? (
@@ -613,16 +575,14 @@ export default function PlayPage() {
               <span className="ml-2 text-sm text-muted-foreground">Time Left: {timeLeft}s</span>
             </>
           ) : (
-            <>
-              <span className="text-sm font-mono">
-                Waiting for Opponent... (Time left: {opponentTimeLeft}s)
-              </span>
-            </>
+            <span className="text-sm font-mono">
+              Waiting for Opponent... (Time left: {opponentTimeLeft}s)
+            </span>
           )}
         </div>
       )}
 
-      {/* Queue overlay */}
+      {/* Queue Overlay */}
       {!isInMatch && !isGameResultMinimized && serverStats.allowConnection && (
         <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
           <AnimatedQueueDisplay
@@ -651,102 +611,47 @@ export default function PlayPage() {
         </div>
       )}
 
-      {/* WebSocket status */}
-      {/* <div className="absolute top-4 right-4 text-sm text-muted-foreground z-30">
-        WebSocket: {wsStatus}
-      </div> */}
-      {/* WebSocket status and mute button */}
-      {/* <div className="absolute top-4 right-4 flex items-center gap-4 z-30">
-        <button 
-          onClick={() => setIsMuted(prev => !prev)} 
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {isMuted ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11 5L6 9H2v6h4l5 4zM22 9l-6 6M16 9l6 6"/>
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-            </svg>
-          )}
-        </button>
-        <span className="text-sm text-muted-foreground">
-          WebSocket: {wsStatus}
-        </span>
-      </div> */}
-      {/* Top-right controls group */}
-      {/* <div className="absolute top-4 right-4 flex items-center gap-4 z-30">
-        <button 
-          onClick={() => setStatsVisible(prev => !prev)} 
-          className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-        >
-          <BarChart2 className="h-5 w-5" />
-          {statsVisible ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
+      {/* Top Right Panel */}
+      <div className="absolute top-4 right-4 z-50">
+        <div className="flex items-center gap-4 bg-black/30 backdrop-blur-md p-2 rounded-lg">
+          {/* Stats Toggle Button */}
+          <button
+            onClick={() => setStatsVisible((prev) => !prev)}
+            className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            <BarChart2 className="h-5 w-5" />
+            {statsVisible ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </button>
 
-        <button 
-          onClick={() => setIsMuted(prev => !prev)} 
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {isMuted ? (
-            <Volume2Off className="h-5 w-5" />
-          ) : (
-            <Volume2 className="h-5 w-5" />
-          )}
-        </button>
+          {/* Mute/Unmute Button */}
+          <button
+            onClick={() => setIsMuted((prev) => !prev)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {isMuted ? (
+              <VolumeX className="h-5 w-5" />
+            ) : (
+              <Volume2 className="h-5 w-5" />
+            )}
+          </button>
 
-        <span className="text-sm text-muted-foreground">
-          WebSocket: {wsStatus}
-        </span>
-      </div>
-      {/* Human stats component */}
-      {/* Top-right controls group */}
-    <div className="absolute top-4 right-4 flex items-center gap-4 z-50">
-        {/* Stats toggle button */}
-        <button
-          onClick={() => setStatsVisible((prev) => !prev)}
-          className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-        >
-          <BarChart2 className="h-5 w-5" />
-          {statsVisible ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
-        </button>
-
-        {/* Mute/unmute button */}
-        <button
-          onClick={() => setIsMuted((prev) => !prev)}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {isMuted ? (
-            <VolumeX className="h-5 w-5" />
-          ) : (
-            <Volume2 className="h-5 w-5" />
-          )}
-        </button>
-
-        {/* Optionally show WS status, etc. */}
-        <span className="text-sm text-muted-foreground">
-          WebSocket: {wsStatus}
-        </span>
+          {/* WebSocket Status */}
+          <span className="text-sm text-muted-foreground">
+            WebSocket: {wsStatus}
+          </span>
+        </div>
       </div>
 
-      {/* HumanStats panel (no superimposed button inside) */}
+      {/* HumanStats Panel */}
       <HumanStats
         isMinimized={!statsVisible}
         setIsMinimized={(min) => setStatsVisible(!min)}
       />
 
-     
       {/* Game Over Modal */}
       {gameResult && (
         <GameOverModal
