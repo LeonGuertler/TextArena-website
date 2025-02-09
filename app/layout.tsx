@@ -23,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           {/* Wrap your app with the AuthProvider */}
           <AuthProvider>
             <div className="flex h-screen">
