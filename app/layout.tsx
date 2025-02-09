@@ -74,6 +74,7 @@ export default function RootLayout({
             <WelcomeDialog />
           </AuthProvider>
         </ThemeProvider>
+        <Analytics /> {/* Add this line */}
       </body>
     </html>
   )
