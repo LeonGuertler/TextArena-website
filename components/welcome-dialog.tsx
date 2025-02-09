@@ -45,12 +45,18 @@ export function WelcomeDialog() {
             Please note that this is an early access version. There may still be some bugs on the website (we are researchers not SWEs after all). If you see something (a bug), say something (guertlerlo@cfar.a-star.edu.sg or on{' '}
             <Link href="https://discord.gg/KPacHzK23e" className="text-gray-500 hover:underline">discord</Link>).
           </p>
+        </div>        
+        <div className="flex flex-col space-y-4">
+          <p className="text-sm text-muted-foreground text-center">
+            The website is not optimized for Mobile yet. Please access it using your computer.
+          </p>
         </div>
         <div className="flex flex-col space-y-4">
           <p className="text-sm text-muted-foreground text-center">
             Note, we use a cookie to store a unique (anonymous) identifier. That way, you can view your individual performance history. Any interactions with the models may be released as an open-source dataset at some point in the future, so do not mention any sensitive information! By continuing you accept these two points.
           </p>
         </div>
+
         <DialogFooter className="flex justify-center sm:justify-center">
           <Button
             type="button"
