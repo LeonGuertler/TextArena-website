@@ -66,7 +66,7 @@ const teamMembers = [
   {
     name: "Cheston Tan",
     title: "Research @ A*Star",
-    image: "/cheston.jpg",
+    image: "/cheston.jpeg",
     link: "https://www.a-star.edu.sg/cfar/about-cfar/our-team/dr-cheston-tan",
   },
 ]

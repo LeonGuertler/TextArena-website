@@ -40,7 +40,7 @@ const bottomMenuItems = [
 const socialIcons = [
   { name: "Discord", icon: "/discord.svg", href: "https://discord.gg/KPacHzK23e" },
   { name: "GitHub", icon: Github, href: "https://github.com/LeonGuertler/TextArena" },
-  { name: "X", icon: Twitter, href: "https://x.com/LeonGuertler" },
+  // { name: "X", icon: Twitter, href: "https://x.com/LeonGuertler" },
 ]
 
 function NavItem({ item, isCollapsed }: { item: { name: string; icon: any; href: string }; isCollapsed: boolean }) {

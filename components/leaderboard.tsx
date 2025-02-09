@@ -391,22 +391,26 @@ const chartData = useMemo(() => {
 
           {/* Elo History Chart */}
           <div>
-            <h3 className="text-xl font-bold mb-2">Elo History (Past 48h + Current)</h3>
+            <h3 className="text-xl font-bold mb-2">Elo History</h3>
             {isLoadingHistory ? (
               <p>Loading elo history...</p>
             ) : (
               <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#555" />
                   <XAxis
                     dataKey="date"
                     stroke="#333"
                     tickFormatter={(tick) => {
-                      const d = new Date(tick)
-                      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      const d = new Date(tick);
+                      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
                     }}
                     tick={{ angle: -45, textAnchor: "end" }}
-                    interval={0}
+                    ticks={
+                      chartData && chartData.length > 0
+                        ? chartData.filter((_, i) => i % 5 === 0).map((item) => item.date)
+                        : []
+                    }
                   />
                   <YAxis stroke="#333" domain={["auto", "auto"]} />
                   <Tooltip content={<CustomHistoryTooltip />} />
@@ -418,12 +422,16 @@ const chartData = useMemo(() => {
                       name={name}
                       stroke={`hsl(${(idx * 360) / chartModelNames.length}, 70%, 50%)`}
                       strokeWidth={hoveredModel === name ? 4 : 2}
-                      dot={{ r: 4 }}
+                      dot={false}  // Remove dots from the line for a smooth appearance
                       opacity={hoveredModel && hoveredModel !== name ? 0.3 : 1}
                     />
                   ))}
                 </LineChart>
               </ResponsiveContainer>
+
+
+
+
             )}
           </div>
         </div>
