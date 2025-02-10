@@ -78,7 +78,7 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(true)
 
   return (
-    <div className={cn("flex flex-col border-r bg-background", isCollapsed ? "w-[70px]" : "w-[240px]")}>
+    <div className={cn("flex flex-col border-r bg-[hsl(var(--navbar))] text-[hsl(var(--navbar-foreground))]", isCollapsed ? "w-[70px]" : "w-[240px]")}>
       <div className="flex h-[60px] items-center px-2 border-b">
         {!isCollapsed && <span className="text-lg font-bold px-2">TextArena</span>}
         <Button
@@ -129,4 +129,3 @@ export function Sidebar() {
     </div>
   )
 }
-

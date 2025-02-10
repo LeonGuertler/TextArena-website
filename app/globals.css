@@ -2,18 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
+/* Import Ubuntu Mono from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap');
 
 @layer base {
   :root {
+    --navbar: 183 75% 4%;
+    --navbar-foreground: 0 0% 98%;
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
@@ -47,40 +42,47 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Define the monospace font */
+    --font-mono: 'Ubuntu Mono', monospace;
+    --font-sans: 'Inter', sans-serif; /* Add this line */
+
   }
+
   .dark {
-    --background: 0 0% 3.9%;
+    --navbar: 183 75% 4%;
+    --navbar-foreground: 0 0% 98%;
+    --background: 183 75% 7%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    --card: 168 47% 4%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
+    --popover: 168 47% 4%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
+    --primary-foreground: 168 47% 4%;
+    --secondary: 168 47% 12%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
+    --muted: 168 47% 12%;
     --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
+    --accent: 168 47% 12%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
+    --border: 168 47% 12%;
+    --input: 168 47% 12%;
     --ring: 0 0% 83.1%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-background: 168 47% 6%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 168 47% 30%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 168 47% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 168 47% 15%;
+    --sidebar-ring: 168 47% 40%;
   }
 }
 
@@ -89,6 +91,32 @@ body {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground min-h-screen m-0 font-sans;
   }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .dark-wave-bg {
+    background: linear-gradient(
+      135deg,
+      #000000,
+      #0b2b26,
+      #051513,
+      #000000
+    );
+    background-size: 200% 200%;
+    animation: darkWave 20s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+}
+
+@keyframes darkWave {
+  0% { background-position: 0% 0%; }
+  25% { background-position: 100% 0%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
 }

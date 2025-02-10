@@ -28,22 +28,7 @@ export default function GamePage({ params }: { params: { id: string } }) {
   const [gameData, setGameData] = useState<SharedGameData | null>(null);
   const [loading, setLoading] = useState(true);
 
-//   useEffect(() => {
-//     const fetchGame = async () => {
-//       try {
-//         const response = await fetch(`/api/games/${params.id}`);
-//         if (!response.ok) throw new Error('Game not found');
-//         const data = await response.json();
-//         setGameData(data);
-//       } catch (error) {
-//         console.error('Error fetching game:', error);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
 
-//     fetchGame();
-//   }, [params.id]);
 useEffect(() => {
     const fetchGame = async () => {
       try {

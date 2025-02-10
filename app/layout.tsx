@@ -1,12 +1,12 @@
-// // app/layout.tsx
 // import "./globals.css"
 // import type { Metadata } from "next"
 // import { Inter } from "next/font/google"
 // import { ThemeProvider } from "@/components/theme-provider"
 // import { Sidebar } from "@/components/sidebar"
-// import { AuthProvider } from "@/context/AuthContext"  // Import the AuthProvider
+// import { AuthProvider } from "@/context/AuthContext"
 // import type React from "react"
 // import { Analytics } from "@vercel/analytics/react"
+// import { WelcomeDialog } from "@/components/welcome-dialog" // We'll create this
 
 // const inter = Inter({ subsets: ["latin"] })
 
@@ -23,8 +23,7 @@
 //   return (
 //     <html lang="en">
 //       <body className={inter.className}>
-//         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-//           {/* Wrap your app with the AuthProvider */}
+//         <ThemeProvider attribute="class" defaultTheme="dark">
 //           <AuthProvider>
 //             <div className="flex h-screen">
 //               <Sidebar />
@@ -32,8 +31,10 @@
 //                 {children}
 //               </main>
 //             </div>
+//             <WelcomeDialog />
 //           </AuthProvider>
 //         </ThemeProvider>
+//         <Analytics /> {/* Add this line */}
 //       </body>
 //     </html>
 //   )
@@ -41,14 +42,13 @@
 import "./globals.css"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { ThemeProvider } from "@/components/theme-provider"
 import { Sidebar } from "@/components/sidebar"
 import { AuthProvider } from "@/context/AuthContext"
 import type React from "react"
 import { Analytics } from "@vercel/analytics/react"
-import { WelcomeDialog } from "@/components/welcome-dialog" // We'll create this
+import { WelcomeDialog } from "@/components/welcome-dialog"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], variable: '--font-sans' }) // Define variable here
 
 export const metadata: Metadata = {
   title: "TextArena",
@@ -61,9 +61,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="dark">
+    <html lang="en" className={inter.variable + " dark"}> {/* Add dark class and font variable */}
+      <body className="font-sans"> {/* Apply font-sans here */}
           <AuthProvider>
             <div className="flex h-screen">
               <Sidebar />
@@ -73,8 +72,7 @@ export default function RootLayout({
             </div>
             <WelcomeDialog />
           </AuthProvider>
-        </ThemeProvider>
-        <Analytics /> {/* Add this line */}
+        <Analytics />
       </body>
     </html>
   )

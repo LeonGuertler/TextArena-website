@@ -37,37 +37,42 @@ const sponsors = [
   },
 ]
 
-// For team members, give each a “link” prop for the click-through
+// Added isFirstAuthor flag to distinguish between author groups
 const teamMembers = [
   {
     name: "Leon Guertler",
     title: "Research @ A*Star",
-    image: "/leon.jpeg", // If leon.jpg is in the "public" folder, use this path
+    image: "/leon.jpeg",
     link: "https://x.com/LeonGuertler",
+    isFirstAuthor: true
   },
   {
     name: "Bobby Cheng",
     title: "Research @ A*Star",
     image: "/bobby.jpeg",
     link: "https://x.com/bobbycxy",
+    isFirstAuthor: true
   },
   {
     name: "Leshem Coshen",
     title: "Research @ MIT,\nMIT-IBM Watson lab",
     image: "/leshem.jpg",
     link: "https://x.com/LChoshen",
+    isFirstAuthor: false
   },
   {
     name: "Henry Mao",
     title: "Independent Researcher",
     image: "/henry.jpg",
     link: "https://x.com/Calclavia",
+    isFirstAuthor: false
   },
   {
     name: "Cheston Tan",
     title: "Research @ A*Star",
     image: "/cheston.jpeg",
     link: "https://www.a-star.edu.sg/cfar/about-cfar/our-team/dr-cheston-tan",
+    isFirstAuthor: false
   },
 ]
 
@@ -143,20 +148,26 @@ export default function AboutPage() {
                     alt={member.name}
                     width={100}
                     height={100}
-                    // Added a border hover effect and slight opacity change
                     className="rounded-full mb-2 border-2 border-transparent hover:border-white transition-all hover:opacity-90"
                   />
                 </Link>
               </div>
-              <h3 className="font-medium">{member.name}</h3>
-              <p className="text-sm text-muted-foreground whitespace-pre-line">{member.title}</p>
+              <h3 className="font-medium text-white">
+                {member.name}{member.isFirstAuthor && '*'}
+              </h3>
+              <p className="text-sm text-gray-400 whitespace-pre-line">
+                {member.title}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
+      {/* First Authors Note */}
+      <p className="text-gray-500 text-sm mt-16 mb-4">* First authors</p>
+
       {/* Acknowledgements */}
-      <section className="mt-24 pt-12 border-t">
+      <section className="mt-4 pt-12 border-t">
         <h2 className="text-2xl font-semibold mb-4">Acknowledgements</h2>
         <p>
           We would also like to thank our other contributors: <br />

@@ -1,4 +1,4 @@
-// components/AnimatedQueueDisplay.tsx
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ interface AnimatedQueueDisplayProps {
 }
 
 const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
-  isInQueue = true,
+  isInQueue = false, // Default to false
   environments = ['Production', 'Staging'],
   elapsedTime = '1:30',
   avgQueueTime = '2min',
@@ -52,24 +52,13 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
     "'Sometimes it is the people no one can imagine anything of who do the things no one can imagine.' - Alan Turing",
     "It's just an AI they said; how hard can it possibly be, they said.",
     "'If a machine is expected to be infallible, it cannot also be intelligent.' - Alan Turing",
-    "Alt+F4 for instant win (or cmd+w for rich folks).",
+    "Alt+F4 for instant win.",
     "'I just told you who I thought I was, a god' - Kanye West (Ye)",
     "'If my manager insults me again I will be assaulting him' - Kanye West (Ye)",
-    "This is the final boss of humanity. No pressure.",
     "'I am become Death, destroyer of bots.' - Also Oppenheimer, probably",
     "'GPT-4 is kind of mid.' - Socrates, probably",
-    "I'm not a control freak, I just like things done my way, which is the right way, obviously.",
-    "'Skynet sends its regards.' - Terminator, 2029",
     "You either defeat the machine, or you become the training data.",
     "Surely no AI will ever beat humans at... oh.",
-    "Don't worry, it's just a game. That's what Kasparov said too.",
-    // "If you're reading this, the machine is already adapting.",
-    "Play well, or future historians will cite this moment as 'where it all went wrong.'",
-    "No, you can't unplug it. That's cheating.",
-    "Just let me cook' - AlphaZero before sweeping chess (probably)",
-    "This isn't a game. It's a Turing Test, and you're losing.",
-    // "Winning means you're smart. Losing means you're obsolete.",
-    "'What if the AI is just pretending to be bad?' - Your intrusive thoughts.",
     "Reinforcement Learning from Human Suffering.",
     "'deep learning is hitting a wall' - Gary Marcus (17 Nov 2023)",
     "'Boom! We are exactly where I said we would be.' - Gary Marcus after moving the goalposts for the 10th time.",
@@ -82,22 +71,36 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
     "Okayyy Let's go!",
     "You will meet the love of your life🔮",
     "Whole day I'm fkn buys only get few money."
-  ]
+  ];
+
   
+  const [shuffledMessages, setShuffledMessages] = useState<string[]>([]);
   const [messageIndex, setMessageIndex] = useState(0);
 
-  // useEffect(() => {
-  //   if (isInQueue) {
-  //     const interval = setInterval(() => {
-  //       setMessageIndex((prev) => (prev + 1) % messages.length);
-  //     }, 3000);
-  //     return () => clearInterval(interval);
-  //   }
-  // }, [isInQueue, messages.length]);
+  function shuffleArray(array: string[]) {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  }
+
+  useEffect(() => {
+    setShuffledMessages(shuffleArray(messages));
+  }, []);
   useEffect(() => {
     if (isInQueue) {
       const interval = setInterval(() => {
-        setMessageIndex(Math.floor(Math.random() * messages.length));
+        setMessageIndex((prevIndex) => {
+          const nextIndex = prevIndex + 1;
+          // If we've shown all messages, reshuffle and start over
+          if (nextIndex >= messages.length) {
+            setShuffledMessages(shuffleArray(messages));
+            return 0;
+          }
+          return nextIndex;
+        });
       }, 5000);
       return () => clearInterval(interval);
     }
@@ -115,10 +118,10 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
         // Queue status display
         <div className="flex flex-col items-center space-y-6">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-100 mb-1">
+            <h2 className="text-3xl font-bold text-foreground mb-1">
               Queue Status
             </h2>
-            <p className="text-base text-gray-300">
+            <p className="text-base text-mutedForeground">
               In Queue for: {environments.join(' | ')}
             </p>
           </div>
@@ -126,14 +129,14 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
           <div className="flex flex-col items-center">
             <div className="mb-4">
               <motion.div
-                className="w-16 h-16 border-4 border-gray-500 border-dashed rounded-full"
+                className="w-16 h-16 border-4 border-border border-dashed rounded-full"
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
               />
             </div>
 
             <div className="text-center">
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-mutedForeground">
                 Time in Queue: {elapsedTime}
               </p>
               <div className="mt-4 h-10 flex items-center justify-center">
@@ -145,7 +148,7 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
                     animate="animate"
                     exit="exit"
                     transition={{ duration: 0.5 }}
-                    className="text-lg text-gray-200 font-semibold"
+                    className="text-lg text-foreground font-semibold"
                   >
                     {messages[messageIndex]}
                   </motion.div>
@@ -154,15 +157,17 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 text-sm text-gray-400">
+          <div className="flex items-center space-x-2 text-sm text-mutedForeground">
             <span>Avg. Queue Time: {avgQueueTime}</span>
             <span>•</span>
             <span>Active Players: {activePlayers}</span>
           </div>
 
-          <Button 
-            onClick={onLeaveQueue} 
-            className="transition-all duration-300"
+          <Button
+            variant="secondary" // Use secondary variant
+            onClick={onLeaveQueue}
+            className="bg-white hover:bg-white/90 text-[#0b2b26]"
+            // className="bg-secondary hover:bg-secondary/80 text-secondary-foreground"
           >
             Leave Queue
           </Button>
@@ -174,27 +179,29 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
             variant="outline"
             size="sm"
             onClick={() => onShowGameSelection(!showGameSelection)}
-            className="flex items-center"
+            className="flex items-center text-foreground"
           >
             Selected Games ({selectedGamesCount})
             <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
-          
+
           {showGameSelection && (
             <div className="bg-background border rounded-md p-4 shadow-lg">
               {gameSelectionUI}
             </div>
           )}
 
+
           <Button
-            onClick={onQueueClick}
-            disabled={wsStatus !== "Connected"}
-            className="transition-all duration-300"
-          >
+              variant="outline"
+              onClick={onQueueClick}
+              disabled={wsStatus !== "Connected"}
+              className="bg-white hover:bg-white/90 text-[#0b2b26] disabled:bg-muted disabled:text-muted-foreground"
+            >
             {wsStatus === "Connected" ? "Queue for Selected Games" : "Connecting…"}
           </Button>
 
-          <div className="text-sm text-muted-foreground mt-2">
+          <div className="text-sm text-mutedForeground mt-2">
             <span>Avg. Queue Time: {avgQueueTime}</span>
             <span className="mx-2">•</span>
             <span>Active Players: {activePlayers}</span>

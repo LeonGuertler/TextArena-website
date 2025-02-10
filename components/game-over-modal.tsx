@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Trophy, Minus, X, WifiOff, Share2, Copy, Bug, Maximize2, Minimize2, Check } from 'lucide-react';
@@ -14,7 +16,7 @@ interface GameOverModalProps {
       reason: string;
     };
     onClose: () => void;
-    onReturnToQueue: () => void;  // Add this new prop
+    onReturnToQueue: () => void;
     onMinimize: (minimized: boolean) => void;
     chatRef: React.RefObject<HTMLDivElement>;
     wsRef: React.RefObject<WebSocket>;
@@ -36,14 +38,12 @@ interface SharedGameData {
       reason: string;
       timestamp: string;
     }
-  }
-
-
+}
 
 export function GameOverModal({ 
   gameResult, 
   onClose, 
-  onReturnToQueue,  // Add this to the destructured props
+  onReturnToQueue,
   onMinimize, 
   chatRef, 
   wsRef 
@@ -61,74 +61,67 @@ export function GameOverModal({
     onMinimize(false);
   };
 
+  const handleCopyGame = async () => {
+    try {
+      const response = await fetch('https://21d082661210.ngrok.app/save_game', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: Array.from(chatRef.current?.querySelectorAll('[class*="flex justify-"]') || [])
+            .map(messageEl => {
+              const element = messageEl as HTMLElement;
+              let sender: "left" | "right" | "center";
+              
+              if (element.className.includes("justify-start")) {
+                sender = "left";
+              } else if (element.className.includes("justify-end")) {
+                sender = "right";
+              } else {
+                sender = "center";
+              }
 
-  // Handle copying game to clipboard
+              const textSpan = element.querySelector('span');
+              const text = textSpan?.textContent || "";
 
-    const handleCopyGame = async () => {
-        try {
-        // Use the same URL that would be shared
-        //const response = await fetch('https://localhost:8000/save_game', {
-        const response = await fetch('https://21d082661210.ngrok.app/save_game', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-            'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-            messages: Array.from(chatRef.current?.querySelectorAll('[class*="flex justify-"]') || [])
-                .map(messageEl => {
-                const element = messageEl as HTMLElement;
-                let sender: "left" | "right" | "center";
-                
-                if (element.className.includes("justify-start")) {
-                    sender = "left";
-                } else if (element.className.includes("justify-end")) {
-                    sender = "right";
-                } else {
-                    sender = "center";
-                }
-    
-                const textSpan = element.querySelector('span');
-                const text = textSpan?.textContent || "";
-    
-                return { sender, text };
-                }),
-            metadata: {
-                game_id: String(gameResult.game_id),
-                outcome: gameResult.outcome,
-                opponent_name: gameResult.opponent_name,
-                opponent_elo: gameResult.opponent_elo,
-                change_in_elo: gameResult.change_in_elo,
-                reason: gameResult.reason,
-                timestamp: new Date().toISOString()
-            }
-            })
-        });
-    
-        if (!response.ok) {
-            throw new Error(`Failed to save game: ${await response.text()}`);
-        }
-    
-        const data = await response.json();
-        const gameUrl = new URL(data.url, window.location.origin).toString();
-        
-        // Copy the URL to clipboard
-        await navigator.clipboard.writeText(gameUrl);
-        toast.success('Game URL copied to clipboard!');
-        } catch (error) {
-        console.error('Error copying game URL:', error);
-        toast.error('Failed to copy game URL');
-        }
-    };
+              return { sender, text };
+            }),
+          metadata: {
+            game_id: String(gameResult.game_id),
+            outcome: gameResult.outcome,
+            opponent_name: gameResult.opponent_name,
+            opponent_elo: gameResult.opponent_elo,
+            change_in_elo: gameResult.change_in_elo,
+            reason: gameResult.reason,
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
 
-   // Function to capture chat as image
-   const captureChat = async () => {
+      if (!response.ok) {
+        throw new Error(`Failed to save game: ${await response.text()}`);
+      }
+
+      const data = await response.json();
+      const gameUrl = new URL(data.url, window.location.origin).toString();
+      
+      await navigator.clipboard.writeText(gameUrl);
+      toast.success('Game URL copied to clipboard!');
+    } catch (error) {
+      console.error('Error copying game URL:', error);
+      toast.error('Failed to copy game URL');
+    }
+  };
+
+  const captureChat = async () => {
     if (!chatRef.current) return null;
     
     try {
       const canvas = await html2canvas(chatRef.current, {
-        backgroundColor: '#000000', // Force black background
-        scale: 2, // Higher quality
+        backgroundColor: '#000000',
+        scale: 2,
       });
       return canvas;
     } catch (error) {
@@ -136,27 +129,22 @@ export function GameOverModal({
       return null;
     }
   };
-function truncateName(name) {
+
+  function truncateName(name: string) {
     const maxLength = 20;
     if (name.length <= maxLength) {
       return name;
     }
-    // Take the first 9 characters, then add "..."
     return name.slice(0, 9) + "...";
   }
 
-const handleShare = async () => {
+  const handleShare = async () => {
     try {
-      // Debug log the chat ref
-      console.log("Chat ref content:", chatRef.current?.innerHTML);
-  
-      // Get all messages from the chat container
       const messages = Array.from(chatRef.current?.querySelectorAll('[class*="flex justify-"]') || [])
         .map(messageEl => {
           const element = messageEl as HTMLElement;
           let sender: "left" | "right" | "center";
           
-          // Determine sender based on alignment classes
           if (element.className.includes("justify-start")) {
             sender = "left";
           } else if (element.className.includes("justify-end")) {
@@ -164,21 +152,17 @@ const handleShare = async () => {
           } else {
             sender = "center";
           }
-  
-          // Get the text content from the inner span
+
           const textSpan = element.querySelector('span');
           const text = textSpan?.textContent || "";
-  
+
           return { sender, text };
         });
-  
-      console.log("Extracted messages:", messages);
-  
-      // Create the game data object
+
       const gameData = {
         messages,
         metadata: {
-          game_id: String(gameResult.game_id), // Ensure game_id is string
+          game_id: String(gameResult.game_id),
           outcome: gameResult.outcome,
           opponent_name: gameResult.opponent_name,
           opponent_elo: gameResult.opponent_elo,
@@ -187,11 +171,7 @@ const handleShare = async () => {
           timestamp: new Date().toISOString()
         }
       };
-  
-      console.log("Sending game data:", gameData);
-  
-      // Save game data to server
-      //const response = await fetch('https://localhost:8000/save_game', {
+
       const response = await fetch('https://21d082661210.ngrok.app/save_game', {
         method: 'POST',
         credentials: 'include',
@@ -200,21 +180,14 @@ const handleShare = async () => {
         },
         body: JSON.stringify(gameData)
       });
-  
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Server response:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
-        });
         throw new Error(`Failed to save game: ${errorText}`);
       }
-  
+
       const data = await response.json();
-      console.log("Server response:", data);
-  
-      // Create tweet text
+
       const outcomeText = gameResult.outcome?.toLowerCase() === 'win' ? 'won against' :
                          gameResult.outcome?.toLowerCase() === 'loss' ? 'lost to' :
                          gameResult.outcome?.toLowerCase() === 'draw' ? 'drew with' : 
@@ -233,7 +206,6 @@ const handleShare = async () => {
     }
   };
 
-  // Handle reporting bug
   const handleReportBug = () => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       toast.error('Cannot report bug: WebSocket connection is not available');
@@ -252,10 +224,10 @@ const handleShare = async () => {
   const getOutcomeDisplay = () => {
     if (!gameResult.outcome) {
       return {
-        icon: <WifiOff className="h-12 w-12 text-gray-500" />,
+        icon: <WifiOff className="h-12 w-12 text-white" />,
         title: 'Connection Lost',
-        bgColor: 'bg-gray-500/10',
-        textColor: 'text-gray-500'
+        bgColor: 'bg-black',
+        textColor: 'text-white'
       };
     }
   
@@ -298,7 +270,7 @@ const handleShare = async () => {
       <div className="fixed bottom-4 right-4 z-50">
         <Button
           onClick={handleMaximize}
-          className="flex items-center gap-2 shadow-lg"
+          className="flex items-center gap-2 shadow-lg bg-[hsl(var(--navbar))] hover:bg-[hsl(var(--navbar))]"
         >
           <Maximize2 className="h-4 w-4" />
           Show Game Results
@@ -306,22 +278,22 @@ const handleShare = async () => {
       </div>
     );
   }
-  // If outcome is null, it's a disconnection
+
   if (!gameResult.outcome) {
     return (
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-        <div className="bg-background p-8 rounded-lg shadow-xl w-full max-w-md">
+      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/80">
+        <div className="bg-black p-8 rounded-lg shadow-xl w-full max-w-md">
           <div className="flex flex-col items-center text-center space-y-4">
-            <div className="rounded-full bg-muted p-3">
-              <WifiOff className="h-8 w-8 text-muted-foreground" />
+            <div className="rounded-full bg-black p-3">
+              <WifiOff className="h-8 w-8 text-white" />
             </div>
-            <h2 className="text-xl font-semibold">Connection Lost</h2>
-            <p className="text-muted-foreground">
-              {gameResult.opponent_name} lost connection to the game.
-              This match will not affect your rating.
+            <h2 className="text-xl font-semibold text-white">Connection Lost</h2>
+            <p className="text-white">
+              The connection to the server was lost.
+              Please try to queue again.
             </p>
-            <Button onClick={onReturnToQueue} className="mt-4">
-              Return to Queue
+            <Button onClick={onReturnToQueue} className="mt-4 bg-white hover:bg-gray-100 text-black">
+              Close
             </Button>
           </div>
         </div>
@@ -329,96 +301,99 @@ const handleShare = async () => {
     );
   }
   
-return (
-  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-    <div className="bg-background p-8 rounded-lg shadow-xl w-full max-w-md relative">
-      <button 
-        onClick={handleMinimize}
-        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <Minimize2 className="h-5 w-5" />
-      </button>
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-[hsl(var(--navbar))] p-8 rounded-lg shadow-xl w-full max-w-md relative">
+        <button 
+          onClick={handleMinimize}
+          className="absolute top-4 right-4 text-muted-foreground hover:text-[hsl(var(--navbar-foreground))] transition-colors"
+        >
+          <Minimize2 className="h-5 w-5" />
+        </button>
 
-      <div className="flex flex-col items-center text-center">
-        <div className={`rounded-full ${outcomeDisplay.bgColor} p-6 mb-4`}>
-          {outcomeDisplay.icon}
-        </div>
+        <div className="flex flex-col items-center text-center">
+          <div className={`rounded-full ${outcomeDisplay.bgColor} p-6 mb-4`}>
+            {outcomeDisplay.icon}
+          </div>
 
-        <h2 className={`text-2xl font-bold mb-6 ${outcomeDisplay.textColor}`}>
-          {outcomeDisplay.title}
-        </h2>
+          <h2 className={`text-2xl font-bold mb-6 ${outcomeDisplay.textColor}`}>
+            {outcomeDisplay.title}
+          </h2>
 
-        <div className="w-full space-y-4 mb-6">
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Opponent</span>
-            {/* Truncate opponent name if it exceeds 12 characters */}
-            <span className="font-medium">{truncateName(gameResult.opponent_name)}</span>
+          <div className="w-full space-y-4 mb-6">
+            <div className="flex justify-between items-center">
+              <span className="text-white">Opponent</span>
+              <span className="font-medium text-white">{truncateName(gameResult.opponent_name)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-white">Opponent Rating</span>
+              <span className="font-medium text-white">{gameResult.opponent_elo}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-white">Rating Change</span>
+              <span className={`font-medium ${gameResult.change_in_elo >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {gameResult.change_in_elo >= 0 ? '+' : ''}{gameResult.change_in_elo}
+              </span>
+            </div>
+            <div className="pt-4 border-t border-[hsl(var(--background))]">
+              <span className="text-sm text-muted-foreground">
+                {gameResult.reason}
+              </span>
+            </div>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Opponent Rating</span>
-            <span className="font-medium">{gameResult.opponent_elo}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Rating Change</span>
-            <span className={`font-medium ${gameResult.change_in_elo >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {gameResult.change_in_elo >= 0 ? '+' : ''}{gameResult.change_in_elo}
-            </span>
-          </div>
-          <div className="pt-4 border-t border-border">
-            <span className="text-sm text-muted-foreground">
-              {gameResult.reason}
-            </span>
-          </div>
-        </div>
 
-        <div className="w-full space-y-3">
-          <Button onClick={onReturnToQueue} className="w-full">
-            Return to Queue
-          </Button>
-          
-          <div className="grid grid-cols-3 gap-3">
+          <div className="w-full space-y-3">
             <Button 
-              variant="outline" 
-              onClick={handleShare}
-              className="flex items-center justify-center"
+              onClick={onReturnToQueue} 
+              className="w-full bg-[hsl(var(--background))] hover:bg-[hsl(var(--background))] text-white"
             >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
+              Return to Queue
             </Button>
             
-            <Button 
-              variant="outline" 
-              onClick={handleCopyGame}
-              className="flex items-center justify-center"
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              Copy
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={handleReportBug}
-              disabled={bugReported}
-              className={`flex items-center justify-center ${
-                bugReported ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20' : ''
-              }`}
-            >
-              {bugReported ? (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Reported
-                </>
-              ) : (
-                <>
-                  <Bug className="h-4 w-4 mr-2" />
-                  Report
-                </>
-              )}
-            </Button>
+            <div className="grid grid-cols-3 gap-3">
+              <Button 
+                variant="outline" 
+                onClick={handleShare}
+                className="flex items-center justify-center bg-[hsl(var(--background))] hover:bg-[hsl(var(--background))]"
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={handleCopyGame}
+                className="flex items-center justify-center bg-[hsl(var(--background))] hover:bg-[hsl(var(--background))]"
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy
+              </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={handleReportBug}
+                  disabled={bugReported}
+                  className={`flex items-center justify-center bg-[hsl(var(--background))] hover:bg-[hsl(var(--background))] ${
+                    bugReported ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20' : ''
+                  }`}
+                >
+                  {bugReported ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Reported
+                    </>
+                  ) : (
+                    <>
+                      <Bug className="h-4 w-4 mr-2" />
+                      Report
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-);
-}
+    );
+  }
+
