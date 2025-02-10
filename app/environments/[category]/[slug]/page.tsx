@@ -80,7 +80,7 @@ export default async function DocsPage({ params }: { params: { category: string;
             />
           </div>
 
-          <article className="docs-content">
+          <article className="docs-content font-mono">
             <MDXRemote
               source={content}
               components={components}

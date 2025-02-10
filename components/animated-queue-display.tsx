@@ -44,7 +44,7 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
     "'sehr cool!' - my mom",
     "For the love of god, please read the instructions!",
     "I hope the queue is slow so I can read all of these.",
-    "'Mayonnaise colored Benz, I push miracle whips' - Kanye West (Ye)",
+    // "'Mayonnaise colored Benz, I push miracle whips' - Kanye West (Ye)",
     "supercalifragilisticexpialidocious",
     "Those are great, I hope it doesn't match too quickly.",
     "Think you have a SuperArtificial Intelligence?",
@@ -52,8 +52,8 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
     "It's just an AI they said; how hard can it possibly be, they said.",
     "'If a machine is expected to be infallible, it cannot also be intelligent.' - Alan Turing",
     "Alt+F4 for instant win.",
-    "'I just told you who I thought I was, a god' - Kanye West (Ye)",
-    "'If my manager insults me again I will be assaulting him' - Kanye West (Ye)",
+    // "'I just told you who I thought I was, a god' - Kanye West (Ye)",
+    // "'If my manager insults me again I will be assaulting him' - Kanye West (Ye)",
     "'I am become Death, destroyer of bots.' - Also Oppenheimer, probably",
     "'GPT-4 is kind of mid.' - Socrates, probably",
     "You either defeat the machine, or you become the training data.",
@@ -70,8 +70,8 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
     "Okayyy Let's go!",
     "You will meet the love of your life🔮",
     "Whole day I'm fkn buys only get few money.",
-    "'I am a machine. I am a robot. You cannot offend a robot.' - Kanye West",
-    "'Sometimes I feel like I’m just the best computer ever.' - Kanye West",
+    // "'I am a machine. I am a robot. You cannot offend a robot.' - Kanye West",
+    // "'Sometimes I feel like I’m just the best computer ever.' - Kanye West",
   ];
 
   const [shuffledMessages, setShuffledMessages] = useState<string[]>([]);
