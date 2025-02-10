@@ -1,13 +1,17 @@
-.docs-content {
+/* .docs-content {
     @apply text-muted-foreground/90;
+  } */
+  
+  .docs-content {
+    @apply text-muted-foreground/90 font-mono;
   }
   
   .docs-content h1 {
-    @apply text-4xl font-bold tracking-tight text-foreground mb-4 mt-2;
+    @apply text-4xl font-bold tracking-tight text-foreground mb-4 mt-2 font-mono;
   }
   
   .docs-content h2 {
-    @apply text-2xl font-semibold tracking-tight text-foreground mt-10 first:mt-0 mb-4;
+    @apply text-2xl font-semibold tracking-tight text-foreground mt-10 first:mt-0 mb-4 font-mono;
   }
   
   .docs-content h3 {
@@ -19,7 +23,7 @@
   }
   
   .docs-content a {
-    @apply underline underline-offset-4 text-foreground hover:text-muted-foreground transition-colors;
+    @apply underline underline-offset-4 text-foreground hover:text-muted-foreground transition-colors font-mono;
   }
   
   .docs-content ul {
@@ -39,7 +43,7 @@
   }
   
   .docs-content code:not(pre code) {
-    @apply relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm;
+    @apply relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-mono;
   }
   
   .docs-content ::selection {
@@ -52,7 +56,7 @@
   }
   
   .docs-content table th {
-    @apply font-semibold text-foreground text-left p-2 bg-secondary/50;
+    @apply font-semibold text-foreground text-left p-2 bg-secondary/50 font-mono;
   }
   
   .docs-content table td {
@@ -75,15 +79,15 @@
   
   /* Table styles */
   .docs-content table {
-    @apply w-full my-6 border-collapse text-sm;
+    @apply w-full my-6 border-collapse text-sm font-mono;
   }
   
   .docs-content table th {
-    @apply px-4 py-2 text-left font-medium border-b border-border/40 text-foreground bg-muted/50;
+    @apply px-4 py-2 text-left font-medium border-b border-border/40 text-foreground bg-muted/50 font-mono;
   }
   
   .docs-content table td {
-    @apply px-4 py-2 border-b border-border/20 text-muted-foreground;
+    @apply px-4 py-2 border-b border-border/20 text-muted-foreground font-mono;
   }
   
   .docs-content table tr:hover td {
@@ -91,7 +95,7 @@
   }
   
   .docs-content table a {
-    @apply text-foreground hover:text-muted-foreground no-underline border-b border-border/60 hover:border-border transition-colors;
+    @apply text-foreground hover:text-muted-foreground no-underline border-b border-border/60 hover:border-border transition-colors font-mono;
   }
   
   .docs-content a {
@@ -120,6 +124,6 @@
   }
   
   .docs-content p:contains("|") a {
-    @apply font-sans;
+    @apply font-mono;
   }
   

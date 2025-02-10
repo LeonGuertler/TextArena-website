@@ -131,11 +131,11 @@ export function GameOverModal({
   };
 
   function truncateName(name: string) {
-    const maxLength = 20;
+    const maxLength = 25;
     if (name.length <= maxLength) {
       return name;
     }
-    return name.slice(0, 9) + "...";
+    return name.slice(0, maxLength) + "...";
   }
 
   const handleShare = async () => {
@@ -267,10 +267,11 @@ export function GameOverModal({
 
   if (isMinimized) {
     return (
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-2 right-4 z-50">
         <Button
           onClick={handleMaximize}
-          className="flex items-center gap-2 shadow-lg bg-[hsl(var(--navbar))] hover:bg-[hsl(var(--navbar))]"
+          // className="flex items-center gap-2 shadow-lg bg-[hsl(var(--navbar))] hover:bg-[hsl(var(--navbar))]"
+          className="flex items-center gap-2 shadow-lg bg-[hsl(var(--navbar))] hover:bg-[hsl(var(--navbar))] text-white"
         >
           <Maximize2 className="h-4 w-4" />
           Show Game Results

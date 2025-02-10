@@ -38,7 +38,7 @@ export default async function DocsPage({ params }: { params: { slug: string } })
         <DocsSidebar />
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-            <article className="docs-content">
+            <article className="docs-content font-mono">
               <MDXRemote source={content} components={components} />
             </article>
           </div>
