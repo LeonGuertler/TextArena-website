@@ -11,8 +11,8 @@
     - **[Check]:** When there's no bet to call.
     - **[Call]:** Match the current bet.
     - **[Fold]:** Give up the current hand.
-    - **[Bet <amount>]:** Make a new bet (e.g., `[Bet 100]`).
-    - **[Raise <amount>]:** Increase an existing bet (e.g., `[Raise 200]`)
+    - **[Bet &lt;amount&gt;]:** Make a new bet (e.g., `[Bet 100]`).
+    - **[Raise &lt;amount&gt;]:** Increase an existing bet (e.g., `[Raise 200]`)
 - **Examples:**
     - `"The pot odds aren't good enough. [Fold]"`
     - `"I'll match that. [Call]"`
@@ -52,8 +52,8 @@ Available Actions:
   [Check] - When there's no bet to call
   [Call] - Match the current bet
   [Fold] - Give up your hand
-  [Bet <amount>] - Make a new bet, e.g. [Bet 100]
-  [Raise <amount>] - Increase the current bet, e.g. [Raise 200]
+  [Bet &lt;amount&gt;] - Make a new bet, e.g. [Bet 100]
+  [Raise &lt;amount&gt;] - Increase the current bet, e.g. [Raise 200]
 
 Winning:
 - Best poker hand wins the pot
@@ -69,9 +69,7 @@ During the game, players receive updates about:
 - Player chip stacks
 - Betting actions
 - Hand results
-<!-- ```plaintext
-Player 1: [Offer] I give 3 Sheep; You give 2 Wheat.
-``` -->
+
 
 ## Gameplay
 - **Players**: 2
@@ -213,7 +211,7 @@ print(f"Reason: {info['reason']}")
 
 - **Missing Action Token:**
     - **Issue:** Action string doesn't contain a valid action token.
-    - **Solution:** Include one of `[Check]`, `[Call]`, `[Fold]`, `[Bet <amount>]`, or `[Raise <amount>]`.
+    - **Solution:** Include one of `[Check]`, `[Call]`, `[Fold]`, `[Bet &lt;amount&gt;]`, or `[Raise &lt;amount&gt;]`.
 
 ## Version History
 - **v0**

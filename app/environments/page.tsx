@@ -8,9 +8,9 @@ import { allGames } from "@/lib/games-data"
 
 export default function EnvironmentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [isSinglePlayerOpen, setIsSinglePlayerOpen] = useState(true)
+  const [isSinglePlayerOpen, setIsSinglePlayerOpen] = useState(false)
   const [isTwoPlayerOpen, setIsTwoPlayerOpen] = useState(true)
-  const [isMultiPlayerOpen, setIsMultiPlayerOpen] = useState(true)
+  const [isMultiPlayerOpen, setIsMultiPlayerOpen] = useState(false)
 
   const filterGames = (games, category) => {
     return games
