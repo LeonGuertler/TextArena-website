@@ -69,7 +69,7 @@ function formatQueueTime(seconds: number): string {
 }
 
 export default function PlayPage() {
-  const DEFAULT_SELECTED_ENVIRONMENTS = [1, 2]
+  const DEFAULT_SELECTED_ENVIRONMENTS = [0, 3, 6, 8, 9, 10, 12, 13, 14, 15]
 
   // Environment & queue states
   const [envOptions, setEnvOptions] = useState<EnvOption[]>([])
