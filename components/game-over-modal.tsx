@@ -68,7 +68,7 @@ export function GameOverModal({
         try {
         // Use the same URL that would be shared
         //const response = await fetch('https://localhost:8000/save_game', {
-        const response = await fetch('https://0ffd0c14d46d.ngrok.app/save_game', {
+        const response = await fetch('https://21d082661210.ngrok.app/save_game', {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -192,7 +192,7 @@ const handleShare = async () => {
   
       // Save game data to server
       //const response = await fetch('https://localhost:8000/save_game', {
-      const response = await fetch('https://0ffd0c14d46d.ngrok.app/save_game', {
+      const response = await fetch('https://21d082661210.ngrok.app/save_game', {
         method: 'POST',
         credentials: 'include',
         headers: {

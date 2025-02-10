@@ -13,7 +13,7 @@ interface HumanStatsType {
   total_draws: number;
   total_losses: number;
   win_rate: number | null;
-  net_elo_change: number | null; // Overall net Elo change
+  net_elo_change: number | null;
 }
 
 interface EnvironmentStats {
@@ -21,8 +21,8 @@ interface EnvironmentStats {
   env_name: string;
   games_played: number;
   win_rate: number;
-  net_elo: number; // Per‑environment net Elo change
-  percentile: number; // As computed by your view/RPC
+  net_elo: number;
+  percentile: number;
 }
 
 interface HumanStatsProps {
@@ -30,7 +30,6 @@ interface HumanStatsProps {
   setIsMinimized: (min: boolean) => void;
 }
 
-// Helper to safely call .toFixed()
 function safeToFixed(num: number | null | undefined, fractionDigits = 1): string {
   return typeof num === "number" ? num.toFixed(fractionDigits) : "N/A";
 }
@@ -96,7 +95,6 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
     setIsLoading(true);
 
     try {
-      // Fetch overall and per‑environment stats via your RPCs.
       const { data: overallData, error: overallError } = await supabase
         .rpc("get_human_stats", { human_cookie_id: String(token) });
       if (overallError) throw overallError;
@@ -109,20 +107,27 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
         .rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
       if (percentileError) throw percentileError;
 
-      // Look up numeric ID from the "humans" table.
       const numericID = await fetchHumanNumericId(String(token));
       if (!numericID) {
         console.warn("No numeric ID found for token:", token);
       }
 
-      // Sum the overall Elo change if numeric ID is found.
       let netElo = 0;
       if (numericID) {
         netElo = await fetchNetEloChange(numericID);
       }
 
+      // Calculate total games and win rate from wins, draws, and losses
+      const total_wins = overallData[0].total_wins;
+      const total_draws = overallData[0].total_draws;
+      const total_losses = overallData[0].total_losses;
+      const actual_total_games = total_wins + total_draws + total_losses;
+      const win_rate = actual_total_games > 0 ? (total_wins / actual_total_games) * 100 : 0;
+
       const overallStats: HumanStatsType = {
         ...overallData[0],
+        total_games: actual_total_games,
+        win_rate,
         net_elo_change: netElo,
       };
 
@@ -148,19 +153,15 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
     return null;
   }
 
-  // Best Environments: sort by descending percentile and take the top three.
   const bestEnvs = [...envStats]
     .sort((a, b) => b.percentile - a.percentile)
     .slice(0, 3);
 
-  // Challenging Environments: sort by ascending percentile, take the bottom three,
-  // then reverse so the highest among them appears first.
   const challengingEnvs = [...envStats]
     .sort((a, b) => a.percentile - b.percentile)
     .slice(0, 3)
     .reverse();
 
-  // Build sharing text with a structured, multi-line layout.
   const handleShare = () => {
     if (!stats) return;
 
@@ -255,7 +256,6 @@ ${challengingEnvsText}`;
           <div className="text-center text-red-500 py-4">{error}</div>
         ) : stats ? (
           <div className="space-y-4">
-            {/* Overall Stats */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Games Played</span>
@@ -297,7 +297,6 @@ ${challengingEnvsText}`;
               </div>
             </div>
 
-            {/* Environment-Specific Stats */}
             {envStats.length > 0 && (
               <div className="space-y-4">
                 <div className="space-y-2">

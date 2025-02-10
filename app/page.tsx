@@ -923,7 +923,7 @@ export default function PlayPage() {
     
     // Reconnect WebSocket if needed
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      const newWs = new WebSocket(`wss://0ffd0c14d46d.ngrok.app/ws?user_id=${token}`)
+      const newWs = new WebSocket(`wss://21d082661210.ngrok.app/ws?user_id=${token}`)
       wsRef.current = newWs
       
       newWs.onopen = () => {
@@ -964,7 +964,7 @@ export default function PlayPage() {
   // Check matchmaking status periodically
   const checkMatchmakingStatus = async () => {
     try {
-      const response = await fetch('https://0ffd0c14d46d.ngrok.app/check_matchmaking', {
+      const response = await fetch('https://21d082661210.ngrok.app/check_matchmaking', {
         method: 'GET',
         credentials: 'include',
       })
@@ -1000,7 +1000,7 @@ export default function PlayPage() {
   useEffect(() => {
     if (!isInitialized || !token) return
 
-    const ws = new WebSocket(`wss://0ffd0c14d46d.ngrok.app/ws?user_id=${token}`)
+    const ws = new WebSocket(`wss://21d082661210.ngrok.app/ws?user_id=${token}`)
     wsRef.current = ws
 
     ws.onopen = () => {
@@ -1300,7 +1300,7 @@ export default function PlayPage() {
   
     // Check if we need to reconnect the WebSocket.
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      const newWs = new WebSocket(`wss://0ffd0c14d46d.ngrok.app/ws?user_id=${token}`)
+      const newWs = new WebSocket(`wss://21d082661210.ngrok.app/ws?user_id=${token}`)
       wsRef.current = newWs
   
       newWs.onopen = () => {

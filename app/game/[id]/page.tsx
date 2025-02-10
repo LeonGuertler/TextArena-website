@@ -48,7 +48,7 @@ useEffect(() => {
     const fetchGame = async () => {
       try {
         //const response = await fetch(`https://localhost:8000/api/games/${params.id}`);
-        const response = await fetch(`https://0ffd0c14d46d.ngrok.app/api/games/${params.id}`);
+        const response = await fetch(`https://21d082661210.ngrok.app/api/games/${params.id}`);
         if (!response.ok) throw new Error('Game not found');
         const data = await response.json();
         setGameData(data);
