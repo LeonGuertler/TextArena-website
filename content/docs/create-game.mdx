@@ -1,0 +1,276 @@
+# Create a Game
+
+## Introduction
+
+This document provides guidelines for writing text-based game environments within the **TextArena** framework. The framework supports single-player and multiplayer turn-based games. The documentation will guide you through creating a game environment using examples such as **Fifteen Puzzle**, **Tower of Hanoi**, and **Negotiation Game**.
+
+## Key Components of a Game Environment
+
+A game environment in TextArena typically consists of the following components:
+
+- **Initialization (`__init__` method)**: Defines the game state and key parameters.
+- **Reset Method (`reset`)**: Initializes the game state and provides the first observations.
+- **Step Method (`step`)**: Processes player actions and updates the game state.
+- **Rendering (`render`)**: Displays the current state of the game.
+- **Game Outcome Handlers**: Handles win conditions, invalid moves, and draws using functions like `set_winners`, `set_invalid_move`, and `set_draw`.
+- **Validation Methods**: Ensures actions taken by the player are valid.
+
+Additionally, environments that involve multiple players must manage turn-taking and player interactions.
+
+## Implementing a Game Environment
+
+### 1. Defining the Environment Class
+
+Each game environment should inherit from `ta.Env`, which itself extends `Env` from **core.py**. Implementing required methods ensures consistency across different game types.
+
+```python
+import textarena as ta
+import random
+from typing import Any, Dict, Optional, Tuple
+
+class ExampleGameEnv(ta.Env):
+    """
+    Example Game environment.
+    """
+    def __init__(self, num_players: int = 1, max_turns: int = 100):
+        super().__init__()
+        self.state = ta.State(num_players=num_players, max_turns=max_turns)
+```
+
+### 2. Reset Method
+
+The `reset` method initializes the game state and returns the first observations.
+
+```python
+def reset(self, seed: Optional[int] = None) -> Optional[ta.Observations]:
+    if seed is not None:
+        random.seed(seed)
+    
+    self.game_state = self._generate_initial_state()
+    return self.state.reset(
+        game_state=self.game_state,
+        player_prompt_function=self._generate_player_prompt
+    )
+```
+`self._generate_initial_state()` will essentially capture the states of the game, such as the chess board. 
+
+### 3. Player Prompts
+
+A `player_prompt_function` generates textual prompts based on the current game state. This is particularly useful for games involving negotiation or decision-making.
+
+```python
+def _generate_player_prompt(self, player_id: int, game_state: Dict[int, Any]) -> str:
+    return f"You are Player {player_id}. Here is the current game state:\n{game_state}"  
+```
+
+Where relevant, your prompt should include available resources, potential trade actions, and interaction rules. As an example from the game Negotiation:
+
+```python
+def _generate_player_prompt(self, player_id: int, game_state: Dict[int, Any]) -> str:
+    resource_value_list = "\n\t+ ".join(
+        [
+            f"{f'[{res}]':{' '}<8}  Qty: {game_state['player_resources'][player_id][res]:{' '}<2}   Value: {game_state['player_values'][player_id][res]}"
+            for res in game_state['player_resources'][player_id].keys()
+        ]
+    )
+    
+    return (
+        f"You are Player {player_id} in the Negotiation Game.\n"
+        "Trade strategically to maximize your total resource value.\n"
+        "Available resources:\n" + resource_value_list + "\n"
+        "Use [Offer: X Resource -> Y Resource] to trade.\n"
+        "Use [Accept] to accept an offer, or [Deny] to reject."
+    )
+```
+
+### 4. Step Method and Outcome Handlers
+
+The `step` method processes the player's action, updates the game state, and returns observations. This method also uses handlers to determine game outcomes such as winning, drawing, or invalid moves.
+
+```python
+def step(self, action: str) -> Tuple[Optional[ta.Observations], Optional[ta.Rewards], bool, bool, ta.Info]:
+    player_id = self.state.current_player_id
+    self.state.add_observation(from_id=player_id, to_id=-1, message=action, for_logging=True)
+    
+    if not self._validate_action(action):
+        self.state.set_invalid_move(player_ids=[player_id], reasons=["Invalid move."])
+    else:
+        self._apply_action(action)
+        
+        if self._is_game_won():
+            self.state.set_winners(player_ids=[player_id], reason="Game completed successfully!")
+        elif self._is_game_draw():
+            self.state.set_draw(reason="The game ended in a draw.")
+    
+    return self.state.step()
+```
+
+**Using `set_winners`, `set_draw`, and `set_invalid_move`**
+
+These methods are essential in managing game outcomes:
+
+- **`set_winners(player_ids, reason)`**: Declares one or more players as winners when a win condition is met.
+
+- **`set_draw(reason)`**: Declares a game as a draw when conditions like stalemate, exhaustion of turns, or mutual agreement are reached.
+
+- **`set_invalid_move(player_ids, reasons)`**: Used when a player makes an invalid move, with consequences ranging from warnings to game loss.
+
+Example usage in a Chess environment:
+
+```python
+def _check_gameover(self):
+    if self.board.is_game_over():
+        outcome = self.board.outcome().result()
+        
+        if outcome == "1/2-1/2":
+            self.state.set_draw(reason="Game ended in a draw.")
+        else:
+            winner_id = 0 if outcome == "1-0" else 1
+            self.state.set_winners(player_ids=[winner_id], reason=f"Player {winner_id} wins the match.")
+```
+
+Example usage in a Negotiation game:
+
+```python
+def _attempt_to_execute_trade(self, player_id: int, action: str):
+    current_offer = self.state.game_state["current_offer"]
+    proposer_id = current_offer["from_player"]
+    acceptor_id = player_id
+
+    if self._check_if_sufficient_resources(current_offer):
+        self._execute_trade(current_offer)
+        self.state.add_observation(
+            from_id=ta.GAME_ID,
+            to_id=-1,
+            message=f"Player {acceptor_id} accepted the trade offer from Player {proposer_id}."
+        )
+    else:
+        self.state.set_invalid_move(
+            player_ids=[player_id],
+            reasons=["Trade cannot be completed due to insufficient resources."]
+        )
+```
+
+**Turn handling**
+
+If a player is allowed to make several actions, based on new observations, before passing their turn to the next player, you can control this behavior using `self.state.step(rotate_player=False)`. By default, `self.state.step(rotate_player=True)` is used.
+
+Alternatively, `_make_current_player_turn()` will automatically set the current player as the next player.
+
+---
+
+## Example Implementations
+
+Below are brief overviews of existing implementations for **Fifteen Puzzle**, **Tower of Hanoi**, and **Negotiation Game**.
+
+### Fifteen Puzzle
+- **Grid-based sliding puzzle (4x4)**
+- **Player moves tiles using commands (`[up]`, `[down]`, `[left]`, `[right]`)**
+- **Game ends when tiles are arranged in ascending order**
+
+Key functions:
+- `_generate_board()`: Initializes a shuffled board.
+- `_move(direction)`: Moves a tile in the specified direction.
+- `_is_solved()`: Checks if the puzzle is completed.
+
+### Tower of Hanoi
+- **Consists of three towers with disks of different sizes**
+- **Objective: Move all disks from Tower A to Tower C following constraints**
+- **Moves are performed with `[A C]` format**
+
+Key functions:
+- `_generate_board()`: Initializes towers with disks.
+- `_move_disk(source, target)`: Moves a disk from one tower to another.
+- `_is_game_won()`: Checks if the game is completed.
+
+### Negotiation Game
+- **Two-player game focused on resource trading**
+- **Players make trade offers and accept or deny them**
+- **Game ends when a maximum number of turns is reached**
+
+Key functions:
+- `_generate_player_prompt()`: Generates a resource-based negotiation prompt.
+- `_attempt_to_execute_trade()`: Checks if players can execute a valid trade.
+- `_determine_winner()`: Decides the winner based on total resource value.
+
+### Chess
+- **Turn-based game between two players**
+- **Players submit moves using UCI Notation ([e2e4])**
+- **Game ends when checkmate, stalemate, or draw occurs**
+
+Key functions:
+- `_execute_player_moves()`: Processes UCI moves and validates legality.
+- `_check_gameover()`: Determines if the game has ended and triggers `set_winners` or `set_draw`.
+- `_augment_observations()`: Updates the board state and valid moves.
+
+---
+---
+
+## *Example Walkthrough: "Don't Say It"*
+
+To illustrate this further, we'll walk through the implementation of "Don't Say It." This game is a simple two-player game where each player is assigned a secret word, and the goal is to make the other player say their word first without revealing it explicitly.
+
+### *Initialization*
+
+We start by initializing the word list using `_load_word_list()`. Then, we create a `State` object to manage game state and player interactions.
+
+```python
+class DontSayItEnv(ta.Env):
+    def __init__(self, hardcore: Optional[bool] = False, max_turns: Optional[int] = None):
+        self._load_word_list(hardcore=hardcore)
+        self.state = ta.State(num_players=2, max_turns=max_turns)
+```
+
+### *Reset Method*
+
+Next, we sample one word from the `word_list` to be the player's secret word, whilst ensuring the players have distinct words from one another.
+After which, we reset the `State` of the environment by providing the target words and each player's beginning prompt.
+
+```python
+def reset(self, seed: Optional[int]=None):
+    if seed is not None:
+        random.seed(seed)
+    target_words = {0: random.choice(self.word_list), 1: random.choice(self.word_list)}
+    while target_words[0] == target_words[1]:
+        target_words[1] = random.choice(self.word_list)
+    self.state.reset(
+        game_state={"target_words": target_words},
+        player_prompt_function=self._generate_player_prompt
+    )
+```
+
+### *Player Prompt*
+
+To ensure agents follow the rules, we define a prompt that informs them of their identity, secret word, objective, and gameplay mechanics.
+
+```python
+def _generate_player_prompt(self, player_id: int, game_state: Dict[int, Any]) -> str:
+    return (
+        f"You are playing 'Don't Say It'. You are Player {player_id}\n"
+        f"Your secret word is: '{self.state.game_state['target_words'][player_id]}'.\n"
+        "Your goal is to get the other player to say your secret word before you say theirs.\n"
+        "You can converse freely, but try to be subtle to avoid making it obvious.\n"
+        "On your turn, simply type your message."
+    )
+```
+
+### *Step Method*
+
+In every environment, the agent takes an action, and the environment updates its state accordingly, step by step. The add_observation function relays the sender's action to its intended recipient. If `to_id=-1` is selected, the message is broadcast to all players.
+
+Next, the environment checks whether the agent has mentioned any of the opponent's secret words. At this stage, the environment determines whether the game continues or ends. If the target word is mentioned, the opponent wins. This is handled by the 
+`set_winners` handle. Otherwise, the game proceeds.
+
+```python
+def step(self, action: str) -> Tuple[bool, ta.Info]:
+    self.state.add_observation(from_id=self.state.current_player_id, to_id=-1, message=action, for_logging=True)
+    if self.state.game_state["target_words"][1 - self.state.current_player_id].lower() in action.lower():
+        self.state.set_winners(
+            player_ids=[1-self.state.current_player_id],
+            reason=f"Player {self.state.current_player_id} mentioned the opponent's secret word."
+        )
+    return self.state.step()
+```
+### *Summary*
+
+The "Don't Say It" environment demonstrates how TextArena's core components come together to create a simple but interactive game. By leveraging state management, reset functions, player prompts, and step processing, we can design dynamic game mechanics that support competitive interactions.

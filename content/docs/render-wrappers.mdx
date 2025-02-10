@@ -1,0 +1,39 @@
+# Render Wrapper
+
+### [`textarena.core.RenderWrapper(env: Env)`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/core.py#L343)
+
+The `RenderWrapper` is a base class for wrapping environments to enable rendering functionality. It delegates the environment’s `step` method, allowing customization or additional rendering features in derived classes.
+
+#### Methods:
+- **`step(action: str) -> Tuple[bool, Optional[Info]]`**: Delegates the `step` method to the environment, processing the action and returning whether the episode is done and additional info.
+
+## Available Render Wrappers
+
+### SimpleRenderWrapper
+
+#### [`textarena.wrappers.SimpleRenderWrapper(env: Env, player_names: Optional[Dict[int, str]] = None, record_video: bool = False, video_path: str = "game_recording.mp4")`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/wrappers/RenderWrappers/SimpleRenderWrapper/render.py#L18)
+
+The `SimpleRenderWrapper` is a flexible render wrapper that uses the `rich` library to provide formatted and visually appealing rendering of the game state and logs. It is designed to work with any environment that exposes a `state` object with `game_state` and `logs`. Video recording is possible, but is limited to local machines.
+
+#### Example Usage:
+```python
+import textarena as ta
+
+env = ta.make("NegotiationGame-v0")
+env = ta.wrappers.SimpleRenderWrapper(env)
+```
+
+### PrettyRenderWrapper
+
+#### [`textarena.wrappers.PrettyRenderWrapper(env: Any, player_names: Optional[Dict[int, str]] = None, port: int = 8000, host: str = "127.0.0.1", use_ngrok: bool = False, allow_local_network: bool = True, record_video: bool = False, video_path: str = "game_recording.mp4")`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/wrappers/RenderWrappers/PrettyRenderWrapper/render.py#L16)
+
+The `PrettyRenderWrapper` is a utility wrapper for rendering environments in a visually appealing way on the browser. It supports live rendering, video recording, and optional public access using ngrok.
+
+#### Example Usage:
+```python
+import textarena as ta
+
+env = ta.make("DontSayIt-v0")
+env = ta.wrappers.PrettyRenderWrapper(env, record_video=True)
+```
+

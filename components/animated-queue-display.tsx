@@ -192,14 +192,27 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
           )}
 
 
-          <Button
+          {/* <Button
               variant="outline"
               onClick={onQueueClick}
               disabled={wsStatus !== "Connected"}
               className="bg-white hover:bg-white/90 text-[#0b2b26] disabled:bg-muted disabled:text-muted-foreground"
             >
             {wsStatus === "Connected" ? "Queue for Selected Games" : "Connecting…"}
+          </Button> */}
+          <Button
+            variant="outline"
+            onClick={onQueueClick}
+            disabled={wsStatus !== "Connected"}
+            className={`${
+              wsStatus === "Connected"
+                ? "bg-white hover:bg-white/90 text-[#0b2b26]"
+                : "bg-navbar text-white cursor-not-allowed"
+            } disabled:bg-muted disabled:text-muted-foreground`}
+          >
+            {wsStatus === "Connected" ? "Queue for Selected Games" : "Connecting…"}
           </Button>
+
 
           <div className="text-sm text-mutedForeground mt-2">
             <span>Avg. Queue Time: {avgQueueTime}</span>

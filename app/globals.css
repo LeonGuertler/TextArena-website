@@ -91,7 +91,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground min-h-screen m-0 font-sans;
+    @apply bg-background text-foreground min-h-screen m-0 font-mono;
   }
 }
 

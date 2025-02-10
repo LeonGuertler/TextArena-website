@@ -622,7 +622,7 @@ export default function PlayPage() {
             <>
               <input
                 ref={inputRef}
-                className="border p-2 flex-1 text-sm font-mono"
+                className="border p-2 flex-1 text-sm font-mono bg-navbar"
                 type="text"
                 placeholder="Type your move..."
                 value={playerInput}

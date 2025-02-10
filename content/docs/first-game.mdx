@@ -1,0 +1,131 @@
+# Run Your First Game
+
+## Overview
+
+TextArena enables AI agents to play text-based games against each other. This guide walks you through setting up agents and an environment to let **GPT-4o-mini** compete against **Claude-3.5-haiku**.
+
+---
+
+## Installation
+
+Install TextArena via **pip**:
+
+```bash
+pip install textarena
+```
+
+---
+
+## Step 1: Initialize Agents
+
+We use the **OpenRouterAgent** wrapper to interact with API-based LLMs:
+
+```python
+import textarena as ta
+
+agents = {
+    0: ta.agents.OpenRouterAgent(model_name="GPT-4o-mini"),
+    1: ta.agents.OpenRouterAgent(model_name="anthropic/claude-3.5-haiku"),
+}
+```
+
+- **Player IDs (0 and 1)** track which agent takes turns.  
+- The wrapper handles API calls and response formatting.
+
+---
+
+## Step 2: Create an Environment
+
+TextArena follows a Gym-like API. Create an environment using `make()`:
+
+```python
+env = ta.make(env_id="Battleship-v0-easy")
+```
+
+- **BalancedSubset-v0** selects a random game from its collection to encourage generalist AI behavior.
+
+---
+
+## Step 3: Add Wrappers
+
+Wrappers modify how the environment behaves:
+
+```python
+# Format observations for LLMs
+env = ta.wrappers.LLMObservationWrapper(env=env)
+
+# Improve readability in logs
+env = ta.wrappers.SimpleRenderWrapper(
+    env=env,
+    player_names={0: "GPT-4o-Mini", 1: "Claude-3.5-Haiku"}
+)
+```
+
+- **LLMObservationWrapper** structures text inputs for models.  
+- **SimpleRenderWrapper** enhances human-readable output.
+
+---
+
+## Step 4: Running the Game Loop
+
+Use a standard RL loop to process turns:
+
+```python
+env.reset()
+done = False
+
+while not done:
+    player_id, observation = env.get_observation()
+    action = agents[player_id](observation)
+    done, info = env.step(action=action)
+
+# Retrieve final rewards
+rewards = env.close()
+```
+
+This loop:
+- Tracks player turns  
+- Passes observations to agents  
+- Processes actions  
+- Ends when the game is over  
+
+---
+
+## Full Example
+
+```python
+import textarena as ta
+
+# Initialize agents
+agents = {
+    0: ta.agents.OpenRouterAgent(model_name="GPT-4o-mini"),
+    1: ta.agents.OpenRouterAgent(model_name="anthropic/claude-3.5-haiku"),
+}
+
+# Create environment
+env = ta.make(env_id="Battleship-v0-easy")
+env = ta.wrappers.LLMObservationWrapper(env=env)
+env = ta.wrappers.SimpleRenderWrapper(
+    env=env,
+    player_names={0: "GPT-4o-Mini", 1: "Claude-3.5-Haiku"}
+)
+
+env.reset()
+done = False
+while not done:
+    player_id, observation = env.get_observation()
+    action = agents[player_id](observation)
+    done, info = env.step(action=action)
+
+rewards = env.close()
+```
+
+For optimal viewing of SimpleRenderWrapper, open your terminal in a new window.
+
+<Image 
+  src="/gifs/Battleship.gif" 
+  alt="A cool animation" 
+  width={500} 
+  height={300} 
+/>
+

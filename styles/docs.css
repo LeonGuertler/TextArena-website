@@ -1,0 +1,125 @@
+.docs-content {
+    @apply text-muted-foreground/90;
+  }
+  
+  .docs-content h1 {
+    @apply text-4xl font-bold tracking-tight text-foreground mb-4 mt-2;
+  }
+  
+  .docs-content h2 {
+    @apply text-2xl font-semibold tracking-tight text-foreground mt-10 first:mt-0 mb-4;
+  }
+  
+  .docs-content h3 {
+    @apply text-xl font-semibold tracking-tight text-foreground/90 mt-8 mb-3;
+  }
+  
+  .docs-content p {
+    @apply leading-7 [&:not(:first-child)]:mt-5;
+  }
+  
+  .docs-content a {
+    @apply underline underline-offset-4 text-foreground hover:text-muted-foreground transition-colors;
+  }
+  
+  .docs-content ul {
+    @apply my-6 ml-6 list-disc [&>li]:mt-2;
+  }
+  
+  .docs-content :where(h1, h2, h3, h4) {
+    @apply scroll-mt-24;
+  }
+  
+  .docs-content .contribute-box {
+    @apply my-6 rounded-lg border bg-secondary/50 p-4;
+  }
+  
+  .docs-content strong {
+    @apply font-semibold text-foreground;
+  }
+  
+  .docs-content code:not(pre code) {
+    @apply relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm;
+  }
+  
+  .docs-content ::selection {
+    @apply bg-foreground/10;
+  }
+  
+  /* Table styles */
+  .docs-content table {
+    @apply w-full my-6;
+  }
+  
+  .docs-content table th {
+    @apply font-semibold text-foreground text-left p-2 bg-secondary/50;
+  }
+  
+  .docs-content table td {
+    @apply p-2 border-t border-border/40;
+  }
+  
+  /* List styles */
+  .docs-content ul {
+    @apply my-6 ml-6 list-disc;
+  }
+  
+  .docs-content li {
+    @apply mt-2;
+  }
+  
+  /* Blockquote styles */
+  .docs-content blockquote {
+    @apply border-l-2 border-border pl-6 italic my-6;
+  }
+  
+  /* Table styles */
+  .docs-content table {
+    @apply w-full my-6 border-collapse text-sm;
+  }
+  
+  .docs-content table th {
+    @apply px-4 py-2 text-left font-medium border-b border-border/40 text-foreground bg-muted/50;
+  }
+  
+  .docs-content table td {
+    @apply px-4 py-2 border-b border-border/20 text-muted-foreground;
+  }
+  
+  .docs-content table tr:hover td {
+    @apply bg-muted/30 text-foreground transition-colors;
+  }
+  
+  .docs-content table a {
+    @apply text-foreground hover:text-muted-foreground no-underline border-b border-border/60 hover:border-border transition-colors;
+  }
+  
+  .docs-content a {
+    @apply text-foreground/90 underline underline-offset-4 hover:text-foreground transition-colors;
+  }
+  
+  .docs-content h1 {
+    @apply text-4xl font-bold tracking-tight text-foreground mb-8;
+  }
+  
+  .docs-content h2 {
+    @apply text-2xl font-semibold tracking-tight text-foreground mt-10 mb-4;
+  }
+  
+  .docs-content p {
+    @apply text-muted-foreground mb-6;
+  }
+  
+  /* Style the wrapper format */
+  .docs-content p:has(+ p:contains("|")) {
+    @apply mb-1;
+  }
+  
+  .docs-content p:contains("|") {
+    @apply font-mono text-sm text-muted-foreground whitespace-pre-wrap mb-1;
+  }
+  
+  .docs-content p:contains("|") a {
+    @apply font-sans;
+  }
+  

@@ -33,6 +33,7 @@ import {
   Radar,
   LineChart,
   Line,
+  PolarRadiusAxis
 } from "recharts"
 import { supabase } from "@/lib/supabase"
 
@@ -500,26 +501,40 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       </div>
 
       {/* Skill Distribution */}
+      {/* Skill Distribution */}
       <div className="mb-8">
-        {/* <Card className="bg-background border-2 border-sidebarPrimary"> */}
         <Card className="bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))]">
           <CardHeader>
-          <CardTitle className="font-mono">Skill Distribution</CardTitle>
+            <CardTitle className="font-mono">Skill Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <RadarChart data={skillData}>
-                {/* <PolarGrid />
-                <PolarAngleAxis dataKey="skill" tick={{ fill: "foreground", fontSize: 12 , fontFamily: "var(--font-mono)" }} /> */}
                 <PolarGrid stroke="white" />
-                <PolarAngleAxis dataKey="skill" tick={{ fill: "white", fontSize: 12, fontFamily: "var(--font-mono)" }} />
+                <PolarAngleAxis
+                  dataKey="skill"
+                  tick={{ fill: "white", fontSize: 12, fontFamily: "var(--font-mono)" }}
+                />
+                {/* Add the PolarRadiusAxis with a fixed domain */}
+                {/* <PolarRadiusAxis
+                  domain={[500, 1500]}
+                  tick={{ fill: "white", fontSize: 12, fontFamily: "var(--font-mono)" }}
+                /> */}
+                <PolarRadiusAxis domain={[500, 1500]} hide tick={false} axisLine={false} />
                 <Tooltip content={<CustomRadarTooltip />} />
-                <Radar name="Skill Level" dataKey="elo" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+                <Radar
+                  name="Skill Level"
+                  dataKey="elo"
+                  stroke="#8884d8"
+                  fill="#8884d8"
+                  fillOpacity={0.6}
+                />
               </RadarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
+
 
       {/* Recent Games */}
       <div className="mb-8">

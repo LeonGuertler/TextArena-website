@@ -12,15 +12,20 @@ interface GameCardProps {
 export function GameCard({ name, href, gifSrc }: GameCardProps) {
   return (
     <Link href={href} passHref>
-      <Card className="cursor-pointer hover:shadow-md transition-shadow">
+      {/* <Card className="cursor-pointer hover:shadow-md transition-shadow bg-navbar-foreground"> */}
+      <Card className="cursor-pointer hover:shadow-md transition-shadow bg-navbar">
+
         <CardContent className="p-4">
-          <div className="aspect-square relative mb-2">
+          <div className="relative mb-2" style={{ aspectRatio: "16 / 9" }}>
             <Image
-              src={gifSrc || "/placeholder.svg"}
+              src={gifSrc}
               alt={`${name} gameplay`}
               layout="fill"
               objectFit="cover"
               className="rounded-md"
+              onError={(e) => {
+                e.currentTarget.src = "gifs/coming-soon.gif"; // Ensure a fallback image appears
+              }}
             />
           </div>
           <h3 className={cn("text-lg font-semibold text-center truncate", name.length > 12 ? "text-sm" : "")}>

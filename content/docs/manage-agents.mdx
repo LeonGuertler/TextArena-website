@@ -1,0 +1,124 @@
+# List of Agents
+
+## Agent Base Class
+
+### [`textarena.core.Agent`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/core.py#L364)
+
+The `Agent` is a generic base class that defines the basic structure of an agent. It is designed to process observations and generate actions, providing a foundation for building custom agents.
+
+---
+
+## Available Agent Classes
+
+### [`textarena.agents.HumanAgent`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/agents/basic_agents.py#L19)
+
+The `HumanAgent` allows manual user input for actions. It is primarily useful for debugging or exploratory interactions.
+
+#### Example:
+
+```python
+import textarena as ta
+agent = ta.agents.HumanAgent()
+```
+
+---
+
+### [`textarena.agents.AnthropicAgent`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/agents/basic_agents.py#LXX)
+
+The `AnthropicAgent` integrates with Anthropic's Claude models to generate responses. It supports customizable system prompts and model selection.
+
+#### Example:
+
+```python
+import textarena as ta
+agent = ta.agents.AnthropicAgent(model_name="claude-3-5-sonnet-20241022")
+```
+
+---
+
+### [`textarena.agents.AWSBedrockAgent`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/agents/basic_agents.py#LXX)
+
+The `AWSBedrockAgent` interacts with a range of model families via AWS Bedrock Runtime API, providing scalable cloud-based inference.
+
+#### Example:
+
+```python
+import textarena as ta
+agent = ta.agents.AWSBedrockAgent(model_id="us.meta.llama3-2-11b-instruct-v1:0")
+```
+
+---
+
+### [`textarena.agents.CerebrasAgent`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/agents/basic_agents.py#L301)
+
+The `CerebrasAgent` uses the Cerebras cloud SDK to interact with large-scale models. It is ideal for tasks requiring high efficiency and scalability.
+
+#### Example:
+
+```python
+import textarena as ta
+agent = ta.agents.CerebrasAgent(model_name="cerebras-llm-13b")
+```
+
+---
+
+### [`textarena.agents.GeminiAgent`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/agents/basic_agents.py#LXX)
+
+The `GeminiAgent` uses the Google Gemini API to generate responses. It allows model selection and system prompt customization.
+
+#### Example:
+
+```python
+import textarena as ta
+agent = ta.agents.GeminiAgent(model_name="gemini-pro")
+```
+
+---
+
+### [`textarena.agents.HFLocalAgent`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/agents/basic_agents.py#L230)
+
+The `HFLocalAgent` integrates with Hugging Face Transformers for local inference. It supports optional 8-bit quantization for efficient model execution.
+
+#### Example:
+
+```python
+import textarena as ta
+agent = ta.agents.HFLocalAgent(
+    model_name="gpt2",
+    quantize=False  # default
+)
+```
+
+---
+
+### [`textarena.agents.OpenAIAgent`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/agents/basic_agents.py#LXX)
+
+The `OpenAIAgent` uses OpenAI's API to generate responses. It supports configurable system prompts and model customization.
+
+#### Example:
+
+```python
+import textarena as ta
+agent = ta.agents.OpenAIAgent(model_name="gpt-4")
+```
+
+---
+
+### [`textarena.agents.OpenRouterAgent`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/agents/basic_agents.py#L124)
+
+The `OpenRouterAgent` uses OpenRouter's API to communicate with language models. It supports customizable system prompts and model selection.
+
+#### Example:
+
+```python
+import textarena as ta
+
+# with the default system prompt
+agent = ta.agents.OpenRouterAgent(model_name="GPT-4o-mini")
+
+# with a custom system prompt
+agent = ta.agents.OpenRouterAgent(
+    model_name="GPT-4o-mini",
+    system_prompt="Your life depends on whether you win [...]"
+)
+```

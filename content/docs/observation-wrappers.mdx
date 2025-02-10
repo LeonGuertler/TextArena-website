@@ -1,0 +1,53 @@
+# Observation Wrapper
+
+### [`textarena.core.ObservationWrapper(env: Env)`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/core.py#L333)
+
+The `ObservationWrapper` is a base class for customizing the observations returned by an environment. It provides flexibility to preprocess or transform observations as needed.
+
+#### Methods:
+- **`get_observation() -> Tuple[int, Observations]`**: Retrieves and processes the observation for a specific player.
+- **`observation()`**: Abstract method that must be implemented by subclasses to define transformation or processing of observations.
+
+Observations returned by the environment are lists of tuples containing the sender ID and message for all events since the player’s last turn.
+
+#### Example Observation Data:
+```python
+# Observation at t0
+[
+    (-1, "You are Player 0 in the Negotiation Game [...]")
+]
+
+# Observation at t1
+[
+    (0, "Let's strategize to increase the total [...]")
+    (-1, "Player 0 made the following offer to [...]")
+    (1, "Thank you for your offer, Player 0 [...]")
+    (-1, "Player 1 accepted the trade offer from Player 0.")
+    (-1, "Player 1 made the following offer to [...]")
+]
+```
+
+## Available Observation Wrappers
+
+### LLMObservationWrapper
+
+#### [`textarena.wrappers.LLMObservationWrapper(env: Env)`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/wrappers/ObservationWrappers/llm_observation_wrapper.py#L10)
+
+The `LLMObservationWrapper` converts environment observations into formatted strings for use with large language models (LLMs). It ensures that duplicate observations are not added to the full observations.
+
+#### Example Usage:
+```python
+# Example usage:
+env = LLMObservationWrapper(base_env)
+formatted_observation = env.observation(player_id=1, observation=[(0, "Hello"), (1, "Move forward")])
+```
+
+#### Example of Transformed Observations:
+```python
+# Observation at t0
+"[GAME] You are Player 0 in the Negotiation Game [...]"
+
+# Observation at t1
+"[GAME] You are Player 0 in the Negotiation Game [...] [Player 0] Let's strategize to increase the total [...] [GAME] Player 0 made the following offer to [...] [Player 1] Thank you for your offer, Player 0 [...] [GAME] Player 1 accepted the trade offer from Player 0. [GAME] Player 1 made the following offer to [...]"
+```
+

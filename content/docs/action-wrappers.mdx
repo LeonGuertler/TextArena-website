@@ -1,0 +1,40 @@
+# Action Wrapper
+
+### [`textarena.core.ActionWrapper(env: Env)`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/core.py#L347)
+
+The `ActionWrapper` modifies actions before they are passed to the environment, allowing customization of behavior and ensuring actions remain within valid bounds.
+
+#### Methods:
+- **`step(action: str) -> Tuple[bool, Info]`**: Applies a transformation to the action and passes it to the environment.
+- **`action(action: str) -> str`**: Transforms or preprocesses the given action.
+
+## Available Action Wrappers
+
+### ClipWordsActionWrapper
+
+#### [`textarena.wrappers.ClipWordsActionWrapper(env: Env, max_num_words: int)`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/wrappers/ActionWrappers/clip_action_wrapper.py#L6)
+
+The `ClipWordsActionWrapper` limits actions to a specified maximum number of words. If the action exceeds this limit, it is truncated to the allowed number of words.
+
+#### Example Usage:
+```python
+# Example usage:
+env = ClipWordsActionWrapper(base_env, max_num_words=5)
+action = "move north with speed boost and be quick"
+truncated_action = env.action(action)  # Output: "move north with speed boost"
+```
+
+### ClipCharactersActionWrapper
+
+#### [`textarena.wrappers.ClipCharactersActionWrapper(env: Env, max_num_characters: int)`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/wrappers/ActionWrappers/clip_action_wrapper.py#L42)
+
+The `ClipCharactersActionWrapper` limits actions to a specified maximum number of characters. If the action exceeds this limit, it is truncated to the allowed number of characters.
+
+#### Example Usage:
+```python
+# Example usage:
+env = ClipCharactersActionWrapper(base_env, max_num_characters=7)
+action = "move north with speed boost and be quick"
+truncated_action = env.action(action)  # Output: "move no"
+```
+

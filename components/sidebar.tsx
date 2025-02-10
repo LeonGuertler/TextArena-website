@@ -28,7 +28,7 @@ const topMenuItems = [
 ]
 
 const bottomMenuItems = [
-  { name: "Documentation", icon: BookOpen, href: "/docs" },
+  { name: "Documentation", icon: BookOpen, href: "/docs/overview" },
   { name: "About Us", icon: Users, href: "/about" },
   {
     name: "Feedback",

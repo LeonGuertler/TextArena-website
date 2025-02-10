@@ -1,0 +1,49 @@
+# Wrappers
+
+## Overview
+Wrappers offer a flexible approach to enhancing or modifying an existing environment without changing its core implementation. They help in reducing redundant code, promoting modularity, and streamlining workflows. Wrappers can be stacked to combine multiple enhancements seamlessly.
+
+To apply a wrapper:
+- First, initialize the base environment.
+- Then, instantiate the wrapper by passing the environment and necessary parameters to its constructor.
+
+### Example Usage
+```python
+import textarena as ta
+
+env = ta.make(env_id="UltimateTicTacToe-v0")
+env = ta.wrappers.LLMObservationWrapper(env=env)
+env = ta.wrappers.PrettyRenderWrapper(
+    env=env,
+    record_video=True,
+    video_path="ultimatetictactoe_game.mp4"
+)
+```
+
+### Common Wrapper Functionalities
+- Transform actions before applying them to the base environment.
+- Transform observations returned by the base environment.
+- Apply rendering for better visualization.
+
+## Base Wrapper Class
+### [`textarena.core.Wrapper(env: Env)`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/core.py#L308)
+
+The base class for environment wrappers. It intercepts all calls to the wrapped environment and forwards them unless explicitly overridden.
+
+## Methods
+### [`Wrapper.step(action: str) -> Tuple[bool, Info]`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/core.py#L322)
+
+Executes a single step in the environment based on the provided action.
+
+### [`Wrapper.reset(seed: Optional[int])`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/core.py#L319)
+
+Resets the environment and initializes it with a given seed. If no seed is provided, a random one is used. This ensures reproducibility.
+
+### [`Wrapper.get_observation(self)`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/core.py#L325)
+
+Retrieves the current player ID and their observations, providing insights into the environment's state.
+
+### [`Wrapper.close(self)`](https://github.com/LeonGuertler/TextArena/blob/main/textarena/core.py#L328)
+
+Closes the environment and performs cleanup operations, essential for resource management and saving final states.
+

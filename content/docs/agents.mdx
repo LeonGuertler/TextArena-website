@@ -1,0 +1,24 @@
+# Agents
+
+## Overview
+Agents in this environment are entities that interact with the game by making decisions based on observations. These agents can be human-controlled, API-based, or locally running models.
+
+### Example Usage
+```python
+import textarena as ta
+
+agent = ta.agents.OpenRouterAgent(
+    model_name="GPT-4o",
+    system_prompt=(
+        "You are a competitive game player."
+        " Make sure you read the game instructions carefully,"
+        " and always follow the required format."
+        " The first action returned in squared brackets will be used."
+    )
+)
+
+action = agent("You are Player 0. You are playing [...]")
+
+print(action)
+```
+
