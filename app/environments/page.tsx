@@ -19,7 +19,8 @@ export default function EnvironmentsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    // Added "font-mono" to the outer container so all text inherits your monospaced font.
+    <div className="container mx-auto px-4 py-8 font-mono">
       <h1 className="text-3xl font-bold mb-8">Game Environments</h1>
 
       <Input
@@ -101,4 +102,3 @@ export default function EnvironmentsPage() {
     </div>
   )
 }
-
