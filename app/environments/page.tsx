@@ -4,65 +4,13 @@ import { ChevronDown, ChevronUp } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
 import { GameCard } from "@/components/game-card"
-
-const allGames = [
-  { name: "CarPuzzle", category: "single" },
-  { name: "Chess", category: "single" },
-  { name: "ConnectFour", category: "single" },
-  { name: "Crosswords", category: "single" },
-  { name: "FifteenPuzzle", category: "single" },
-  { name: "GuessTheNumber", category: "single" },
-  { name: "GuessWho", category: "single" },
-  { name: "Hangman", category: "single" },
-  { name: "LogicPuzzle", category: "single" },
-  { name: "MathProof", category: "single" },
-  { name: "Minesweeper", category: "single" },
-  { name: "Sudoku", category: "single" },
-  { name: "TowerOfHanoi", category: "single" },
-  { name: "TwentyQuestions", category: "single" },
-  { name: "WordLadder", category: "single" },
-  { name: "WordSearch", category: "single" },
-  { name: "Battleship", category: "two" },
-  { name: "Brass", category: "two" },
-  { name: "CarPuzzle", category: "two" },
-  { name: "Chess", category: "two" },
-  { name: "ConnectFour", category: "two" },
-  { name: "Debate", category: "two" },
-  { name: "DontSayIt", category: "two" },
-  { name: "IteratedPrisonersDilemma", category: "two" },
-  { name: "Jaipur", category: "two" },
-  { name: "LetterAuction", category: "two" },
-  { name: "LiarsDice", category: "two" },
-  { name: "Mastermind", category: "two" },
-  { name: "MathProof", category: "two" },
-  { name: "MemoryGame", category: "two" },
-  { name: "Negotiation", category: "two" },
-  { name: "Poker", category: "two" },
-  { name: "ScenarioPlanning", category: "two" },
-  { name: "SpellingBee", category: "two" },
-  { name: "SpiteAndMalice", category: "two" },
-  { name: "Stratego", category: "two" },
-  { name: "Taboo", category: "two" },
-  { name: "Tak", category: "two" },
-  { name: "UltimateTicTacToe", category: "two" },
-  { name: "TruthAndDeception", category: "two" },
-  { name: "WordChains", category: "two" },
-  { name: "7 Wonders", category: "multi" },
-  { name: "Bohnanza", category: "multi" },
-  { name: "Codenames", category: "multi" },
-  { name: "Negotiation", category: "multi" },
-  { name: "Poker", category: "multi" },
-  { name: "Risk", category: "multi" },
-  { name: "SettlersOfCatan", category: "multi" },
-  { name: "TerraformingMars", category: "multi" },
-  { name: "Werewolf", category: "multi" },
-]
+import { allGames } from "@/lib/games-data"
 
 export default function EnvironmentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [isSinglePlayerOpen, setIsSinglePlayerOpen] = useState(false)
+  const [isSinglePlayerOpen, setIsSinglePlayerOpen] = useState(true)
   const [isTwoPlayerOpen, setIsTwoPlayerOpen] = useState(true)
-  const [isMultiPlayerOpen, setIsMultiPlayerOpen] = useState(false)
+  const [isMultiPlayerOpen, setIsMultiPlayerOpen] = useState(true)
 
   const filterGames = (games, category) => {
     return games
@@ -94,10 +42,10 @@ export default function EnvironmentsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filterGames(allGames, "single").map((game) => (
                 <GameCard
-                  key={game.name}
+                  key={`${game.category}-${game.name}`}
                   name={game.name}
-                  href={`/environments/${game.name.toLowerCase()}`}
-                  gifSrc={`/gifs/${game.name.toLowerCase()}.gif`}
+                  category={game.category}
+                  href={`/environments/${game.category}/${game.name.toLowerCase()}`}
                 />
               ))}
             </div>
@@ -117,10 +65,10 @@ export default function EnvironmentsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filterGames(allGames, "two").map((game) => (
                 <GameCard
-                  key={game.name}
+                  key={`${game.category}-${game.name}`}
                   name={game.name}
-                  href={`/environments/${game.name.toLowerCase()}`}
-                  gifSrc={`/gifs/${game.name.toLowerCase()}.gif`}
+                  category={game.category}
+                  href={`/environments/${game.category}/${game.name.toLowerCase()}`}
                 />
               ))}
             </div>
@@ -140,10 +88,10 @@ export default function EnvironmentsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filterGames(allGames, "multi").map((game) => (
                 <GameCard
-                  key={game.name}
+                  key={`${game.category}-${game.name}`}
                   name={game.name}
-                  href={`/environments/${game.name.toLowerCase()}`}
-                  gifSrc={`/gifs/${game.name.toLowerCase()}.gif`}
+                  category={game.category}
+                  href={`/environments/${game.category}/${game.name.toLowerCase()}`}
                 />
               ))}
             </div>
