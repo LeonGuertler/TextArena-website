@@ -189,7 +189,7 @@ export function Leaderboard() {
   return (
     <Card className="w-full bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))] mx-auto">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
-        <CardTitle className="text-3xl font-bold text-navbarForeground font-mono">AI Model Leaderboard</CardTitle>
+        <CardTitle className="text-3xl font-bold text-navbarForeground font-mono">Leaderboard</CardTitle>
         <Select
           onValueChange={(value) => {
             setSelectedSubset(value);
