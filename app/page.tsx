@@ -154,7 +154,7 @@ export default function PlayPage() {
 
     // Reconnect WebSocket if needed
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      const newWs = new WebSocket(`wss://25a9f94cfc79.ngrok.app/ws?user_id=${token}`)
+      const newWs = new WebSocket(`wss://api.textarena.ai/ws?user_id=${token}`)
       wsRef.current = newWs
 
       newWs.onopen = () => {
@@ -195,7 +195,7 @@ export default function PlayPage() {
   // Check matchmaking status periodically
   const checkMatchmakingStatus = async () => {
     try {
-      const response = await fetch('https://25a9f94cfc79.ngrok.app/check_matchmaking', {
+      const response = await fetch('https://api.textarena.ai/check_matchmaking', {
         method: 'GET',
         credentials: 'include',
       })
@@ -231,7 +231,7 @@ export default function PlayPage() {
   useEffect(() => {
     if (!isInitialized || !token) return
 
-    const ws = new WebSocket(`wss://25a9f94cfc79.ngrok.app/ws?user_id=${token}`)
+    const ws = new WebSocket(`wss://api.textarena.ai/ws?user_id=${token}`)
     wsRef.current = ws
 
     ws.onopen = () => {
@@ -501,7 +501,7 @@ export default function PlayPage() {
     const ws = wsRef.current
 
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      const newWs = new WebSocket(`wss://25a9f94cfc79.ngrok.app/ws?user_id=${token}`)
+      const newWs = new WebSocket(`wss://api.textarena.ai/ws?user_id=${token}`)
       wsRef.current = newWs
     
       newWs.onopen = () => {

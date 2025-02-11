@@ -476,7 +476,7 @@ export function GameOverModal({
 
   const handleCopyGame = async () => {
     try {
-      const response = await fetch('https://25a9f94cfc79.ngrok.app/save_game', {
+      const response = await fetch('https://api.textarena.ai/save_game', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -585,7 +585,7 @@ export function GameOverModal({
         },
       };
 
-      const response = await fetch('https://25a9f94cfc79.ngrok.app/save_game', {
+      const response = await fetch('https://api.textarena.ai/save_game', {
         method: 'POST',
         credentials: 'include',
         headers: {
