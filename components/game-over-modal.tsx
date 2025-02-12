@@ -714,8 +714,9 @@ export function GameOverModal({
             </div>
             <h2 className="text-xl font-semibold text-white">Connection Lost</h2>
             <p className="text-white">
-              The connection to the server was lost.
-              Please try to queue again.
+            Your opponent has disconnected from the server. This game won't be counted.
+              {/* The connection to the server was lost. */}
+              {/* Please try to queue again. */}
             </p>
             <Button onClick={onReturnToQueue} className="mt-4 bg-white hover:bg-gray-100 text-black">
               Close

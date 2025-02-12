@@ -758,7 +758,8 @@ export default function PlayPage() {
           <div className="bg-navbar p-6 rounded-md shadow-lg w-full max-w-sm text-navbarForeground text-center font-mono">
             <h2 className="text-lg font-semibold mb-2">Connection Lost</h2>
             <p className="mb-4">
-              The connection to the server was lost. Please try to queue again.
+              Your opponent has disconnected from the server. This game won't be counted.
+              {/* The connection to the server was lost. Please try to queue again. */}
             </p>
             <Button
               onClick={handleConnectionLostClose}

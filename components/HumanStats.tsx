@@ -88,49 +88,164 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // const fetchStats = async () => {
+  //   if (!isInitialized || !token) return;
+  //   setIsRefreshing(true);
+  //   setError(null);
+  //   setIsLoading(true);
+
+  //   try {
+  //     const { data: overallData, error: overallError } = await supabase
+  //       .rpc("get_human_stats", { human_cookie_id: String(token) });
+  //     if (overallError) throw overallError;
+
+  //     const { data: envData, error: envError } = await supabase
+  //       .rpc("get_human_env_stats", { human_cookie_id: String(token) });
+  //     if (envError) throw envError;
+
+  //     const { data: percentileData, error: percentileError } = await supabase
+  //       .rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
+  //     if (percentileError) throw percentileError;
+
+  //     const numericID = await fetchHumanNumericId(String(token));
+  //     if (!numericID) {
+  //       console.warn("No numeric ID found for token:", token);
+  //     }
+
+  //     let netElo = 0;
+  //     if (numericID) {
+  //       netElo = await fetchNetEloChange(numericID);
+  //     }
+
+  //     // Calculate total games and win rate from wins, draws, and losses
+  //     const total_wins = overallData[0].total_wins;
+  //     const total_draws = overallData[0].total_draws;
+  //     const total_losses = overallData[0].total_losses;
+  //     const actual_total_games = total_wins + total_draws + total_losses;
+  //     const win_rate = actual_total_games > 0 ? (total_wins / actual_total_games) * 100 : 0;
+
+  //     const overallStats: HumanStatsType = {
+  //       ...overallData[0],
+  //       total_games: actual_total_games,
+  //       win_rate,
+  //       net_elo_change: netElo,
+  //     };
+
+  //     setStats(overallStats);
+  //     setEnvStats(envData || []);
+  //     if (percentileData && percentileData.length > 0) {
+  //       setOverallPercentile(percentileData[0].overall_percentile);
+  //     }
+  //   } catch (err) {
+  //     console.error("Error fetching stats:", err);
+  //     setError(err instanceof Error ? err.message : "Failed to load stats");
+  //   } finally {
+  //     setIsLoading(false);
+  //     setIsRefreshing(false);
+  //   }
+  // };
+  // const fetchStats = async () => {
+  //   if (!isInitialized || !token) return;
+  //   setIsRefreshing(true);
+  //   setError(null);
+  //   setIsLoading(true);
+  
+  //   try {
+  //     const { data: overallData, error: overallError } = await supabase.rpc("get_human_stats", { human_cookie_id: String(token) });
+  //     console.log("overallData:", overallData, "overallError:", overallError);
+  
+  //     const { data: envData, error: envError } = await supabase.rpc("get_human_env_stats", { human_cookie_id: String(token) });
+  //     console.log("envData:", envData, "envError:", envError);
+  
+  //     const { data: percentileData, error: percentileError } = await supabase.rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
+  //     console.log("percentileData:", percentileData, "percentileError:", percentileError);
+  
+  //     const numericID = await fetchHumanNumericId(String(token));
+  //     console.log("numericID:", numericID);
+  
+  //     let netElo = 0;
+  //     if (numericID) {
+  //       netElo = await fetchNetEloChange(numericID);
+  //     }
+  //     console.log("netElo:", netElo);
+  
+  //     // Calculate total games and win rate from wins, draws, and losses
+  //     const total_wins = overallData[0].total_wins;
+  //     const total_draws = overallData[0].total_draws;
+  //     const total_losses = overallData[0].total_losses;
+  //     const actual_total_games = total_wins + total_draws + total_losses;
+  //     const win_rate = actual_total_games > 0 ? (total_wins / actual_total_games) * 100 : 0;
+  
+  //     const overallStats: HumanStatsType = {
+  //       ...overallData[0],
+  //       // Use total_games, wins, draws, losses directly from the RPC
+  //       total_games: overallData[0].total_games,
+  //       win_rate: overallData[0].total_games > 0
+  //                  ? (overallData[0].total_wins / overallData[0].total_games) * 100
+  //                  : 0,
+  //       net_elo_change: netElo, // still computed via your separate query
+  //     };
+      
   const fetchStats = async () => {
     if (!isInitialized || !token) return;
     setIsRefreshing(true);
     setError(null);
     setIsLoading(true);
-
+  
     try {
-      const { data: overallData, error: overallError } = await supabase
-        .rpc("get_human_stats", { human_cookie_id: String(token) });
+      // Fetch overall stats
+      const { data: overallData, error: overallError } = await supabase.rpc("get_human_stats", { human_cookie_id: String(token) });
       if (overallError) throw overallError;
-
-      const { data: envData, error: envError } = await supabase
-        .rpc("get_human_env_stats", { human_cookie_id: String(token) });
+      
+      // Fetch environment specific stats
+      const { data: envData, error: envError } = await supabase.rpc("get_human_env_stats", { human_cookie_id: String(token) });
       if (envError) throw envError;
-
-      const { data: percentileData, error: percentileError } = await supabase
-        .rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
-      if (percentileError) throw percentileError;
-
+      
+      // Fetch overall percentile
+      // const { data: percentileData, error: percentileError } = await supabase.rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
+      // if (percentileError) throw percentileError;
+      const { data: percentileData, error: percentileError } = await supabase.rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
+      console.log("Percentile data:", {
+        raw: percentileData,
+        first: percentileData?.[0],
+        value: percentileData?.[0]?.overall_percentile,
+        type: percentileData?.[0]?.overall_percentile ? typeof percentileData[0].overall_percentile : 'undefined'
+      });
+      
+      // Fetch net ELO change
       const numericID = await fetchHumanNumericId(String(token));
-      if (!numericID) {
-        console.warn("No numeric ID found for token:", token);
-      }
-
       let netElo = 0;
       if (numericID) {
         netElo = await fetchNetEloChange(numericID);
       }
 
-      // Calculate total games and win rate from wins, draws, and losses
-      const total_wins = overallData[0].total_wins;
-      const total_draws = overallData[0].total_draws;
-      const total_losses = overallData[0].total_losses;
-      const actual_total_games = total_wins + total_draws + total_losses;
-      const win_rate = actual_total_games > 0 ? (total_wins / actual_total_games) * 100 : 0;
+      if (!overallData || !overallData[0]) {
+        throw new Error('No stats data available');
+      }
 
+      // Construct overall stats
+      const wins = Number(overallData[0].total_wins) || 0;
+      const draws = Number(overallData[0].total_draws) || 0;
+      const losses = Number(overallData[0].total_losses) || 0;
+      const completedGames = wins + draws + losses;
+      
       const overallStats: HumanStatsType = {
-        ...overallData[0],
-        total_games: actual_total_games,
-        win_rate,
-        net_elo_change: netElo,
+        total_games: completedGames,
+        total_wins: wins,
+        total_draws: draws,
+        total_losses: losses,
+        win_rate: completedGames > 0 ? (wins / completedGames) * 100 : 0,
+        net_elo_change: netElo
       };
+      
 
+      console.log("total_wins:", overallData[0].total_wins);
+      console.log("total_draws:", overallData[0].total_draws);
+      console.log("total_losses:", overallData[0].total_losses);
+      console.log("total_games from RPC:", overallData[0]);
+
+
+  
       setStats(overallStats);
       setEnvStats(envData || []);
       if (percentileData && percentileData.length > 0) {
@@ -144,6 +259,8 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
       setIsRefreshing(false);
     }
   };
+
+  
 
   useEffect(() => {
     fetchStats();
