@@ -89,7 +89,7 @@ export default function AboutPage() {
       {/* Intro / Mission */}
       <section className="mb-12">
         <p className="text-lg mb-4 font-mono">
-          Don't focus on us, focus on getting Humanity to Nr 1!
+          Don't focus on us, focus on getting Humanity to No. 1!
         </p>
       </section>
 
@@ -190,7 +190,8 @@ export default function AboutPage() {
         <p className="font-mono">
           We would also like to thank our other contributors: <br />
           <span className="font-medium font-mono">Gabriel Chua</span>,{" "}
-          <span className="font-medium font-mono">Romir Patel</span>, and{" "}
+          <span className="font-medium font-mono">Romir Patel</span>,{" "}
+          <span className="font-medium font-mono">Ayudh Saxena</span>, and{" "}
           <span className="font-medium font-mono">Dylan Hillier</span>.
         </p>
       </section>

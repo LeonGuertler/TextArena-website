@@ -244,6 +244,19 @@ function buildSkillDistribution(
   })
 }
 
+
+const calculateDomain = (data: any[]) => {
+  const values = data.map(item => item.elo);
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  
+  // Calculate range with ±10%
+  const minRange = Math.floor(minValue -5);  // 10% below minimum
+  const maxRange = Math.ceil(maxValue +5);   // 10% above maximum
+  
+  return [minRange, maxRange];
+}
+
 // -------------------------------------------------------------------
 // 5. ModelDetails Component
 // -------------------------------------------------------------------
@@ -551,7 +564,15 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                   dataKey="skill"
                   tick={{ fill: "white", fontSize: 12, fontFamily: "var(--font-mono)" }}
                 />
-                <PolarRadiusAxis domain={[500, 1500]} hide tick={false} axisLine={false} />
+                {/* <PolarRadiusAxis domain={[500, 1500]} hide tick={false} axisLine={false} /> */}
+                {/* <PolarRadiusAxis hide tick={false} axisLine={false} /> */}
+                {/* <PolarRadiusAxis domain={[880, 970]} hide tick={false} axisLine={false} /> */}
+                <PolarRadiusAxis 
+                  domain={calculateDomain(skillData)} 
+                  hide 
+                  tick={false} 
+                  axisLine={false} 
+                />
                 <Tooltip content={<CustomRadarTooltip />} />
                 <Radar
                   name="Skill Level"

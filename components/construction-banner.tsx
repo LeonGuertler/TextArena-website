@@ -6,7 +6,7 @@ const ConstructionBanner = () => {
       <div className="flex items-center justify-center gap-2 text-yellow-500">
         <AlertTriangle className="h-4 w-4" />
         <span className="text-sm font-medium">
-          TextArena is under construction — Please check back on February 14th for our official launch!
+          TextArena is currently in testing. If you find any bugs, please let us know!
         </span>
       </div>
     </div>
