@@ -15,8 +15,10 @@ import {
   ChevronDown,
   ChevronUp,
   Volume2,
-  VolumeX
+  VolumeX,
+  Signal
 } from "lucide-react"
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // ===== Types =====
 type EnvOption = {
@@ -170,6 +172,37 @@ export default function PlayPage() {
           console.warn("Non-JSON message:", event.data)
         }
       }
+    }
+  }
+
+  // Detect mobile devices
+  const isMobile = useIsMobile();
+
+  // Get status dot color based on websocket status
+  // const getStatusColor = (status) => {
+  //   switch (status.toLowerCase()) {
+  //     case 'connected':
+  //       return 'bg-green-500';
+  //     case 'disconnected':
+  //       return 'bg-gray-500';
+  //     case 'error':
+  //       return 'bg-red-500';
+  //     default:
+  //       return 'bg-white-500';
+  //   }
+  // }
+
+  // Get icon color based on connection state
+  const getIconColor = (status) => {
+    switch (status.toLowerCase()) {
+      case 'connected':
+        return 'text-green-500';
+      case 'disconnected':
+        return 'text-red-500';
+      case 'error':
+        return 'text-yellow-500';
+      default:
+        return 'text-gray-500';
     }
   }
 
@@ -701,38 +734,54 @@ export default function PlayPage() {
 
       {/* Top Right Panel */}
       <div className="absolute top-4 right-4 z-50">
-        <div className="flex items-center gap-4 bg-black/30 backdrop-blur-md p-2 rounded-lg">
-          {/* Stats Toggle Button */}
-          <button
-            onClick={() => setStatsVisible((prev) => !prev)}
-            className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-          >
-            <BarChart2 className="h-5 w-5" />
-            {statsVisible ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </button>
+        <div className="flex items-center bg-black/30 backdrop-blur-md p-2 rounded-lg">
+          {/* Stats Toggle */}
+          <div className="flex items-center px-3">
+            <button
+              onClick={() => setStatsVisible((prev) => !prev)}
+              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <BarChart2 className="h-5 w-5" />
+              {statsVisible ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
+          </div>
 
-          {/* Mute/Unmute Button */}
-          <button
-            onClick={() => setIsMuted((prev) => !prev)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {isMuted ? (
-              <VolumeX className="h-5 w-5" />
-            ) : (
-              <Volume2 className="h-5 w-5" />
-            )}
-          </button>
+          {/* Mute/Unmute */}
+          <div className="flex items-center px-3 border-x border-gray-700">
+            <button
+              onClick={() => setIsMuted((prev) => !prev)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {isMuted ? (
+                <VolumeX className="h-5 w-5" />
+              ) : (
+                <Volume2 className="h-5 w-5" />
+              )}
+            </button>
+          </div>
 
           {/* WebSocket Status */}
-          <span className="text-sm text-muted-foreground">
-            WebSocket: {wsStatus}
-          </span>
+          <div className="flex items-center px-3">
+            {!isMobile ? (
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                WebSocket: {wsStatus}
+              </span>
+            ) : (
+              <Signal 
+                className={cn(
+                  "h-4 w-4",
+                  getIconColor(wsStatus)
+                )}
+              />
+            )}
+          </div>
         </div>
       </div>
+
 
       {/* HumanStats Panel */}
       <HumanStats

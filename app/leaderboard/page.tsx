@@ -3,7 +3,7 @@ import { Leaderboard } from "@/components/leaderboard"
 
 export default function LeaderboardPage() {
   return (
-    <div className="container mx-auto px-8 py-8">
+    <div className="container mx-auto px-2 sm:px-0 py-4">
       <Leaderboard />
     </div>
   )
