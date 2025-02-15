@@ -209,7 +209,7 @@ const Sidebar = () => {
         className={cn(
           "fixed left-0 top-0 h-full bg-[#021213] font-mono",
           "transition-all duration-300 ease-out z-40",
-          isMobile && isMainCollapsed ? "opacity-0" : "opacity-100",
+          isMobile && isMainCollapsed ? "opacity-0 pointer-events-none" : "opacity-100",
           "shadow-lg"
         )}
         style={{ width: sidebarWidth }}
