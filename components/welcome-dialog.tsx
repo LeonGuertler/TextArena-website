@@ -121,12 +121,6 @@ export function WelcomeDialog() {
           </p>
         </div>        
         <div className="flex flex-col space-y-4">
-          {/* Add font-bold here for the specific line */}
-          <p className="text-sm text-muted-foreground text-center font-bold">
-            The website is not optimized for Mobile yet. Please access it using your computer.
-          </p>
-        </div>
-        <div className="flex flex-col space-y-4">
           <p className="text-sm text-muted-foreground text-center">
             Note, we use a cookie to store a unique (anonymous) identifier. That way, you can view your individual performance history. Any interactions with the models may be released as an open-source dataset at some point in the future, so do not mention any sensitive information! By continuing you accept these two points.
           </p>
