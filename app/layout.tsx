@@ -46,6 +46,7 @@ import { AuthProvider } from "@/context/AuthContext"
 import type React from "react"
 import { Analytics } from "@vercel/analytics/react"
 import { WelcomeDialog } from "@/components/welcome-dialog"
+import { ResponsiveMain } from "@/components/responsive-main"
 import ConstructionBanner from "@/components/construction-banner"
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-sans' })
@@ -63,16 +64,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable + " dark"}>
       <body className="font-sans">
-          <AuthProvider>
-            <ConstructionBanner />
-            <div className="flex h-screen">
-              <Sidebar />
-              <main className="flex-1 overflow-y-auto">
-                {children}
-              </main>
-            </div>
-            <WelcomeDialog />
-          </AuthProvider>
+        <ConstructionBanner />
+        <AuthProvider>
+          <div className="flex h-screen">
+            <Sidebar />
+            <ResponsiveMain>
+              {children}
+            </ResponsiveMain>
+          </div>
+          <WelcomeDialog />
+        </AuthProvider>
         <Analytics />
       </body>
     </html>

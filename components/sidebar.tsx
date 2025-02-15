@@ -1,25 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
 import {
-  Play,
-  Eye,
-  Trophy,
-  Globe,
-  BookOpen,
-  Users,
-  MessageSquare,
-  ChevronLeft,
-  ChevronRight,
+  Play, Eye, Trophy, Globe, BookOpen, Users,
+  MessageSquare, ChevronLeft, ChevronRight,
+  Github, Twitter, Timer, Columns
 } from "lucide-react"
-import { Github, Twitter } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
+// Menu items and sections from your original code
 const topMenuItems = [
   { name: "Play", icon: Play, href: "/" },
   { name: "Watch", icon: Eye, href: "/watch" },
@@ -38,13 +33,50 @@ const bottomMenuItems = [
 ]
 
 const socialIcons = [
-  { name: "Discord", icon: "/discord.svg", href: "https://discord.gg/KPacHzK23e" },
+  { name: "Discord", icon: "/discord.svg", href: "https://discord.gg/KMndsqwMaZ" },
   { name: "GitHub", icon: Github, href: "https://github.com/LeonGuertler/TextArena" },
-  // { name: "X", icon: Twitter, href: "https://x.com/LeonGuertler" },
+  // { name: "X", icon: Twitter, href: "https://x.com/" },
 ]
 
-function NavItem({ item, isCollapsed }: { item: { name: string; icon: any; href: string }; isCollapsed: boolean }) {
+// Docs navigation data structure
+const sections = [
+  {
+    title: "Getting Started",
+    items: [
+      { title: "What is TextArena", slug: "overview" },
+      { title: "Run Your First Game", slug: "first-game" },
+      { title: "Create a Game", slug: "create-game" },
+    ],
+  },
+  {
+    title: "Customization",
+    items: [
+      {
+        title: "Agents",
+        slug: "agents",
+        items: [
+          { title: "List of Agents", slug: "manage-agents" },
+          { title: "Register a model", slug: "register-model", status: "coming-soon" },
+        ],
+      },
+      {
+        title: "Wrappers",
+        slug: "wrappers",
+        items: [
+          { title: "List of Wrappers", slug: "list-of-wrappers" },
+          { title: "Action Wrappers", slug: "action-wrappers" },
+          { title: "Observation Wrappers", slug: "observation-wrappers" },
+          { title: "Render Wrappers", slug: "render-wrappers" },
+        ],
+      },
+    ],
+  },
+]
+
+const NavItem = ({ item, isCollapsed }) => {
   const pathname = usePathname()
+  const isActive = pathname === item.href
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -56,87 +88,248 @@ function NavItem({ item, isCollapsed }: { item: { name: string; icon: any; href:
           >
             <span
               className={cn(
-                "group flex w-full items-center rounded-md border border-transparent px-2 py-1 hover:bg-muted hover:text-foreground",
-                pathname === item.href ? "bg-muted font-medium text-foreground" : "text-muted-foreground",
+                "group flex w-full items-center rounded-md px-2 py-1.5",
+                "hover:bg-gray-200/10 transition-colors duration-200",
+                isActive ? "text-white" : "text-white/70 hover:text-white",
                 isCollapsed ? "justify-center" : "justify-start"
               )}
             >
-              <item.icon className={cn("mr-2", isCollapsed ? "h-6 w-6" : "h-4 w-4")} />
+              <item.icon className={cn(
+                "transition-transform duration-200 group-hover:scale-110",
+                isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3"
+              )} />
               {!isCollapsed && <span>{item.name}</span>}
             </span>
           </Link>
         </TooltipTrigger>
-        <TooltipContent side="right">
-          <p>{item.name}</p>
-        </TooltipContent>
+        {isCollapsed && (
+          <TooltipContent side="right" className="font-medium">
+            {item.name}
+          </TooltipContent>
+        )}
       </Tooltip>
     </TooltipProvider>
   )
 }
 
-export function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false)
+const DocItem = ({ item, depth = 0 }) => {
+  return (
+    <li>
+      <Link
+        href={`/docs/${item.slug}`}
+        className={cn(
+          "flex items-center justify-between rounded-sm py-1 text-xs",
+          "text-white/70 hover:text-white transition-colors duration-200",
+          depth === 0 && "font-medium"
+        )}
+      >
+        <span>{item.title}</span>
+        {item.status === "coming-soon" && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="ml-2 text-yellow-500/70">
+                  <Timer className="h-3 w-3" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Coming Soon</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </Link>
+      {item.items && (
+        <ul className="ml-4 mt-1 space-y-1">
+          {item.items.map((subItem) => (
+            <DocItem key={subItem.slug} item={subItem} depth={depth + 1} />
+          ))}
+        </ul>
+      )}
+    </li>
+  )
+}
+
+const Sidebar = () => {
+  const [isMainCollapsed, setIsMainCollapsed] = useState(false)
+  const [isDocsVisible, setIsDocsVisible] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const pathname = usePathname()
+  const isDocsPage = pathname?.startsWith('/docs')
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+      if (window.innerWidth < 768) {
+        setIsMainCollapsed(true)
+      }
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  useEffect(() => {
+    if (!isDocsPage) {
+      setIsDocsVisible(false)
+    }
+  }, [isDocsPage])
+
+  const sidebarWidth = isMobile 
+    ? (isMainCollapsed ? '0' : '200px')
+    : (isMainCollapsed ? '60px' : '200px')
 
   return (
-    // Added font-mono here to ensure the sidebar uses your monospace font
-    <div
-      className={cn(
-        "flex flex-col border-r bg-[hsl(var(--navbar))] text-[hsl(var(--navbar-foreground))] font-mono",
-        isCollapsed ? "w-[70px]" : "w-[240px]"
-      )}
-    >
-      <div className="flex h-[60px] items-center px-2 border-b">
-        {/* {!isCollapsed && <span className="text-lg font-bold px-2">TextArena</span>} */}
-        {!isCollapsed && (
-          <Link href="/" className="cursor-pointer">
-            <span className="text-lg font-bold px-2">TextArena</span>
-          </Link>
+    <>
+      {/* Toggle Button - Always visible */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setIsMainCollapsed(!isMainCollapsed)}
+        className={cn(
+          "fixed top-2 z-50 h-8 w-8",
+          "rounded-lg",
+          "bg-[#021213] hover:bg-[#0a2f30]",
+          "text-white/70 hover:text-white",
+          "transition-all duration-200",
+          "border border-white/10",
+          isMainCollapsed ? "left-[13px]" : "left-[158px]",
         )}
+      >
+        {isMainCollapsed ? (
+          <ChevronRight className="h-4 w-4" />
+        ) : (
+          <ChevronLeft className="h-4 w-4" />
+        )}
+      </Button>
+
+      {/* Main Sidebar */}
+      <div
+        className={cn(
+          "fixed left-0 top-0 h-full bg-[#021213] font-mono",
+          "transition-all duration-300 ease-out z-40",
+          isMobile && isMainCollapsed ? "opacity-0" : "opacity-100",
+          "shadow-lg"
+        )}
+        style={{ width: sidebarWidth }}
+      >
+        <div className="flex h-[50px] items-center border-b border-white/10 px-4">
+          {!isMainCollapsed && (
+            <Link href="/" className="cursor-pointer">
+              <span className="text-lg font-bold px-2">TextArena</span>
+            </Link>
+          )}
+        </div>
+
+        <ScrollArea className="flex-grow h-[calc(100vh-50px)]">
+          <div className="flex flex-col gap-1 p-2">
+            {topMenuItems.map((item) => (
+              <NavItem key={item.name} item={item} isCollapsed={isMainCollapsed && !isMobile} />
+            ))}
+          </div>
+        </ScrollArea>
+
+        <div className="absolute bottom-0 left-0 right-0">
+          <div className="flex flex-col gap-1 border-t border-white/10 p-2">
+            {bottomMenuItems.map((item) => (
+              <NavItem key={item.name} item={item} isCollapsed={isMainCollapsed && !isMobile} />
+            ))}
+          </div>
+
+          <div className={cn(
+            "flex border-t border-white/10 p-2",
+            isMainCollapsed && !isMobile ? "flex-col items-center" : "justify-center gap-2"
+          )}>
+            {socialIcons.map((item) => (
+              <TooltipProvider key={item.name}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href={item.href} target="_blank" rel="noopener noreferrer">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full text-white/70 hover:text-white
+                                 hover:bg-white/10 transition-all duration-200"
+                      >
+                        {typeof item.icon === "string" ? (
+                          <img src={item.icon || "/placeholder.svg"} alt={item.name} className="h-4 w-4" />
+                        ) : (
+                          <item.icon className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>{item.name}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Docs Sidebar Toggle Button */}
+      {isDocsPage && (
         <Button
           variant="ghost"
           size="icon"
-          className={cn("ml-auto", isCollapsed && "mx-auto")}
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={() => setIsDocsVisible(!isDocsVisible)}
+          className={cn(
+            "fixed top-2 z-50 h-8 w-8",
+            "rounded-lg",
+            "bg-[#021213] hover:bg-[#0a2f30]",
+            "text-white/70 hover:text-white",
+            "transition-all duration-200",
+            "border border-white/10",
+            isMobile 
+              ? (isMainCollapsed ? "left-14" : "left-[216px]")
+              : (isMainCollapsed ? "left-[66px]" : "left-[216px]")
+          )}
         >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          <Columns className="h-4 w-4" />
         </Button>
-      </div>
-      <ScrollArea className="flex-grow">
-        <nav className="flex flex-col gap-2 p-2">
-          {topMenuItems.map((item) => (
-            <NavItem key={item.name} item={item} isCollapsed={isCollapsed} />
-          ))}
-        </nav>
-      </ScrollArea>
-      <nav className="flex flex-col gap-2 p-2 border-t">
-        {bottomMenuItems.map((item) => (
-          <NavItem key={item.name} item={item} isCollapsed={isCollapsed} />
-        ))}
-      </nav>
-      {!isCollapsed && (
-        <div className="flex justify-center gap-2 p-2 border-t">
-          {socialIcons.map((item) => (
-            <TooltipProvider key={item.name}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link href={item.href} target="_blank" rel="noopener noreferrer">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      {typeof item.icon === "string" ? (
-                        <img src={item.icon || "/placeholder.svg"} alt={item.name} className="h-4 w-4" />
-                      ) : (
-                        <item.icon className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>{item.name}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ))}
+      )}
+
+      {/* Docs Sidebar */}
+      {isDocsPage && (
+        <div
+          className={cn(
+            "fixed h-full bg-[#021213]/85 border-l border-white/10 font-mono",
+            "transition-all duration-300 ease-out z-30",
+            "backdrop-blur-sm shadow-lg",
+            isDocsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+          style={{ 
+            width: isDocsVisible ? '200px' : '0',
+            left: isMobile 
+              ? (isMainCollapsed ? '0' : '200px')
+              : (isMainCollapsed ? '40px' : '200px')
+          }}
+        >
+          <ScrollArea className="h-full px-4">
+            <div className="pt-16 pb-6">
+              <div className="space-y-6">
+                {sections.map((section) => (
+                  <div key={section.title} className="px-2">
+                    <h2 className="mb-2 text-sm font-medium text-white/90">
+                      {section.title}
+                    </h2>
+                    <ul className="space-y-1">
+                      {section.items.map((item) => (
+                        <DocItem key={item.slug} item={item} />
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </ScrollArea>
         </div>
       )}
-    </div>
+    </>
   )
 }
+
+export { Sidebar }
