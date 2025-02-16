@@ -27,18 +27,18 @@ const CHART_COLORS = [
 ]
 
 const envSubsets: Record<string, string[]> = {
-  BalancedSubset: [
-    "Chess-v0",
-    "DontSayIt-v0",
-    "LiarsDice-v0",
-    "Negotiation-v0",
-    "Poker-v0",
-    "SpellingBee-v0",
-    "Stratego-v0",
-    "Tak-v0",
-    "TruthAndDeception-v0",
-    "UltimateTicTacToe-v0",
-  ],
+  // BalancedSubset: [
+  //   "Chess-v0",
+  //   "DontSayIt-v0",
+  //   "LiarsDice-v0",
+  //   "Negotiation-v0",
+  //   "Poker-v0",
+  //   "SpellingBee-v0",
+  //   "Stratego-v0",
+  //   "Tak-v0",
+  //   "TruthAndDeception-v0",
+  //   "UltimateTicTacToe-v0",
+  // ],
   Chess: ["Chess-v0"],
   ConnectFour: ["ConnectFour-v0"],
   Debate: ["Debate-v0"],
@@ -226,7 +226,7 @@ function EloHistoryChart({
 }
 
 export function Leaderboard() {
-  const [selectedSubset, setSelectedSubset] = useState<string>("BalancedSubset")
+  const [selectedSubset, setSelectedSubset] = useState<string>("Poker")
   const [currentPage, setCurrentPage] = useState(1)
   const [models, setModels] = useState<ModelData[]>([])
   const [eloHistory, setEloHistory] = useState<EloHistoryRow[]>([])
