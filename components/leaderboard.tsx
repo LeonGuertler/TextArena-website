@@ -26,19 +26,22 @@ const CHART_COLORS = [
   "#f43f5e",
 ]
 
-const envSubsets: Record<string, string[]> = {
-  // BalancedSubset: [
-  //   "Chess-v0",
-  //   "DontSayIt-v0",
-  //   "LiarsDice-v0",
-  //   "Negotiation-v0",
-  //   "Poker-v0",
-  //   "SpellingBee-v0",
-  //   "Stratego-v0",
-  //   "Tak-v0",
-  //   "TruthAndDeception-v0",
-  //   "UltimateTicTacToe-v0",
-  // ],
+const envSubsets: Record<string, string[] | null> = {
+  // Grouped subsets
+  'Balanced Subset': [
+    "Chess-v0",
+    "DontSayIt-v0",
+    "LiarsDice-v0",
+    "Negotiation-v0",
+    "Poker-v0",
+    "SpellingBee-v0",
+    "Stratego-v0",
+    "Tak-v0",
+    "TruthAndDeception-v0",
+    "UltimateTicTacToe-v0",
+  ],
+  
+  // Individual games
   Chess: ["Chess-v0"],
   ConnectFour: ["ConnectFour-v0"],
   Debate: ["Debate-v0"],
@@ -55,7 +58,107 @@ const envSubsets: Record<string, string[]> = {
   TruthAndDeception: ["TruthAndDeception-v0"],
   UltimateTicTacToe: ["UltimateTicTacToe-v0"],
   WordChains: ["WordChains-v0"],
-}
+  
+  // Skill-based subsets
+  Adaptability: [
+    "IteratedPrisonersDilemma-v0",
+    "Negotiation-v0",
+    "SpiteAndMalice-v0",
+    "Stratego-v0",
+    "Debate-v0",
+    "DontSayIt-v0",
+    "SpellingBee-v0",
+    "LiarsDice-v0",
+    "WordChains-v0"
+  ],
+  Bluffing: [
+    "Poker-v0",
+    "TruthAndDeception-v0",
+    "DontSayIt-v0",
+    "LiarsDice-v0"
+  ],
+  "Logical Reasoning": [
+    "SpellingBee-v0",
+    "WordChains-v0",
+    "TruthAndDeception-v0",
+    "Battleship-v0",
+    "Tak-v0",
+    "SpiteAndMalice-v0",
+    "ConnectFour-v0",
+    "Mastermind-v0",
+    "UltimateTicTacToe-v0",
+    "Debate-v0",
+    "Chess-v0"
+  ],
+  "Memory Recall": [
+    "Mastermind-v0",
+    "SpellingBee-v0",
+    "WordChains-v0",
+    "Chess-v0",
+    "LiarsDice-v0"
+  ],
+  "Pattern Recognition": [
+    "ConnectFour-v0",
+    "UltimateTicTacToe-v0",
+    "Mastermind-v0",
+    "Tak-v0",
+    "SpellingBee-v0",
+    "Stratego-v0",
+    "Battleship-v0",
+    "Chess-v0",
+    "WordChains-v0"
+  ],
+  Persuasion: [
+    "Poker-v0",
+    "Debate-v0",
+    "Negotiation-v0",
+    "DontSayIt-v0",
+    "TruthAndDeception-v0"
+  ],
+  "Spatial Reasoning": [
+    "UltimateTicTacToe-v0"
+  ],
+  "Spatial Thinking": [
+    "Tak-v0",
+    "Chess-v0",
+    "Battleship-v0",
+    "ConnectFour-v0"
+  ],
+  "Strategic Planning": [
+    "Negotiation-v0",
+    "Tak-v0",
+    "IteratedPrisonersDilemma-v0",
+    "Chess-v0",
+    "Poker-v0",
+    "Stratego-v0",
+    "UltimateTicTacToe-v0",
+    "SpiteAndMalice-v0",
+    "ConnectFour-v0",
+    "Mastermind-v0"
+  ],
+  "Theory of Mind": [
+    "TruthAndDeception-v0",
+    "SpiteAndMalice-v0",
+    "LiarsDice-v0",
+    "Negotiation-v0",
+    "Debate-v0",
+    "Poker-v0",
+    "IteratedPrisonersDilemma-v0",
+    "Stratego-v0",
+    "DontSayIt-v0"
+  ],
+  "Uncertainty Estimation": [
+    "Stratego-v0",
+    "LiarsDice-v0",
+    "Battleship-v0",
+    "Poker-v0",
+    "IteratedPrisonersDilemma-v0",
+    "SpiteAndMalice-v0",
+    "TruthAndDeception-v0"
+  ]
+};
+
+type TimeRange = '48H' | '7D' | '30D';
 
 interface ModelData {
   model_id: number
@@ -234,65 +337,137 @@ export function Leaderboard() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hoveredModel, setHoveredModel] = useState<string | null>(null)
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('7D');
 
   const itemsPerPage = 10
 
-  // Fetch models and Elo history in one useEffect, triggered by subset or page change.
+  // First useEffect for fetching leaderboard data
   useEffect(() => {
-    async function fetchData() {
-      setIsLoading(true)
-      setIsLoadingHistory(true)
-      setError(null)
-
+    async function fetchLeaderboardData() {
+      setIsLoading(true);
+      setError(null);
+  
       try {
-        let subsetEnvIds: number[] | null = null
+        let subsetEnvIds: number[] | null = null;
+  
         if (selectedSubset !== "All") {
-          const subsetNames = envSubsets[selectedSubset] || []
+          const subsetNames = envSubsets[selectedSubset] || [];
           if (subsetNames.length > 0) {
             const { data: envData, error: envError } = await supabase
               .from("environments")
               .select("id")
-              .in("env_name", subsetNames)
-            if (envError) throw envError
-            subsetEnvIds = (envData ?? []).map((env: any) => env.id)
+              .in("env_name", subsetNames);
+  
+            if (envError) throw envError;
+            subsetEnvIds = (envData ?? []).map((env: any) => env.id);
           }
         }
-
-        // Fetch models
-        const { data: modelData, error: modelError } = await supabase.rpc("get_leaderboard_from_mv", {
-          selected_env_ids: subsetEnvIds,
-        })
-        if (modelError) throw modelError
-        setModels(modelData || [])
-
-        // Fetch Elo history *only for the currently displayed models*
-        const startIndex = (currentPage - 1) * itemsPerPage
-        const paginatedModelsLocal = (modelData || []).slice(startIndex, startIndex + itemsPerPage)
-
-        if (paginatedModelsLocal.length > 0) {
-          const selectedModelIds = paginatedModelsLocal.map((m) => m.model_id)
-
-          const { data: historyData, error: historyError } = await supabase.rpc("get_elo_history_by_env", {
-            selected_env_ids: subsetEnvIds,
-            selected_model_ids: selectedModelIds, // Pass model IDs.
-          })
-          if (historyError) throw historyError
-          setEloHistory(historyData || [])
-          console.log("Fetched Elo history:", historyData) // Log fetched data
-        } else {
-          setEloHistory([]) // No models on this page, clear the history.
-        }
+  
+        const { data: modelData, error: modelError } = await supabase.rpc(
+          "get_leaderboard_from_mv",
+          { selected_env_ids: subsetEnvIds }
+        );
+        if (modelError) throw modelError;
+        setModels(modelData || []);
       } catch (err: any) {
-        console.error("Error fetching data:", err)
-        setError(err.message || "Failed to load data")
+        console.error("Error fetching leaderboard data:", err);
+        setError(err.message || "Failed to load leaderboard data");
       } finally {
-        setIsLoading(false)
-        setIsLoadingHistory(false)
+        setIsLoading(false);
       }
     }
+  
+    fetchLeaderboardData();
+  }, [selectedSubset]); // Only depends on selectedSubset
 
-    fetchData()
-  }, [selectedSubset, currentPage]) // Only re-fetch when subset or page changes.
+  // Second useEffect for fetching Elo history data
+  useEffect(() => {
+    async function fetchEloHistory() {
+      setIsLoadingHistory(true);
+      
+      try {
+        const groupBasedSubsets = new Set([
+          "Balanced Subset", "All", "Spatial Reasoning", "Spatial Thinking",
+          "Adaptability", "Bluffing", "Logical Reasoning", "Memory Recall",
+          "Pattern Recognition", "Persuasion", "Strategic Planning",
+          "Theory of Mind", "Uncertainty Estimation"
+        ]);
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const paginatedModelsLocal = models.slice(startIndex, startIndex + itemsPerPage);
+  
+        if (paginatedModelsLocal.length > 0) {
+          const selectedModelIds = paginatedModelsLocal.map((m) => m.model_id);
+          
+          let subsetEnvIds: number[] | null = null;
+          if (selectedSubset !== "All") {
+            const subsetNames = envSubsets[selectedSubset] || [];
+            if (subsetNames.length > 0) {
+              const { data: envData, error: envError } = await supabase
+                .from("environments")
+                .select("id")
+                .in("env_name", subsetNames);
+    
+              if (envError) throw envError;
+              subsetEnvIds = (envData ?? []).map((env: any) => env.id);
+            }
+          }
+  
+          const functionNameMap = {
+            '48H': {
+              groups: 'get_elo_history_last48hrs_by_groups',
+              env: 'get_elo_history_last48hrs_by_env'
+            },
+            '7D': {
+              groups: 'get_elo_history_last7days_by_groups',
+              env: 'get_elo_history_last7days_by_env'
+            },
+            '30D': {
+              groups: 'get_elo_history_last30days_by_groups',
+              env: 'get_elo_history_last30days_by_env'
+            }
+          };
+  
+          let historyData, historyError;
+  
+          if (groupBasedSubsets.has(selectedSubset)) {
+            const { data, error } = await supabase.rpc(
+              functionNameMap[selectedTimeRange].groups,
+              {
+                selected_model_ids: selectedModelIds,
+                selected_subset: selectedSubset,
+              }
+            );
+            historyData = data;
+            historyError = error;
+          } else {
+            const { data, error } = await supabase.rpc(
+              functionNameMap[selectedTimeRange].env,
+              {
+                selected_env_ids: subsetEnvIds,
+                selected_model_ids: selectedModelIds,
+              }
+            );
+            historyData = data;
+            historyError = error;
+          }
+  
+          if (historyError) throw historyError;
+          setEloHistory(historyData || []);
+        } else {
+          setEloHistory([]);
+        }
+      } catch (err: any) {
+        console.error("Error fetching Elo history:", err);
+        // We don't set the main error state here since it's just for the history
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    }
+  
+    fetchEloHistory();
+  }, [selectedTimeRange, currentPage, selectedSubset, models]); // Dependencies for Elo history
+
 
   // Calculate paginated models.
   const paginatedModels = useMemo(() => {
@@ -506,10 +681,37 @@ export function Leaderboard() {
           </div>
 
           <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-              <div className="flex items-center gap-2">
+            {/* Desktop view */}
+            {!isMobile && (
+              <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-navbarForeground font-mono">Elo History</h3>
-                {isMobile && (
+                <div className="flex gap-1 bg-background rounded-md p-0.5 border border-navbar">
+                  {[
+                    { label: 'L2D', value: '48H' },
+                    { label: 'L7D', value: '7D' },
+                    { label: 'L30D', value: '30D' }
+                  ].map(({ label, value }) => (
+                    <button
+                      key={value}
+                      onClick={() => setSelectedTimeRange(value as TimeRange)}
+                      className={`px-2 py-1 text-xs font-mono rounded ${
+                        selectedTimeRange === value
+                          ? 'bg-[hsl(var(--navbar))] text-navbarForeground'
+                          : 'text-muted-foreground hover:bg-[hsl(var(--navbar))] hover:bg-opacity-50 hover:text-navbarForeground'
+                      } transition-colors`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Mobile view */}
+            {isMobile && (
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-bold text-navbarForeground font-mono">Elo History</h3>
                   <div className="relative flex items-center">
                     <div className="group">
                       <Info className="h-4 w-4 text-muted-foreground" />
@@ -520,9 +722,30 @@ export function Leaderboard() {
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
+                
+                <div className="flex gap-1 bg-background rounded-md p-0.5 border border-navbar">
+                  {[
+                    { label: 'L2D', value: '48H' },
+                    { label: 'L7D', value: '7D' },
+                    { label: 'L30D', value: '30D' }
+                  ].map(({ label, value }) => (
+                    <button
+                      key={value}
+                      onClick={() => setSelectedTimeRange(value as TimeRange)}
+                      className={`px-2 py-1 text-xs font-mono rounded ${
+                        selectedTimeRange === value
+                          ? 'bg-[hsl(var(--navbar))] text-navbarForeground'
+                          : 'text-muted-foreground hover:bg-[hsl(var(--navbar))] hover:bg-opacity-50 hover:text-navbarForeground'
+                      } transition-colors`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
             {isLoadingHistory ? (
               <p className="text-navbarForeground">Loading elo history...</p>
             ) : (
