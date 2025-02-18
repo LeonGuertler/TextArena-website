@@ -314,8 +314,8 @@ const Sidebar = () => {
             "transition-[left] duration-150 ease-in-out",
             "border border-white/10",
             isMobile 
-              ? (isMainCollapsed ? "left-14" : "left-[216px]")
-              : (isMainCollapsed ? "left-[66px]" : "left-[216px]")
+              ? (isMainCollapsed ? "left-14" : "left-[210px]")
+              : (isMainCollapsed ? "left-[71px]" : "left-[211px]")
           )}
         >
           <Columns className="h-4 w-4" />
