@@ -182,6 +182,18 @@ const Sidebar = () => {
 
   return (
     <>
+      {/* Backdrop overlay for mobile */}
+      {isMobile && (
+        <div
+          className={cn(
+            "fixed inset-0 bg-black/50 backdrop-blur-sm z-30",
+            "transition-opacity duration-150 ease-in-out",
+            isMainCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+          )}
+          onClick={() => setIsMainCollapsed(true)}
+        />
+      )}
+
       {/* Toggle Button - Always visible */}
       <Button
         variant="ghost"
@@ -192,10 +204,14 @@ const Sidebar = () => {
           "rounded-lg",
           "bg-[#021213] hover:bg-[#0a2f30]",
           "text-white/70 hover:text-white",
-          "transition-all duration-200",
+          "transition-[left,width,opacity] duration-150 ease-in-out",
           "border border-white/10",
           isMainCollapsed ? "left-[13px]" : "left-[158px]",
+          !isMobile && "ml-0"  // Reset margin for non-mobile
         )}
+        style={{
+          left: !isMobile ? (isMainCollapsed ? "13px" : "153px") : (isMainCollapsed ? "13px" : "158px")
+        }}
       >
         {isMainCollapsed ? (
           <ChevronRight className="h-4 w-4" />
@@ -207,16 +223,30 @@ const Sidebar = () => {
       {/* Main Sidebar */}
       <div
         className={cn(
-          "fixed left-0 top-0 h-full bg-[#021213] font-mono",
-          "transition-all duration-300 ease-out z-40",
-          isMobile && isMainCollapsed ? "opacity-0 pointer-events-none" : "opacity-100",
-          "shadow-lg"
+          "h-full bg-[#021213] font-mono shadow-lg",
+          "transition-all duration-150 ease-in-out",
+          isMobile ? [
+            "fixed left-0 top-0 z-40",
+            isMainCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+          ] : [
+            "relative",  // Changed from fixed to relative for non-mobile
+            "border-r border-white/10"
+          ]
         )}
-        style={{ width: sidebarWidth }}
+        style={{ 
+          width: sidebarWidth,
+          minWidth: sidebarWidth,
+          maxWidth: sidebarWidth,
+          marginLeft: !isMobile ? "0" : undefined  // Reset margin for non-mobile
+        }}
       >
-        <div className="flex h-[50px] items-center border-b border-white/10 px-4">
+        <div className="flex h-[50px] items-center border-b border-white/10 px-4 transition-[opacity,width] duration-150 ease-in-out">
           {!isMainCollapsed && (
-            <Link href="/" className="cursor-pointer">
+            <Link href="/" className={cn(
+                "cursor-pointer",
+                "transition-[opacity,visibility] duration-150 ease-in-out",
+                isMainCollapsed ? "opacity-0 invisible" : "opacity-100 visible delay-100"
+              )}>
               <span className="text-lg font-bold px-2">TextArena</span>
             </Link>
           )}
@@ -225,7 +255,7 @@ const Sidebar = () => {
         <ScrollArea className="flex-grow h-[calc(100vh-50px)]">
           <div className="flex flex-col gap-1 p-2">
             {topMenuItems.map((item) => (
-              <NavItem key={item.name} item={item} isCollapsed={isMainCollapsed && !isMobile} />
+              <NavItem key={item.name} item={item} isCollapsed={isMainCollapsed} />
             ))}
           </div>
         </ScrollArea>
@@ -233,13 +263,13 @@ const Sidebar = () => {
         <div className="absolute bottom-0 left-0 right-0">
           <div className="flex flex-col gap-1 border-t border-white/10 p-2">
             {bottomMenuItems.map((item) => (
-              <NavItem key={item.name} item={item} isCollapsed={isMainCollapsed && !isMobile} />
+              <NavItem key={item.name} item={item} isCollapsed={isMainCollapsed} />
             ))}
           </div>
 
           <div className={cn(
             "flex border-t border-white/10 p-2",
-            isMainCollapsed && !isMobile ? "flex-col items-center" : "justify-center gap-2"
+            isMainCollapsed ? "flex-col items-center" : "justify-center gap-2"
           )}>
             {socialIcons.map((item) => (
               <TooltipProvider key={item.name}>
@@ -281,7 +311,7 @@ const Sidebar = () => {
             "rounded-lg",
             "bg-[#021213] hover:bg-[#0a2f30]",
             "text-white/70 hover:text-white",
-            "transition-all duration-200",
+            "transition-[left] duration-150 ease-in-out",
             "border border-white/10",
             isMobile 
               ? (isMainCollapsed ? "left-14" : "left-[216px]")
@@ -297,7 +327,7 @@ const Sidebar = () => {
         <div
           className={cn(
             "fixed h-full bg-[#021213]/85 border-l border-white/10 font-mono",
-            "transition-all duration-300 ease-out z-30",
+            "transition-all duration-300 ease-in-out z-30",
             "backdrop-blur-sm shadow-lg",
             isDocsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
           )}
@@ -305,7 +335,7 @@ const Sidebar = () => {
             width: isDocsVisible ? '200px' : '0',
             left: isMobile 
               ? (isMainCollapsed ? '0' : '200px')
-              : (isMainCollapsed ? '40px' : '200px')
+              : (isMainCollapsed ? '60px' : '200px')
           }}
         >
           <ScrollArea className="h-full px-4">

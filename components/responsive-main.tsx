@@ -16,7 +16,7 @@ export function ResponsiveMain({ children, className }: ResponsiveMainProps) {
       id="main-content" 
       className={cn(
         "flex-1 overflow-y-auto transition-[padding] duration-300",
-        isMobile ? "pl-0" : "pl-[66px]",
+        isMobile ? "pl-0" : "pl-[0px]",
         className
       )}
     >
