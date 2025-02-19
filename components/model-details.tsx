@@ -714,122 +714,121 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       </div>
 
       {/* Skill Distribution */}
-      {/* Skill Distribution */}
-<div className="mb-8">
-  <Card className="bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))]">
-    <CardHeader>
-      <CardTitle className={`font-mono ${isMobile ? "text-lg" : "text-2xl"} font-semibold text-navbarForeground`}>
-        Skill Distribution
-      </CardTitle>
-    </CardHeader>
+      <div className="mb-8">
+        <Card className="bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))]">
+          <CardHeader>
+            <CardTitle className={`font-mono ${isMobile ? "text-lg" : "text-2xl"} font-semibold text-navbarForeground`}>
+              Skill Distribution
+            </CardTitle>
+          </CardHeader>
 
-    <CardContent>
-      <div className="relative z-0">
-        {isMobile && (
-          <div
-            ref={RadarTooltipContainerRef}
-            className="absolute top-0 left-0 right-0 z-50 flex justify-center items-start h-[120px] bg-[hsl(var(--navbar))] bg-opacity-95 transition-all duration-200 py-2 px-4 overflow-y-auto pointer-events-auto border border-[hsl(var(--border))] rounded-lg"
-          ></div>
-        )}
-        <div className={`flex ${isMobile ? "block" : "gap-4"}`}>
-          {/* Tooltip Container for Desktop */}
-          {!isMobile && (
-            <div 
-              ref={RadarTooltipContainerRef}
-              className="w-1/3 h-[400px] bg-[hsl(var(--navbar))] border border-[hsl(var(--border))] rounded-lg p-2 overflow-y-auto"
-            ></div>
-          )}
-          
-          {/* Radar Chart Container */}
-          <div 
-            ref={chartContainerRef}
-            className={isMobile ? "overflow-x-auto" : "flex-1"}
-          >
-            <div 
-              style={{ 
-                width: isMobile ? "400px" : "100%", 
-                height: 400, 
-                paddingTop: isMobile ? "150px" : 0,
-                margin: "0 auto"
-              }}
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart 
-                  data={skillData}
-                  margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
-                  outerRadius={isMobile ? 90 : chartRadius} // Fixed radius for mobile, dynamic for desktop
+          <CardContent>
+            <div className="relative z-0">
+              {isMobile && (
+                <div
+                  ref={RadarTooltipContainerRef}
+                  className="absolute top-0 left-0 right-0 z-50 flex justify-center items-start h-[120px] bg-[hsl(var(--navbar))] bg-opacity-95 transition-all duration-200 py-2 px-4 overflow-y-auto pointer-events-auto border border-[hsl(var(--border))] rounded-lg"
+                ></div>
+              )}
+              <div className={`flex ${isMobile ? "block" : "gap-4"}`}>
+                {/* Tooltip Container for Desktop */}
+                {!isMobile && (
+                  <div 
+                    ref={RadarTooltipContainerRef}
+                    className="w-1/3 h-[400px] bg-[hsl(var(--navbar))] border border-[hsl(var(--border))] rounded-lg p-2 overflow-y-auto"
+                  ></div>
+                )}
+                
+                {/* Radar Chart Container */}
+                <div 
+                  ref={chartContainerRef}
+                  className={isMobile ? "overflow-x-auto" : "flex-1"}
                 >
-                  <PolarGrid 
-                    stroke="white"
-                    radialLines={true}
-                  />
-                  <PolarAngleAxis
-                    dataKey="skill"
-                    tick={{ 
-                      fill: "white", 
-                      fontSize: isMobile ? 8 : 10,
-                      fontFamily: "var(--font-mono)",
-                      dy: 6,
-                      width: 60,
-                      lineHeight: "1.2em"
+                  <div 
+                    style={{ 
+                      width: isMobile ? "400px" : "100%", 
+                      height: 400, 
+                      paddingTop: isMobile ? "150px" : 0,
+                      margin: "0 auto"
                     }}
-                    radius={isMobile ? 90 : chartRadius} // Fixed radius for mobile, dynamic for desktop
-                    tickFormatter={(value) => {
-                      const breakPoints = {
-                        "Uncertainty Estimation": "Uncertainty\nEstimation",
-                        "Logical Reasoning": "Logical\nReasoning",
-                        "Memory Recall": "Memory\nRecall",
-                        "Pattern Recognition": "Pattern\nRecognition",
-                        "Spatial Thinking": "Spatial\nThinking",
-                        "Strategic Planning": "Strategic\nPlanning"
-                      };
-                      return breakPoints[value] || value;
-                    }}
-                  />
-                  <PolarRadiusAxis
-                    domain={calculateDomain(skillData)} 
-                    axisLine={false}
-                    tick={false}
-                    angle={90}
-                  />
-                  <Tooltip
-                    content={
-                      <CustomRadarTooltip
-                        isMobile={isMobile}
-                        containerRef={RadarTooltipContainerRef}
-                      />
-                    }
-                    trigger="click"
-                  />
-                  <Radar 
-                    name="Skill Level" 
-                    dataKey="elo" 
-                    stroke="#8884d8" 
-                    fill="#8884d8" 
-                    fillOpacity={0.6}
-                    className="cursor-pointer"
-                    radiusScale={0.75}
-                    activeDot={{
-                      r: isMobile ? 4 : 6,
-                      stroke: "white",
-                      strokeWidth: 2,
-                      fill: "#8884d8",
-                    }}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart 
+                        data={skillData}
+                        margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
+                        outerRadius={isMobile ? 90 : chartRadius} // Fixed radius for mobile, dynamic for desktop
+                      >
+                        <PolarGrid 
+                          stroke="white"
+                          radialLines={true}
+                        />
+                        <PolarAngleAxis
+                          dataKey="skill"
+                          tick={{ 
+                            fill: "white", 
+                            fontSize: isMobile ? 8 : 10,
+                            fontFamily: "var(--font-mono)",
+                            dy: 6,
+                            width: 60,
+                            lineHeight: "1.2em"
+                          }}
+                          radius={isMobile ? 90 : chartRadius} // Fixed radius for mobile, dynamic for desktop
+                          tickFormatter={(value) => {
+                            const breakPoints = {
+                              "Uncertainty Estimation": "Uncertainty\nEstimation",
+                              "Logical Reasoning": "Logical\nReasoning",
+                              "Memory Recall": "Memory\nRecall",
+                              "Pattern Recognition": "Pattern\nRecognition",
+                              "Spatial Thinking": "Spatial\nThinking",
+                              "Strategic Planning": "Strategic\nPlanning"
+                            };
+                            return breakPoints[value] || value;
+                          }}
+                        />
+                        <PolarRadiusAxis
+                          domain={calculateDomain(skillData)} 
+                          axisLine={false}
+                          tick={false}
+                          angle={90}
+                        />
+                        <Tooltip
+                          content={
+                            <CustomRadarTooltip
+                              isMobile={isMobile}
+                              containerRef={RadarTooltipContainerRef}
+                            />
+                          }
+                          trigger="click"
+                        />
+                        <Radar 
+                          name="Skill Level" 
+                          dataKey="elo" 
+                          stroke="#8884d8" 
+                          fill="#8884d8" 
+                          fillOpacity={0.6}
+                          className="cursor-pointer"
+                          radiusScale={0.75}
+                          activeDot={{
+                            r: isMobile ? 4 : 6,
+                            stroke: "white",
+                            strokeWidth: 2,
+                            fill: "#8884d8",
+                          }}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+              {isMobile && (
+                <div className="text-xs text-muted-foreground font-mono mt-2 text-right">
+                  Scroll to see more →
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-        {isMobile && (
-          <div className="text-xs text-muted-foreground font-mono mt-2 text-right">
-            Scroll to see more →
-          </div>
-        )}
+          </CardContent>
+        </Card>
       </div>
-    </CardContent>
-  </Card>
-</div>
 
       {/* Recent Games */}
       <div className="mb-8">
