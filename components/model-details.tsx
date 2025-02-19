@@ -149,30 +149,35 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
                 <h3 className={`font-bold text-navbar-foreground tracking-wide ${isMobile ? "text-[10px]" : "text-lg"}`}>
                   {data.skill}
                 </h3>
-                <p className={`text-navbar-foreground font-light ${isMobile ? "text-[8px]" : "text-sm"}`}>
-                  {SKILL_EXPLANATIONS[data.skill]}
-                </p>
               </div>
-              <div className={`text-navbar-foreground font-bold ${isMobile ? "text-[12px]" : "text-2xl"} ml-4`}>
+              <div className={`text-navbar-foreground font-bold ${isMobile ? "text-[12px]" : "text-xl"} ml-4`}>
                 {data.elo.toFixed(1)}
               </div>
+            </div>
+
+            <div>
+              <p className={`text-navbar-foreground font-light ${isMobile ? "text-[8px]" : "text-xs"}`}>
+                {SKILL_EXPLANATIONS[data.skill]}
+              </p>
             </div>
             
             {/* Environments Section */}
             <div>
-              <div className={`text-muted-foreground font-light mb-1.5 ${isMobile ? "text-[9px]" : "text-sm"}`}>
+              <div className={`text-muted-foreground font-light mb-1.5 ${isMobile ? "text-[9px]" : "text-xs"}`}>
                 Environments' Contribution
               </div>
-              <ul className={`space-y-1 ${isMobile ? "text-[8px]" : "text-sm"}`}>
+              <ul className={`space-y-1 ${isMobile ? "text-[8px]" : "text-[10px]"}`}>
                 {sortedEnvs.map((env: any, idx: number) => (
                   <li key={idx} className="flex justify-between items-baseline">
-                    <span className="text-navbar-foreground">{env.name}</span>
-                    <span>
+                    <div className="flex w-[150px] break-words">
+                      <span className="text-navbar-foreground">{env.name.replace(/-/g, "\u200B-")}</span>
+                    </div>
+                    <div className="flex">
                       <span className="text-navbar-foreground font-medium">{(env.relativeWeight * 100).toFixed(1)}%</span>
                       <span className="text-muted-foreground ml-1 font-light">
                         (Elo: <span className="text-navbar-foreground">{env.elo.toFixed(1)}</span>)
                       </span>
-                    </span>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -181,7 +186,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
         );
       } else {
         root.render(
-          <div className={`font-mono text-muted-foreground ${isMobile ? "text-[10px]" : "text-lg"} ${isMobile ? "p-0" : "p-2"}`}>
+          <div className={`font-mono text-muted-foreground ${isMobile ? "text-[10px]" : "text-sm"} ${isMobile ? "p-0" : "p-2"}`}>
             Click on the radar chart to see skill details
           </div>
         );
@@ -343,7 +348,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   const envTooltipContainerRef = useRef<HTMLDivElement>(null)
   const RadarTooltipContainerRef = useRef<HTMLDivElement>(null)
   const chartContainerRef = useRef(null);
-  const [chartRadius, setChartRadius] = useState(isMobile ? 90 : 90);
+  const [chartRadius, setChartRadius] = useState(isMobile ? 90 : 150);
 
   // Update radius based on container width - only for desktop
   useEffect(() => {
@@ -351,7 +356,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       if (!isMobile && chartContainerRef.current) {
         const containerWidth = chartContainerRef.current.offsetWidth;
         // Calculate radius as a proportion of container width for desktop only
-        const newRadius = Math.min(containerWidth / 4, 150);
+        const newRadius = Math.min(containerWidth / 2, 150);
         setChartRadius(newRadius);
       }
     };
@@ -731,7 +736,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
           {!isMobile && (
             <div 
               ref={RadarTooltipContainerRef}
-              className="w-1/2 h-[400px] bg-[hsl(var(--navbar))] border border-[hsl(var(--border))] rounded-lg p-4 overflow-y-auto"
+              className="w-1/3 h-[400px] bg-[hsl(var(--navbar))] border border-[hsl(var(--border))] rounded-lg p-2 overflow-y-auto"
             ></div>
           )}
           
