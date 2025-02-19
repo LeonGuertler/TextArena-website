@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
+import { Scale, ArrowLeft } from "lucide-react"
 import {
   ResponsiveContainer,
   CartesianGrid,
@@ -26,6 +26,7 @@ import {
 import { supabase } from "@/lib/supabase"
 import { useIsMobile } from "@/hooks/use-mobile"
 import ReactDOM from "react-dom"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // -------------------------------------------------------------------
 // 1. New Skills & Explanations
@@ -137,50 +138,108 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
     const renderContent = (root: any) => {
       if (active && payload && payload.length > 0) {
         const data = payload[0].payload;
-        const sortedEnvs = [...data.envs].sort((a, b) => b.relativeWeight - a.relativeWeight);
+        
+        // Get sorted environments for both models
+        const mainEnvsSorted = [...data.mainEnvs].sort((a, b) => b.relativeWeight - a.relativeWeight);
+        const comparisonEnvsSorted = data.comparisonEnvs ? 
+          [...data.comparisonEnvs].sort((a, b) => b.relativeWeight - a.relativeWeight) : [];
+
+        // Combine environment data for comparison
+        const allEnvironments = new Set([
+          ...mainEnvsSorted.map(env => env.name),
+          ...comparisonEnvsSorted.map(env => env.name)
+        ]);
+
         root.render(
           <div 
             className={`font-mono ${isMobile ? "p-0 text-[10px]" : "p-2 text-sm"} space-y-4`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header Section with Flex Layout */}
-            <div className="flex justify-between items-start">
-              <div className="space-y-1 flex-1">
-                <h3 className={`font-bold text-navbar-foreground tracking-wide ${isMobile ? "text-[10px]" : "text-lg"}`}>
-                  {data.skill}
-                </h3>
-              </div>
-              <div className={`text-navbar-foreground font-bold ${isMobile ? "text-[12px]" : "text-xl"} ml-4`}>
-                {data.elo.toFixed(1)}
-              </div>
-            </div>
-
-            <div>
+            {/* Header Section */}
+            <div className="space-y-2">
+              <h3 className={`font-bold text-navbar-foreground tracking-wide ${isMobile ? "text-[10px]" : "text-lg"}`}>
+                {data.skill}
+              </h3>
               <p className={`text-navbar-foreground font-light ${isMobile ? "text-[8px]" : "text-xs"}`}>
                 {SKILL_EXPLANATIONS[data.skill]}
               </p>
             </div>
+
+            {/* Overall Elo Comparison */}
+            <div className="flex justify-between border-t border-b border-muted-foreground py-2 min-h-[80px] gap-4">
+              <div className="min-w-0 flex-1 flex flex-col justify-between">
+                <div className={`text-[#8884d8] font-semibold ${isMobile ? "text-[10px]" : "text-xs"} break-words text-left`}>
+                  {payload[0].name}
+                </div>
+                <div className={`font-bold ${isMobile ? "text-[12px]" : "text-lg"} whitespace-nowrap`}>
+                  {data.mainElo.toFixed(1)}
+                </div>
+              </div>
+              {data.comparisonElo > 0 && (
+                <div className="min-w-0 flex-1 flex flex-col justify-between">
+                  <div className={`text-[#82ca9d] font-semibold ${isMobile ? "text-[10px]" : "text-xs"} break-words text-right`}>
+                    {payload.length > 1 ? payload[1].name : ""}
+                  </div>
+                  <div className={`font-bold ${isMobile ? "text-[12px]" : "text-lg"} text-right whitespace-nowrap`}>
+                    {data.comparisonElo.toFixed(1)}
+                  </div>
+                </div>
+              )}
+            </div>
             
             {/* Environments Section */}
             <div>
-              <div className={`text-muted-foreground font-light mb-1.5 ${isMobile ? "text-[9px]" : "text-xs"}`}>
-                Environments' Contribution
+              <div className={`text-muted-foreground font-semibold mb-2 ${isMobile ? "text-[9px]" : "text-xs"}`}>
+                Environment Contributions
               </div>
-              <ul className={`space-y-1 ${isMobile ? "text-[8px]" : "text-[10px]"}`}>
-                {sortedEnvs.map((env: any, idx: number) => (
-                  <li key={idx} className="flex justify-between items-baseline">
-                    <div className="flex w-[150px] break-words">
-                      <span className="text-navbar-foreground">{env.name.replace(/-/g, "\u200B-")}</span>
+              <div className={`space-y-2 ${isMobile ? "text-[8px]" : "text-[10px]"}`}>
+                {[...allEnvironments].map((envName) => {
+                  const mainEnv = mainEnvsSorted.find(e => e.name === envName);
+                  const compEnv = comparisonEnvsSorted.find(e => e.name === envName);
+                  
+                  return (
+                    <div key={envName} className="grid grid-cols-[1fr,auto,1fr] gap-2 items-baseline">
+                      {/* Main model values */}
+                      <div className="text-left">
+                        {mainEnv && (
+                          <span 
+                            className={`text-[#8884d8] ${
+                              compEnv && mainEnv.elo > compEnv.elo ? "underline" : ""
+                            }`}
+                          >
+                            {mainEnv.elo.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Environment name and percentage on separate lines */}
+                      <div className="flex flex-col items-center text-navbar-foreground font-medium">
+                        <div className="whitespace-nowrap">
+                          {envName.replace(/-/g, "\u200B-")}
+                        </div>
+                        {mainEnv && (
+                          <div className="text-muted-foreground font-medium">
+                            ({(mainEnv.relativeWeight * 100).toFixed(1)}%)
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Comparison model values */}
+                      <div className="text-right">
+                        {compEnv && (
+                          <span 
+                            className={`text-[#82ca9d] ${
+                              mainEnv && compEnv.elo > mainEnv.elo ? "underline" : ""
+                            }`}
+                          >
+                            {compEnv.elo.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex">
-                      <span className="text-navbar-foreground font-medium">{(env.relativeWeight * 100).toFixed(1)}%</span>
-                      <span className="text-muted-foreground ml-1 font-light">
-                        (Elo: <span className="text-navbar-foreground">{env.elo.toFixed(1)}</span>)
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                  );
+                })}
+              </div>
             </div>
           </div>
         );
@@ -326,17 +385,37 @@ function buildSkillDistribution(environments: ModelData["environment_performance
   })
 }
 
-const calculateDomain = (data: any[]) => {
-  const values = data.map(item => item.elo);
-  const minValue = Math.min(...values);
-  const maxValue = Math.max(...values);
-  
-  // Calculate range with ±10%
-  const minRange = Math.floor(minValue -5);  // 10% below minimum
-  const maxRange = Math.ceil(maxValue +5);   // 10% above maximum
-  
-  return [minRange, maxRange];
-}
+const calculateDomain = (eloValues: number[]) => {
+  // Filter out undefined/null values to avoid computation errors
+  const validEloValues = eloValues.filter(value => value !== undefined && value !== null);
+
+  if (validEloValues.length === 0) return [0, 100]; // Default if no valid data is available
+
+  const minValue = Math.min(...validEloValues);
+  const maxValue = Math.max(...validEloValues);
+
+  // If all values are identical, prevent a collapsed range
+  if (minValue === maxValue) {
+    return [minValue - 10, maxValue + 10];
+  }
+
+  // Check if there's any `comparisonElo`
+  const hasComparisonElo = validEloValues.some(value => value !== minValue && value !== maxValue);
+
+  if (!hasComparisonElo) {
+    // No comparison model: use 20% above and below the mean Elo
+    const meanValue = validEloValues.reduce((sum, val) => sum + val, 0) / validEloValues.length;
+    const buffer = meanValue * 0.2; // 20% buffer
+
+    return [Math.floor(meanValue - buffer), Math.ceil(meanValue + buffer)];
+  }
+
+  // Default behavior: Apply a small buffer (at least 5 Elo or 10% of the range)
+  const buffer = Math.max(5, (maxValue - minValue) * 0.1);
+  return [Math.floor(minValue - buffer), Math.ceil(maxValue + buffer)];
+};
+
+
 
 export function ModelDetails({ modelName }: ModelDetailsProps) {
   const router = useRouter()
@@ -349,6 +428,9 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   const RadarTooltipContainerRef = useRef<HTMLDivElement>(null)
   const chartContainerRef = useRef(null);
   const [chartRadius, setChartRadius] = useState(isMobile ? 90 : 150);
+  // First, add state for comparison model and available models
+  const [comparisonModel, setComparisonModel] = useState<ModelData | null>(null);
+  const [availableModels, setAvailableModels] = useState<{model_name: string}[]>([]);
 
   // Update radius based on container width - only for desktop
   useEffect(() => {
@@ -374,6 +456,75 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   useEffect(() => {
     fetchModelDetails()
   }, [])
+
+  // Update useEffect to fetch available models
+  useEffect(() => {
+    fetchModelDetails();
+    fetchAvailableModels();
+  }, []);
+
+  // Add function to fetch available models
+  async function fetchAvailableModels() {
+    try {
+      const { data, error } = await supabase
+        .from('models')
+        .select('model_name')
+        .order('model_name');
+      
+      if (error) throw error;
+      setAvailableModels(data || []);
+    } catch (err) {
+      console.error("Error fetching available models:", err);
+    }
+  }
+
+  // Add function to fetch comparison model
+  async function fetchComparisonModel(modelNameToCompare: string) {
+    try {
+      const { data, error } = await supabase.rpc("get_model_details_by_name_v2", {
+        model_name_param: modelNameToCompare,
+      });
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        setComparisonModel(null);
+        return;
+      }
+
+      // Process the data similarly to the main model
+      const uniqueEnvs: Record<string, any> = {};
+      (data[0].environment_performance || []).forEach((env: any) => {
+        const key = env.name || env.env_name || "Unknown";
+        if (!uniqueEnvs[key] || env.games > uniqueEnvs[key].games) {
+          uniqueEnvs[key] = env;
+        }
+      });
+      const dedupedEnvs = Object.values(uniqueEnvs);
+
+      const rawModel = data[0];
+      const processedModel: ModelData = {
+        model_name: rawModel.model_name,
+        description: rawModel.description,
+        elo: rawModel.elo,
+        games_played: rawModel.games_played,
+        win_rate: rawModel.win_rate,
+        wins: rawModel.wins,
+        draws: rawModel.draws,
+        losses: rawModel.losses,
+        avg_time: rawModel.avg_time,
+        elo_history: rawModel.elo_history,
+        environment_performance: dedupedEnvs,
+        recent_games: rawModel.recent_games,
+        id: rawModel.id,
+      };
+
+      setComparisonModel(processedModel);
+    } catch (err) {
+      console.error("Error fetching comparison model:", err);
+      setComparisonModel(null);
+    }
+  }
+
 
   async function fetchModelDetails() {
     try {
@@ -469,6 +620,61 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       : model.elo
 
   const skillData = buildSkillDistribution(model.environment_performance)
+
+  // Add dropdown component for model selection
+  const ModelComparisonSelect = () => {
+    return (
+      <div className="flex items-center gap-2 mb-4">
+        <Scale className="h-4 w-4 text-navbarForeground" />
+        <Select
+          onValueChange={(value) => {
+            if (value === "none") {
+              setComparisonModel(null);
+            } else {
+              fetchComparisonModel(value);
+            }
+          }}
+          value={comparisonModel?.model_name || "none"}
+        >
+          <SelectTrigger className="w-[180px] bg-background text-navbarForeground border-navbar font-mono">
+            <SelectValue placeholder="Compare with..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none" className="font-mono">
+              None
+            </SelectItem>
+            {availableModels
+              .filter(m => m.model_name !== model.model_name)
+              .map(m => (
+                <SelectItem key={m.model_name} value={m.model_name} className="font-mono">
+                  {m.model_name}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  };
+
+  // Modify the data structure to include both models' data
+  const combinedSkillData = SKILLS.map(skill => {
+    const mainModelSkill = buildSkillDistribution(model.environment_performance)
+      .find(s => s.skill === skill) || { elo: 0, envs: [] };
+      
+    const comparisonModelSkill = comparisonModel 
+      ? buildSkillDistribution(comparisonModel.environment_performance)
+          .find(s => s.skill === skill) || { elo: 0, envs: [] }
+      : { elo: 0, envs: [] };
+
+    return {
+      skill,
+      mainElo: mainModelSkill.elo,
+      comparisonElo: comparisonModelSkill.elo,
+      // Keep the environment data for tooltips
+      mainEnvs: mainModelSkill.envs,
+      comparisonEnvs: comparisonModelSkill.envs
+    };
+  });
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -723,11 +929,14 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
           </CardHeader>
 
           <CardContent>
-            <div className="relative z-0">
+            <div className="relative">
+              <div className="relative z-20">
+                <ModelComparisonSelect />
+              </div>
               {isMobile && (
                 <div
                   ref={RadarTooltipContainerRef}
-                  className="absolute top-0 left-0 right-0 z-50 flex justify-center items-start h-[120px] bg-[hsl(var(--navbar))] bg-opacity-95 transition-all duration-200 py-2 px-4 overflow-y-auto pointer-events-auto border border-[hsl(var(--border))] rounded-lg"
+                  className="absolute top-[60px] left-0 right-0 z-10 flex justify-center items-start h-[120px] bg-[hsl(var(--navbar))] bg-opacity-95 transition-all duration-200 py-2 px-4 overflow-y-auto pointer-events-auto border border-[hsl(var(--border))] rounded-lg"
                 ></div>
               )}
               <div className={`flex ${isMobile ? "block" : "gap-4"}`}>
@@ -743,25 +952,24 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                 <div 
                   ref={chartContainerRef}
                   className={isMobile ? "overflow-x-auto" : "flex-1"}
+                  style={{ minHeight: '400px' }}  // Add this
                 >
                   <div 
                     style={{ 
-                      width: isMobile ? "400px" : "100%", 
+                      width: isMobile ? "300px" : "100%",  // Change from 400px to 300px
                       height: 400, 
                       paddingTop: isMobile ? "150px" : 0,
-                      margin: "0 auto"
+                      margin: "0 auto",
+                      minWidth: isMobile ? "300px" : "auto"  // Add this
                     }}
                   >
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart 
-                        data={skillData}
+                        data={combinedSkillData}
                         margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
-                        outerRadius={isMobile ? 90 : chartRadius} // Fixed radius for mobile, dynamic for desktop
+                        outerRadius={isMobile ? 90 : chartRadius}
                       >
-                        <PolarGrid 
-                          stroke="white"
-                          radialLines={true}
-                        />
+                        <PolarGrid stroke="white" radialLines={true} />
                         <PolarAngleAxis
                           dataKey="skill"
                           tick={{ 
@@ -772,7 +980,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                             width: 60,
                             lineHeight: "1.2em"
                           }}
-                          radius={isMobile ? 90 : chartRadius} // Fixed radius for mobile, dynamic for desktop
+                          radius={isMobile ? 90 : chartRadius}
                           tickFormatter={(value) => {
                             const breakPoints = {
                               "Uncertainty Estimation": "Uncertainty\nEstimation",
@@ -786,7 +994,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                           }}
                         />
                         <PolarRadiusAxis
-                          domain={calculateDomain(skillData)} 
+                          domain={calculateDomain(combinedSkillData.flatMap(item => [item.mainElo, item.comparisonElo]))}
                           axisLine={false}
                           tick={false}
                           angle={90}
@@ -800,9 +1008,10 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                           }
                           trigger="click"
                         />
+                        {/* Main model radar */}
                         <Radar 
-                          name="Skill Level" 
-                          dataKey="elo" 
+                          name={model.model_name}
+                          dataKey="mainElo" 
                           stroke="#8884d8" 
                           fill="#8884d8" 
                           fillOpacity={0.6}
@@ -813,6 +1022,34 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                             stroke: "white",
                             strokeWidth: 2,
                             fill: "#8884d8",
+                          }}
+                        />
+                        {/* Comparison model radar */}
+                        {comparisonModel && (
+                          <Radar
+                            name={comparisonModel.model_name}
+                            dataKey="comparisonElo"
+                            stroke="#82ca9d"
+                            fill="#82ca9d"
+                            fillOpacity={0.6}
+                            className="cursor-pointer"
+                            radiusScale={0.75}
+                            activeDot={{
+                              r: isMobile ? 4 : 6,
+                              stroke: "white",
+                              strokeWidth: 2,
+                              fill: "#82ca9d",
+                            }}
+                          />
+                        )}
+                        <Legend 
+                          align="center"
+                          verticalAlign="top"
+                          wrapperStyle={{ 
+                            color: "white", 
+                            fontFamily: "var(--font-mono)",
+                            fontSize: isMobile ? 9 : 11,
+                            marginTop:isMobile ?  "-35px"  : "-20px"  // Add this to move it higher
                           }}
                         />
                       </RadarChart>
