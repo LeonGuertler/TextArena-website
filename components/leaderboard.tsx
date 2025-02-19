@@ -247,6 +247,21 @@ function EloHistoryChart({
     [isMobile, selectedPoint],
   )
 
+  // Helper function to format the date and time
+  const formatDateTime = (tick: string) => {
+    const d = new Date(tick)
+    const date = d.toLocaleDateString([], {
+      month: 'numeric',
+      day: 'numeric'
+    })
+    const time = d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    })
+    return `${date}, ${time}`
+  }
+
   const chartContent = (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart
@@ -255,7 +270,7 @@ function EloHistoryChart({
           top: 20,
           right: isMobile ? 40 : 20,
           left: 20,
-          bottom: isMobile ? 40 : 20,
+          bottom: isMobile ? 60 : 40, // Increased bottom margin to accommodate longer labels
         }}
         onClick={handleClick}
       >
@@ -263,23 +278,17 @@ function EloHistoryChart({
         <XAxis
           dataKey="date"
           stroke="white"
-          tickFormatter={(tick) => {
-            const d = new Date(tick)
-            return d.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            })
-          }}
+          tickFormatter={formatDateTime}
           tick={{
             fill: "white",
             angle: isMobile ? -65 : -45,
             textAnchor: "end",
             fontSize: isMobile ? 10 : 12,
             fontFamily: "var(--font-mono)",
+            dy: 8 // Adjust vertical position of ticks
           }}
-          height={isMobile ? 60 : 30}
-          interval={isMobile ? 1 : "preserveStartEnd"}
+          height={isMobile ? 80 : 50} // Increased height to prevent label overlap
+          interval={isMobile ? 2 : "preserveStartEnd"} // Show fewer ticks on mobile
         />
         <YAxis
           stroke="white"
@@ -329,7 +338,7 @@ function EloHistoryChart({
 }
 
 export function Leaderboard() {
-  const [selectedSubset, setSelectedSubset] = useState<string>("Poker")
+  const [selectedSubset, setSelectedSubset] = useState<string>("Balanced Subset")
   const [currentPage, setCurrentPage] = useState(1)
   const [models, setModels] = useState<ModelData[]>([])
   const [eloHistory, setEloHistory] = useState<EloHistoryRow[]>([])
