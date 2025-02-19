@@ -73,7 +73,7 @@ const sections = [
   },
 ]
 
-const NavItem = ({ item, isCollapsed }) => {
+const NavItem = ({ item, isCollapsed, setIsMainCollapsed, isMobile }) => {
   const pathname = usePathname()
   const isActive = pathname === item.href
 
@@ -85,6 +85,9 @@ const NavItem = ({ item, isCollapsed }) => {
             href={item.href}
             target={item.name === "Feedback" ? "_blank" : undefined}
             rel={item.name === "Feedback" ? "noopener noreferrer" : undefined}
+            onClick={() => {
+              if (isMobile) setIsMainCollapsed(true) // Only close sidebar if mobile
+            }}
           >
             <span
               className={cn(
@@ -112,7 +115,7 @@ const NavItem = ({ item, isCollapsed }) => {
   )
 }
 
-const DocItem = ({ item, depth = 0 }) => {
+const DocItem = ({ item, depth = 0, setIsDocsVisible, isMobile }) => {
   return (
     <li>
       <Link
@@ -122,6 +125,9 @@ const DocItem = ({ item, depth = 0 }) => {
           "text-white/70 hover:text-white transition-colors duration-200",
           depth === 0 && "font-medium"
         )}
+        onClick={() => {
+          if (isMobile) setIsDocsVisible(false) // Only close docs sidebar if mobile
+        }}
       >
         <span>{item.title}</span>
         {item.status === "coming-soon" && (
@@ -142,13 +148,15 @@ const DocItem = ({ item, depth = 0 }) => {
       {item.items && (
         <ul className="ml-4 mt-1 space-y-1">
           {item.items.map((subItem) => (
-            <DocItem key={subItem.slug} item={subItem} depth={depth + 1} />
+            <DocItem key={subItem.slug} item={subItem} depth={depth + 1} setIsDocsVisible={setIsDocsVisible} isMobile={isMobile} />
           ))}
         </ul>
       )}
     </li>
   )
 }
+
+
 
 const Sidebar = () => {
   const [isMainCollapsed, setIsMainCollapsed] = useState(false)
@@ -255,7 +263,7 @@ const Sidebar = () => {
         <ScrollArea className="flex-grow h-[calc(100vh-50px)]">
           <div className="flex flex-col gap-1 p-2">
             {topMenuItems.map((item) => (
-              <NavItem key={item.name} item={item} isCollapsed={isMainCollapsed} />
+              <NavItem key={item.name} item={item} isCollapsed={isMainCollapsed} setIsMainCollapsed={setIsMainCollapsed} isMobile={isMobile} />
             ))}
           </div>
         </ScrollArea>
@@ -263,7 +271,7 @@ const Sidebar = () => {
         <div className="absolute bottom-0 left-0 right-0">
           <div className="flex flex-col gap-1 border-t border-white/10 p-2">
             {bottomMenuItems.map((item) => (
-              <NavItem key={item.name} item={item} isCollapsed={isMainCollapsed} />
+              <NavItem key={item.name} item={item} isCollapsed={isMainCollapsed} setIsMainCollapsed={setIsMainCollapsed} isMobile={isMobile} />
             ))}
           </div>
 
@@ -348,7 +356,7 @@ const Sidebar = () => {
                     </h2>
                     <ul className="space-y-1">
                       {section.items.map((item) => (
-                        <DocItem key={item.slug} item={item} />
+                        <DocItem key={item.slug} item={item} setIsDocsVisible={setIsDocsVisible} isMobile={isMobile} />
                       ))}
                     </ul>
                   </div>
