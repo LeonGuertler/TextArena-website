@@ -195,7 +195,7 @@ function CustomHistoryTooltip({ active, payload, label, isMobile, containerRef }
         <p className="font-bold text-white mb-0.5">{formattedTime}</p>
         {sortedPayload.map((entry: any, index: number) => (
           <p key={index} style={{ color: entry.stroke }} className="m-0 leading-tight">
-            {entry.name}: {Math.round(entry.value)}
+            {Math.round(entry.value)}: {entry.name}
           </p>
         ))}
       </div>
@@ -312,7 +312,7 @@ function EloHistoryChart({
             name={name}
             stroke={hoveredModel === name ? "#ffffff" : CHART_COLORS[idx % CHART_COLORS.length]}
             strokeWidth={hoveredModel === name ? 4 : 2}
-            dot={isMobile}
+            dot={false}
             activeDot={{ r: isMobile ? 6 : 8 }}
             opacity={hoveredModel && hoveredModel !== name ? 0.3 : 1}
           />
