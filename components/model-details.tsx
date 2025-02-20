@@ -27,6 +27,7 @@ import { supabase } from "@/lib/supabase"
 import { useIsMobile } from "@/hooks/use-mobile"
 import ReactDOM from "react-dom"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { createRoot } from "react-dom/client"
 
 // -------------------------------------------------------------------
 // 1. New Skills & Explanations
@@ -69,6 +70,26 @@ const CHART_COLORS = [
   "#06d6a0", // emerald-400
   "#6366f1", // indigo-500
   "#f43f5e", // rose-500
+  "#3b82f6", // blue-500
+  "#ef4444", // red-500
+  "#10b981", // green-400
+  "#facc15", // amber-400
+  "#c026d3", // fuchsia-600
+  "#a855f7", // purple-500
+  "#0ea5e9", // sky-500
+  "#65a30d", // lime-600
+  "#fb923c", // orange-400
+  "#64748b", // slate-500
+  "#9333ea", // purple-600
+  "#16a34a", // green-600
+  "#dc2626", // red-600
+  "#e11d48", // rose-600
+  "#2563eb", // blue-600
+  "#d97706", // amber-600
+  "#059669", // teal-600
+  "#4f46e5", // indigo-600
+  "#f43f5e", // pink-600
+  "#7c3aed", // violet-600
 ];
 
 
@@ -165,7 +186,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
   // Desktop: Create stable root once on mount
   useEffect(() => {
     if (!isMobile && containerRef?.current && !rootRef.current) {
-      rootRef.current = ReactDOM.createRoot(containerRef.current);
+      rootRef.current = createRoot(containerRef.current);
     }
 
     return () => {
@@ -298,7 +319,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
     };
 
     if (isMobile) {
-      const mobileRoot = ReactDOM.createRoot(containerRef.current);
+      const mobileRoot = createRoot(containerRef.current);
       renderContent(mobileRoot);
       return () => {
         mobileRoot.unmount();
@@ -472,7 +493,8 @@ const calculateDomain = (eloValues: number[]) => {
 
   // Default behavior: Apply a small buffer (at least 5 Elo or 10% of the range)
   const buffer = Math.max(5, (maxValue - minValue) * 0.1);
-  return [Math.floor(minValue - buffer), Math.ceil(maxValue + buffer)];
+  // return [Math.floor(minValue - buffer), Math.ceil(maxValue + buffer)];
+  return [850, 1150];
 };
 
 
@@ -669,37 +691,75 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   // Separate effect for fetching environment history that depends on both model and selectedEnvs
   useEffect(() => {
     async function fetchData() {
-      if (!model?.id) return; // Make sure we have the model ID
+      // Change the check to explicitly look for null/undefined instead of falsy values
+      if (model?.id === null || model?.id === undefined) {
+        console.log('No model ID found:', model);
+        return;
+      }
       
       setIsLoadingEnvHistory(true);
+      
       try {
-        // Get environment IDs for selected environments
+        // Debug log the model details including ID
+        console.log('Model details:', {
+          modelName: model.model_name,
+          modelId: model.id,
+          isIdZero: model.id === 0
+        });
+        
         const envNames = selectedEnvs.flatMap(subset => envSubsets[subset] || []);
+        console.log('Environment names to query:', envNames);
+        
         if (envNames.length === 0) {
+          console.log('No environment names to query');
           setEnvEloHistory([]);
+          setIsLoadingEnvHistory(false);
           return;
         }
-
+    
+        // Query environments table
         const { data: envData, error: envError } = await supabase
           .from("environments")
-          .select("id")
+          .select("id, env_name")
           .in("env_name", envNames);
-
-        if (envError) throw envError;
+    
+        if (envError) {
+          console.error('Error querying environments:', envError);
+          throw envError;
+        }
+    
+        console.log('Environment query results:', envData);
+        
         const envIds = (envData || []).map((env: any) => env.id);
-
+        console.log('Environment IDs for RPC:', envIds);
+        console.log('Model ID for RPC:', model.id);
+    
+        // Call the RPC function with explicit type casting for ID 0
         const { data, error } = await supabase.rpc(
           "get_new_elo_history_last7days_by_env",
           {
             selected_env_ids: envIds,
-            selected_model_ids: [model.id]
+            selected_model_ids: [Number(model.id)] // Ensure it's treated as a number
           }
         );
-
-        if (error) throw error;
+    
+        if (error) {
+          console.error('RPC error:', error);
+          throw error;
+        }
+    
+        console.log('RPC Response:', {
+          modelId: model.id,
+          envIds,
+          responseData: data,
+          error,
+          dataLength: data?.length,
+          firstFewRecords: data?.slice(0, 3)
+        });
+    
         setEnvEloHistory(data || []);
       } catch (err) {
-        console.error("Error fetching environment Elo history:", err);
+        console.error("Error in fetchData:", err);
       } finally {
         setIsLoadingEnvHistory(false);
       }
@@ -707,45 +767,6 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
 
     fetchData();
   }, [model?.id, selectedEnvs]); // Depend on both model ID and selected environments
-
-  // Add this function to fetch environment-specific Elo history
-  async function fetchEnvEloHistory(selectedEnvironments: string[]) {
-    setIsLoadingEnvHistory(true);
-    try {
-      // Get environment IDs for selected environments
-      const envIds = await getEnvironmentIds(selectedEnvironments);
-      
-      const { data, error } = await supabase.rpc(
-        "get_new_elo_history_last7days_by_env",
-        {
-          selected_env_ids: envIds,
-          selected_model_ids: [model.id]
-        }
-      );
-
-      if (error) throw error;
-      setEnvEloHistory(data || []);
-    } catch (err) {
-      console.error("Error fetching environment Elo history:", err);
-    } finally {
-      setIsLoadingEnvHistory(false);
-    }
-  }
-
-  // Helper function to get environment IDs
-  async function getEnvironmentIds(selectedEnvs: string[]) {
-    const envNames = selectedEnvs.flatMap(subset => envSubsets[subset] || []);
-    if (envNames.length === 0) return null;
-
-    const { data: envData, error: envError } = await supabase
-      .from("environments")
-      .select("id")
-      .in("env_name", envNames);
-
-    if (envError) throw envError;
-    return (envData || []).map((env: any) => env.id);
-  }
-
 
   // Add function to fetch available models
   async function fetchAvailableModels() {
@@ -1035,7 +1056,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         <Card className={`bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))] ${isMobile ? "" : "flex-grow"}`}>
           <CardHeader>
             <CardTitle className={`font-mono ${isMobile ? "text-lg" : "text-2xl"} font-semibold text-navbarForeground`}>
-              Elo History
+              Elo History by Environment
             </CardTitle>
           </CardHeader>
           <CardContent>
