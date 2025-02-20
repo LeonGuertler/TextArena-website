@@ -492,7 +492,18 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   const [comparisonModel, setComparisonModel] = useState<ModelData | null>(null);
   const [availableModels, setAvailableModels] = useState<{model_name: string}[]>([]);
   // second,
-  const [selectedEnvs, setSelectedEnvs] = useState<string[]>(['Chess', 'Poker']); // Or any two environments you prefer
+  const [selectedEnvs, setSelectedEnvs] = useState<string[]>([
+    "Chess",
+    "DontSayIt",
+    "LiarsDice",
+    "Negotiation",
+    "Poker",
+    "SpellingBee",
+    "Stratego",
+    "Tak",
+    "TruthAndDeception",
+    "UltimateTicTacToe"
+  ]); // Or any two environments you prefer
   const [envEloHistory, setEnvEloHistory] = useState<EnvEloHistoryRow[]>([]);
   const [isLoadingEnvHistory, setIsLoadingEnvHistory] = useState(true);
 
@@ -649,9 +660,11 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     }
   }, [isMobile]);
 
+  // Update useEffect to fetch available models
   useEffect(() => {
-    fetchModelDetails()
-  }, [])
+    fetchModelDetails();
+    fetchAvailableModels();
+  }, []);
 
   // Separate effect for fetching environment history that depends on both model and selectedEnvs
   useEffect(() => {
@@ -694,12 +707,6 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
 
     fetchData();
   }, [model?.id, selectedEnvs]); // Depend on both model ID and selected environments
-
-  // Update useEffect to fetch available models
-  useEffect(() => {
-    fetchModelDetails();
-    fetchAvailableModels();
-  }, []);
 
   // Add this function to fetch environment-specific Elo history
   async function fetchEnvEloHistory(selectedEnvironments: string[]) {
@@ -896,8 +903,6 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       ? model.environment_performance.reduce((sum, env) => sum + env.elo, 0) / model.environment_performance.length
       : model.elo
 
-  const skillData = buildSkillDistribution(model.environment_performance)
-
   // Add dropdown component for model selection
   const ModelComparisonSelect = () => {
     return (
@@ -1048,7 +1053,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                 />
               )}
               <div className={isMobile ? "overflow-x-auto relative z-10" : ""}>
-                <div style={{ width: isMobile ? Math.max(400, model.elo_history.length * 5) : "100%", height: 450 }}>
+                <div style={{ width: isMobile ? Math.max(400, model.elo_history.length * 1.5) : "100%", height: 450 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                       data={chartData}

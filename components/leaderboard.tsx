@@ -181,7 +181,7 @@ interface EloHistoryRow {
 
 function CustomHistoryTooltip({ active, payload, label, isMobile, containerRef }: any) {
   if (active && payload && payload.length > 0) {
-    const formattedTime = new Date(label).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    const formattedTime = new Date(label).toLocaleTimeString([], { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })
     const sortedPayload = [...payload].sort((a, b) => b.value - a.value)
 
     const tooltipContent = (
