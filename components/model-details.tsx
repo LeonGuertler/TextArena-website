@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import React, { useEffect, useState, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -57,9 +57,54 @@ const SKILL_EXPLANATIONS: Record<string, string> = {
   Adaptability: "Adjusting strategies in dynamic environments",
 }
 
+// Chart colors for different environments
+const CHART_COLORS = [
+  "#06b6d4", // cyan-500
+  "#22c55e", // green-500
+  "#eab308", // yellow-500
+  "#ec4899", // pink-500
+  "#8b5cf6", // violet-500
+  "#14b8a6", // teal-500
+  "#f97316", // orange-500
+  "#06d6a0", // emerald-400
+  "#6366f1", // indigo-500
+  "#f43f5e", // rose-500
+];
+
+
+// Environment subsets
+const envSubsets: Record<string, string[]> = {
+  'Chess': ['Chess-v0'],
+  'ConnectFour': ['ConnectFour-v0'],
+  'Debate': ['Debate-v0'],
+  'DontSayIt': ['DontSayIt-v0'],
+  'Battleship': ['Battleship-v0'],
+  'LiarsDice': ['LiarsDice-v0'],
+  'Mastermind': ['Mastermind-v0'],
+  'Negotiation': ['Negotiation-v0'],
+  'Poker': ['Poker-v0'],
+  'SpellingBee': ['SpellingBee-v0'],
+  'SpiteAndMalice': ['SpiteAndMalice-v0'],
+  'Stratego': ['Stratego-v0'],
+  'Tak': ['Tak-v0'],
+  'TruthAndDeception': ['TruthAndDeception-v0'],
+  'UltimateTicTacToe': ['UltimateTicTacToe-v0'],
+  'WordChains': ['WordChains-v0'],
+};
+
 // -------------------------------------------------------------------
 // 2. Type Definitions
 // -------------------------------------------------------------------
+
+// New type definition for environment history
+interface EnvEloHistoryRow {
+  model_id: number;
+  model_name: string;
+  interval_start: string;
+  environment_name: string;
+  elo_value: number;
+}
+
 interface ModelData {
   id: number
   model_name: string
@@ -268,70 +313,85 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
 
 function CustomEnvTooltip({ active, payload, isMobile, containerRef }: any) {
   if (active && payload && payload.length > 0) {
-    const data = payload[0].payload
+    const data = payload[0].payload;
     const content = (
       <div
         className={`bg-[hsl(var(--navbar))] rounded text-navbarForeground font-mono ${
           isMobile ? "p-1 text-[10px]" : "p-2 text-sm"
-        }`}
+        } shadow-lg`}
       >
-        <p className="font-bold m-0">{data.name}</p>
-        <p className="m-0">Elo: {data.elo.toFixed(1)}</p>
-        <p className="m-0">Win: {(data.win_rate * 100).toFixed(1)}%</p>
-        <p className="m-0">
-          W/D/L: {data.wins}/{data.draws}/{data.losses}
+        <p className="font-bold m-0 text-white">{data.name}</p>
+        <p className="m-0" style={{ color: "#8884d8" }}> {/* Purple for Elo */}
+          Elo: {data.elo.toFixed(1)}
+        </p>
+        <p className="m-0" style={{ color: "#82ca9d" }}> {/* Green for Win */}
+          Win: {(data.win_rate * 100).toFixed(1)}%
+        </p>
+        <p className="m-0 text-gray-400">
+          W/D/L: <span className="text-green-400">{data.wins}</span>
+          <span className="text-white">/</span>
+          <span className="text-white">{data.draws}</span>
+          <span className="text-white">/</span>
+          <span className="text-red-400">{data.losses}</span>
         </p>
         {!isMobile && (
           <>
-            <p className="m-0">Games: {data.games}</p>
-            <p className="m-0">Avg Time: {data.avg_move_time ? data.avg_move_time.toFixed(1) + "s" : "N/A"}</p>
+            <p className="m-0 text-gray-400">
+              Games: <span className="text-white">{data.games}</span>
+            </p>
+            <p className="m-0 text-gray-400">
+              Avg Time: <span className="text-white">
+                {data.avg_move_time ? data.avg_move_time.toFixed(1) + "s" : "N/A"}
+              </span>
+            </p>
           </>
         )}
       </div>
-    )
+    );
 
     if (isMobile && containerRef?.current) {
-      return ReactDOM.createPortal(content, containerRef.current)
+      return ReactDOM.createPortal(content, containerRef.current);
     }
 
-    return content
+    return content;
   }
-  return null
+  return null;
 }
+
+
 
 function CustomEloTooltip({ active, payload, label, isMobile, containerRef }: any) {
   if (active && payload && payload.length > 0) {
-    const content = (
+    const formattedTime = new Date(label).toLocaleString([], { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
+
+    const tooltipContent = (
       <div
-        className={`bg-[hsl(var(--navbar))] rounded text-navbarForeground font-mono ${
-          isMobile ? "p-1 text-[10px]" : "p-2 text-sm"
+        className={`${
+          isMobile
+            ? "bg-background p-1.5 rounded-lg border border-navbar font-mono text-xs shadow-lg"
+            : "bg-[hsl(var(--navbar))] p-2 rounded text-navbarForeground font-mono text-xs"
         }`}
       >
-        <p className="font-bold m-0">
-          {new Date(label).toLocaleString([], {
-            month: "numeric",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          })}
-        </p>
-        {payload.map((entry: any, index: number) => (
-          <p key={index} className="m-0">
-            {entry.name}: {Math.round(entry.value)}
+        <p className="font-bold text-white mb-0.5">{formattedTime}</p>
+        {sortedPayload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.stroke }} className="m-0 leading-tight">
+            {Math.round(entry.value)}: {entry.name}
           </p>
         ))}
       </div>
-    )
+    );
 
+    // Only use portal for mobile
     if (isMobile && containerRef?.current) {
-      return ReactDOM.createPortal(content, containerRef.current)
+      return ReactDOM.createPortal(tooltipContent, containerRef.current);
     }
 
-    return content
+    return tooltipContent;
   }
-  return null
+  return null;
 }
+
 
 // -------------------------------------------------------------------
 // 4. Build Skill Distribution (New Weighted Calculation Per Environment)
@@ -431,6 +491,142 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   // First, add state for comparison model and available models
   const [comparisonModel, setComparisonModel] = useState<ModelData | null>(null);
   const [availableModels, setAvailableModels] = useState<{model_name: string}[]>([]);
+  // second,
+  const [selectedEnvs, setSelectedEnvs] = useState<string[]>(['Chess', 'Poker']); // Or any two environments you prefer
+  const [envEloHistory, setEnvEloHistory] = useState<EnvEloHistoryRow[]>([]);
+  const [isLoadingEnvHistory, setIsLoadingEnvHistory] = useState(true);
+
+  // Custom checkbox component for multi-select
+  const CheckboxItem = React.forwardRef<HTMLDivElement, { checked: boolean; children: React.ReactNode }>(
+    ({ checked, children, ...props }, ref) => (
+      <div
+        ref={ref}
+        className={`relative flex items-center px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer ${
+          checked ? 'bg-accent/50' : ''
+        }`}
+        {...props}
+      >
+        <div className="flex items-center gap-2">
+          <div
+            className={`h-4 w-4 border rounded flex items-center justify-center ${
+              checked ? 'bg-primary border-primary' : 'border-input'
+            }`}
+          >
+            {checked && (
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 10 10"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="text-primary-foreground"
+              >
+                <path
+                  d="M8.5 2.5L3.5 7.5L1.5 5.5"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+          </div>
+          <span className="font-mono">{children}</span>
+        </div>
+      </div>
+    )
+  );
+  CheckboxItem.displayName = "CheckboxItem";
+
+  // Multi-select Environment component
+  const EnvironmentSelect = ({ selectedEnvs, setSelectedEnvs }: { 
+    selectedEnvs: string[], 
+    setSelectedEnvs: (envs: string[]) => void 
+  }) => {
+    const [open, setOpen] = useState(false);
+    const allEnvironments = Object.keys(envSubsets);
+
+    const handleSelect = (env: string) => {
+      if (selectedEnvs.includes(env)) {
+        setSelectedEnvs(selectedEnvs.filter(e => e !== env));
+      } else {
+        setSelectedEnvs([...selectedEnvs, env]);
+      }
+    };
+
+    return (
+      <div className="flex items-center gap-2 mb-4">
+        <div className="relative w-[280px]">
+          <button
+            onClick={() => setOpen(!open)}
+            className="w-full bg-background text-navbarForeground border-navbar font-mono px-3 py-2 rounded-md flex items-center justify-between"
+          >
+            <span className="truncate">
+              {selectedEnvs.length === 0
+                ? "Select environments"
+                : `${selectedEnvs.length} selected`}
+            </span>
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 15 15"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className={`transform transition-transform ${open ? 'rotate-180' : ''}`}
+            >
+              <path
+                d="M4 6L7.5 9L11 6"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          
+          {open && (
+            <div className="absolute z-50 w-full mt-1 bg-background border border-navbar rounded-md shadow-lg max-h-60 overflow-auto">
+              {allEnvironments.map((env) => (
+                <CheckboxItem
+                  key={env}
+                  checked={selectedEnvs.includes(env)}
+                  onClick={() => handleSelect(env)}
+                >
+                  {env}
+                </CheckboxItem>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Modify the chart data preparation
+  const chartData = useMemo(() => {
+    if (!envEloHistory || envEloHistory.length === 0) return [];
+
+    const grouped: Record<string, any> = {};
+
+    // Group by date and environment
+    envEloHistory.forEach((row) => {
+      const dt = new Date(row.interval_start);
+      dt.setMinutes(0, 0, 0); // Normalize to the hour
+      const dateKey = dt.toISOString();
+
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = { date: dateKey };
+      }
+
+      // Use environment_name as the data key
+      grouped[dateKey][row.environment_name] = row.elo_value;
+    });
+
+    // Sort by date
+    return Object.values(grouped).sort(
+      (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+  }, [envEloHistory]);
 
   // Update radius based on container width - only for desktop
   useEffect(() => {
@@ -457,11 +653,92 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     fetchModelDetails()
   }, [])
 
+  // Separate effect for fetching environment history that depends on both model and selectedEnvs
+  useEffect(() => {
+    async function fetchData() {
+      if (!model?.id) return; // Make sure we have the model ID
+      
+      setIsLoadingEnvHistory(true);
+      try {
+        // Get environment IDs for selected environments
+        const envNames = selectedEnvs.flatMap(subset => envSubsets[subset] || []);
+        if (envNames.length === 0) {
+          setEnvEloHistory([]);
+          return;
+        }
+
+        const { data: envData, error: envError } = await supabase
+          .from("environments")
+          .select("id")
+          .in("env_name", envNames);
+
+        if (envError) throw envError;
+        const envIds = (envData || []).map((env: any) => env.id);
+
+        const { data, error } = await supabase.rpc(
+          "get_new_elo_history_last7days_by_env",
+          {
+            selected_env_ids: envIds,
+            selected_model_ids: [model.id]
+          }
+        );
+
+        if (error) throw error;
+        setEnvEloHistory(data || []);
+      } catch (err) {
+        console.error("Error fetching environment Elo history:", err);
+      } finally {
+        setIsLoadingEnvHistory(false);
+      }
+    }
+
+    fetchData();
+  }, [model?.id, selectedEnvs]); // Depend on both model ID and selected environments
+
   // Update useEffect to fetch available models
   useEffect(() => {
     fetchModelDetails();
     fetchAvailableModels();
   }, []);
+
+  // Add this function to fetch environment-specific Elo history
+  async function fetchEnvEloHistory(selectedEnvironments: string[]) {
+    setIsLoadingEnvHistory(true);
+    try {
+      // Get environment IDs for selected environments
+      const envIds = await getEnvironmentIds(selectedEnvironments);
+      
+      const { data, error } = await supabase.rpc(
+        "get_new_elo_history_last7days_by_env",
+        {
+          selected_env_ids: envIds,
+          selected_model_ids: [model.id]
+        }
+      );
+
+      if (error) throw error;
+      setEnvEloHistory(data || []);
+    } catch (err) {
+      console.error("Error fetching environment Elo history:", err);
+    } finally {
+      setIsLoadingEnvHistory(false);
+    }
+  }
+
+  // Helper function to get environment IDs
+  async function getEnvironmentIds(selectedEnvs: string[]) {
+    const envNames = selectedEnvs.flatMap(subset => envSubsets[subset] || []);
+    if (envNames.length === 0) return null;
+
+    const { data: envData, error: envError } = await supabase
+      .from("environments")
+      .select("id")
+      .in("env_name", envNames);
+
+    if (envError) throw envError;
+    return (envData || []).map((env: any) => env.id);
+  }
+
 
   // Add function to fetch available models
   async function fetchAvailableModels() {
@@ -709,16 +986,16 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       <p className={`text-mutedForeground font-mono mb-8 ${isMobile ? "text-xs" : "text-lg"}`}>{model.description}</p>
 
       {/* Top Row: Overall Statistics & Elo History */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className={`${isMobile ? "grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" : "flex gap-6 mb-8 items-stretch"}`}>
         {/* Overall Statistics */}
-        <Card className="bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))]">
+        <Card className={`bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))] ${isMobile ? "" : "max-w-[300px]"}`}>
           <CardHeader>
             <CardTitle className={`font-mono ${isMobile ? "text-lg" : "text-2xl"} font-semibold text-navbarForeground`}>
               Overall Statistics
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`grid grid-cols-2 gap-2 sm:gap-4 font-mono ${isMobile ? "" : "text-base"}`}>
+            <div className={`grid ${isMobile ? "grid-cols-2" : "grid-cols-1"} gap-2 sm:gap-4 font-mono ${isMobile ? "" : "text-base"}`}>
               <div>
                 <div className={`${isMobile ? "text-xs" : ""} text-muted-foreground`}>Avg. Time/Move</div>
                 <div className={`${isMobile ? "text-sm" : ""} text-navbarForeground`}>{model.avg_time.toFixed(1)}s</div>
@@ -739,9 +1016,9 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                 <div className={`${isMobile ? "text-xs" : ""} text-muted-foreground`}>W/D/L</div>
                 <div className={`${isMobile ? "text-sm" : ""}`}>
                   <span className="text-green-400">{model.wins}</span>
-                  <span className="text-muted-foreground">/</span>
-                  <span className="text-gray-400">{model.draws}</span>
-                  <span className="text-muted-foreground">/</span>
+                  <span className="text-white">/</span>
+                  <span className="text-white">{model.draws}</span>
+                  <span className="text-white">/</span>
                   <span className="text-red-400">{model.losses}</span>
                 </div>
               </div>
@@ -750,27 +1027,41 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         </Card>
 
         {/* Elo History */}
-        <Card className="bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))]">
+        <Card className={`bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))] ${isMobile ? "" : "flex-grow"}`}>
           <CardHeader>
             <CardTitle className={`font-mono ${isMobile ? "text-lg" : "text-2xl"} font-semibold text-navbarForeground`}>
               Elo History
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="relative">
+            <div className="relative space-y-4">
+              <div className="relative z-30">
+                <EnvironmentSelect
+                  selectedEnvs={selectedEnvs}
+                  setSelectedEnvs={setSelectedEnvs}
+                />
+              </div>
               {isMobile && (
                 <div
                   ref={eloTooltipContainerRef}
-                  className="absolute top-0 left-0 right-0 z-10 flex justify-center items-center h-[20px] bg-[hsl(var(--navbar))] bg-opacity-95 transition-all duration-200 p-1"
-                ></div>
+                  className="absolute top-[130px] left-0 right-0 z-20 flex justify-center items-center h-[20px] bg-[hsl(var(--navbar))] bg-opacity-95 transition-all duration-200 p-1"
+                />
               )}
-              <div className={isMobile ? "overflow-x-auto" : ""}>
-                <div style={{ width: isMobile ? Math.max(400, model.elo_history.length * 25) : "100%", height: 300 }}>
+              <div className={isMobile ? "overflow-x-auto relative z-10" : ""}>
+                <div style={{ width: isMobile ? Math.max(400, model.elo_history.length * 5) : "100%", height: 450 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={model.elo_history} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
+                    <LineChart
+                      data={chartData}
+                      margin={{
+                        top: isMobile ? 200 : 20,  // Moves chart lower in mobile
+                        right: 30,
+                        left: 20,
+                        bottom: 50,
+                      }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
-                        dataKey="interval_start"
+                        dataKey="date"
                         stroke="white"
                         tickFormatter={(tick) =>
                           new Date(tick).toLocaleString([], {
@@ -778,7 +1069,6 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                             day: "numeric",
                             hour: "2-digit",
                             minute: "2-digit",
-                            second: "2-digit",
                           })
                         }
                         tick={{
@@ -807,29 +1097,43 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                             containerRef={isMobile ? eloTooltipContainerRef : null}
                           />
                         }
-                        position={isMobile ? { x: 0, y: 0 } : undefined}
+                        position={isMobile ? { x: 0, y: 0 } : undefined} // Moves tooltip 50px higher in mobile
                       />
-                      <Legend
-                        align="center"
-                        verticalAlign="top"
-                        wrapperStyle={{ color: "white", fontFamily: "var(--font-mono)" }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="avg_elo"
-                        name="Elo Rating"
-                        stroke="#8884d8"
-                        strokeWidth={2}
-                        dot={false}
-                        activeDot={{ r: 8 }}
-                      />
+                      {!isMobile && (
+                        <Legend
+                          align="center"
+                          verticalAlign="top"
+                          wrapperStyle={{ 
+                            color: "white", 
+                            fontFamily: "var(--font-mono)",
+                            fontSize: isMobile ? 10 : 12,
+                            marginTop:isMobile ?  "-35px"  : "-20px"  // Add this to move it higher
+                          }}
+                        />
+                      )}
+                      {/* Dynamically create lines for each selected environment */}
+                      {selectedEnvs.flatMap(subset => envSubsets[subset] || []).map((envName, index) => (
+                        <Line
+                          key={envName}
+                          type="monotone"
+                          dataKey={envName}
+                          name={envName}
+                          stroke={CHART_COLORS[index % CHART_COLORS.length]}
+                          strokeWidth={2}
+                          dot={false}
+                          activeDot={{ r: isMobile ? 6 : 8 }}
+                        />
+
+                      ))}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
             </div>
             {isMobile && (
-              <div className="text-xs text-muted-foreground font-mono mt-2 text-right">Scroll to see more →</div>
+              <div className="text-xs text-muted-foreground font-mono mt-2 text-right">
+                Scroll to see more →
+              </div>
             )}
           </CardContent>
         </Card>
