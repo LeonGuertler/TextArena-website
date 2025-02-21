@@ -220,9 +220,18 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
 
 
           <div className="text-sm text-mutedForeground mt-2">
-            <span>Avg. Queue Time: {avgQueueTime}</span>
-            <span className="mx-2">•</span>
-            <span>Active Players: {activePlayers}</span>
+            {/* Desktop view (inline display) */}
+            <div className="hidden sm:flex space-x-2">
+              <span>Avg. Queue Time: {avgQueueTime}</span>
+              <span>•</span>
+              <span>Active Players: {activePlayers}</span>
+            </div>
+
+            {/* Mobile view (stacked display) */}
+            <div className="sm:hidden flex flex-col text-center">
+              <span>Avg. Queue Time: {avgQueueTime}</span>
+              <span>Active Players: {activePlayers}</span>
+            </div>
           </div>
         </div>
       )}
