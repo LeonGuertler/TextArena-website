@@ -338,7 +338,16 @@ function EloHistoryChart({
 }
 
 export function Leaderboard() {
-  const [selectedSubset, setSelectedSubset] = useState<string>("Balanced Subset")
+  // const [selectedSubset, setSelectedSubset] = useState<string>("Balanced Subset")
+  const [selectedSubset, setSelectedSubset] = useState<string>(() => {
+    // Try to get the saved value from localStorage
+    const savedSubset = typeof window !== 'undefined' 
+      ? localStorage.getItem('selectedLeaderboardSubset') 
+      : null;
+    
+    // Return saved value or default
+    return savedSubset || "Balanced Subset";
+  });
   const [currentPage, setCurrentPage] = useState(1)
   const [models, setModels] = useState<ModelData[]>([])
   const [eloHistory, setEloHistory] = useState<EloHistoryRow[]>([])
@@ -541,12 +550,16 @@ export function Leaderboard() {
           <Filter className="h-4 w-4 text-navbarForeground" />
           <Select
             onValueChange={(value) => {
-              setSelectedSubset(value)
-              setCurrentPage(1)
+              setSelectedSubset(value);
+              setCurrentPage(1);
+              // Save the selection to localStorage
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('selectedLeaderboardSubset', value);
+              }
             }}
             value={selectedSubset}
           >
-            <SelectTrigger className="w-[180px] bg-background text-navbarForeground border-navbar font-mono">
+            <SelectTrigger className="w-[210px] bg-background text-navbarForeground border-navbar font-mono overflow-hidden text-ellipsis whitespace-nowrap">
               <SelectValue placeholder="Select subset" />
             </SelectTrigger>
             <SelectContent>
@@ -597,6 +610,16 @@ export function Leaderboard() {
                       >
                         Retry
                       </Button>
+                    </TableCell>
+                  </TableRow>
+                ) : models.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-navbarForeground">
+                      <div className="flex flex-col items-center gap-2">
+                        <Info className="h-8 w-8 text-muted-foreground" />
+                        <p className="font-medium">No models have played this environment, or all environments in this group, at least once.</p>
+                        <p className="text-sm text-muted-foreground">Try selecting a different environment from the dropdown above.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -655,6 +678,14 @@ export function Leaderboard() {
                     Retry
                   </Button>
                 </div>
+              ) : models.length === 0 ? (
+                <div className="text-center py-8 text-navbarForeground">
+                  <div className="flex flex-col items-center gap-2">
+                    <Info className="h-8 w-8 text-muted-foreground" />
+                    <p className="font-medium">No models have played this environment yet.</p>
+                    <p className="text-sm text-muted-foreground">Try selecting a different environment from the dropdown above.</p>
+                  </div>
+                </div>
               ) : (
                 paginatedModels.map((model, index) => (
                   <LeaderboardCard
@@ -667,105 +698,109 @@ export function Leaderboard() {
             </div>
           )}
 
-          <div className="flex justify-between items-center">
-            <Button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="bg-[hsl(var(--navbar-foreground))] bg-opacity-10 hover:bg-opacity-20 text-[hsl(var(--navbar))] border border-[hsl(var(--navbar))] rounded-md transition-colors font-mono w-15 h-8 text-xs"
-            >
-              {isMobile ? "Prev" : "Previous"}
-            </Button>
+          {models.length > 0 && (
+            <>
+              <div className="flex justify-between items-center">
+                <Button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="bg-[hsl(var(--navbar-foreground))] bg-opacity-10 hover:bg-opacity-20 text-[hsl(var(--navbar))] border border-[hsl(var(--navbar))] rounded-md transition-colors font-mono w-15 h-8 text-xs"
+                >
+                  {isMobile ? "Prev" : "Previous"}
+                </Button>
 
-            <span className="text-navbarForeground font-mono text-xs">
-              Page {currentPage} of {totalPages}
-            </span>
+                <span className="text-navbarForeground font-mono text-xs">
+                  Page {currentPage} of {totalPages}
+                </span>
 
-            <Button
-              onClick={() => setCurrentPage((p) => p + 1)}
-              disabled={currentPage >= totalPages}
-              className="bg-[hsl(var(--navbar-foreground))] bg-opacity-10 hover:bg-opacity-20 text-[hsl(var(--navbar))] border border-[hsl(var(--navbar))] rounded-md transition-colors font-mono w-15 h-8 text-xs"
-            >
-              Next
-            </Button>
-          </div>
-
-          <div>
-            {/* Desktop view */}
-            {!isMobile && (
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-navbarForeground font-mono">Elo History</h3>
-                <div className="flex gap-1 bg-background rounded-md p-0.5 border border-navbar">
-                  {[
-                    { label: 'L2D', value: '48H' },
-                    { label: 'L7D', value: '7D' },
-                    { label: 'L30D', value: '30D' }
-                  ].map(({ label, value }) => (
-                    <button
-                      key={value}
-                      onClick={() => setSelectedTimeRange(value as TimeRange)}
-                      className={`px-2 py-1 text-xs font-mono rounded ${
-                        selectedTimeRange === value
-                          ? 'bg-[hsl(var(--navbar))] text-navbarForeground'
-                          : 'text-muted-foreground hover:bg-[hsl(var(--navbar))] hover:bg-opacity-50 hover:text-navbarForeground'
-                      } transition-colors`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                <Button
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="bg-[hsl(var(--navbar-foreground))] bg-opacity-10 hover:bg-opacity-20 text-[hsl(var(--navbar))] border border-[hsl(var(--navbar))] rounded-md transition-colors font-mono w-15 h-8 text-xs"
+                >
+                  Next
+                </Button>
               </div>
-            )}
 
-            {/* Mobile view */}
-            {isMobile && (
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-bold text-navbarForeground font-mono">Elo History</h3>
-                  <div className="relative flex items-center">
-                    <div className="group">
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                      <div className="absolute left-0 -top-1 translate-y-[-100%] hidden group-hover:block bg-background p-2 rounded-lg border border-navbar shadow-lg z-20 max-w-[160px]">
-                        <p className="text-xs text-muted-foreground font-mono break-words">
-                          Tap a point to see details
-                        </p>
-                      </div>
+              <div>
+                {/* Desktop view */}
+                {!isMobile && (
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-navbarForeground font-mono">Elo History</h3>
+                    <div className="flex gap-1 bg-background rounded-md p-0.5 border border-navbar">
+                      {[
+                        { label: 'L2D', value: '48H' },
+                        { label: 'L7D', value: '7D' },
+                        { label: 'L30D', value: '30D' }
+                      ].map(({ label, value }) => (
+                        <button
+                          key={value}
+                          onClick={() => setSelectedTimeRange(value as TimeRange)}
+                          className={`px-2 py-1 text-xs font-mono rounded ${
+                            selectedTimeRange === value
+                              ? 'bg-[hsl(var(--navbar))] text-navbarForeground'
+                              : 'text-muted-foreground hover:bg-[hsl(var(--navbar))] hover:bg-opacity-50 hover:text-navbarForeground'
+                          } transition-colors`}
+                        >
+                          {label}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </div>
-                
-                <div className="flex gap-1 bg-background rounded-md p-0.5 border border-navbar">
-                  {[
-                    { label: 'L2D', value: '48H' },
-                    { label: 'L7D', value: '7D' },
-                    { label: 'L30D', value: '30D' }
-                  ].map(({ label, value }) => (
-                    <button
-                      key={value}
-                      onClick={() => setSelectedTimeRange(value as TimeRange)}
-                      className={`px-2 py-1 text-xs font-mono rounded ${
-                        selectedTimeRange === value
-                          ? 'bg-[hsl(var(--navbar))] text-navbarForeground'
-                          : 'text-muted-foreground hover:bg-[hsl(var(--navbar))] hover:bg-opacity-50 hover:text-navbarForeground'
-                      } transition-colors`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+                )}
 
-            {isLoadingHistory ? (
-              <p className="text-navbarForeground">Loading elo history...</p>
-            ) : (
-              <EloHistoryChart
-                data={chartData}
-                modelNames={chartModelNames}
-                hoveredModel={hoveredModel}
-                isMobile={isMobile}
-              />
-            )}
-          </div>
+                {/* Mobile view */}
+                {isMobile && (
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-navbarForeground font-mono">Elo History</h3>
+                      <div className="relative flex items-center">
+                        <div className="group">
+                          <Info className="h-4 w-4 text-muted-foreground" />
+                          <div className="absolute left-0 -top-1 translate-y-[-100%] hidden group-hover:block bg-background p-2 rounded-lg border border-navbar shadow-lg z-20 max-w-[160px]">
+                            <p className="text-xs text-muted-foreground font-mono break-words">
+                              Tap a point to see details
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-1 bg-background rounded-md p-0.5 border border-navbar">
+                      {[
+                        { label: 'L2D', value: '48H' },
+                        { label: 'L7D', value: '7D' },
+                        { label: 'L30D', value: '30D' }
+                      ].map(({ label, value }) => (
+                        <button
+                          key={value}
+                          onClick={() => setSelectedTimeRange(value as TimeRange)}
+                          className={`px-2 py-1 text-xs font-mono rounded ${
+                            selectedTimeRange === value
+                              ? 'bg-[hsl(var(--navbar))] text-navbarForeground'
+                              : 'text-muted-foreground hover:bg-[hsl(var(--navbar))] hover:bg-opacity-50 hover:text-navbarForeground'
+                          } transition-colors`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {isLoadingHistory ? (
+                  <p className="text-navbarForeground">Loading elo history...</p>
+                ) : (
+                  <EloHistoryChart
+                    data={chartData}
+                    modelNames={chartModelNames}
+                    hoveredModel={hoveredModel}
+                    isMobile={isMobile}
+                  />
+                )}
+              </div>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
