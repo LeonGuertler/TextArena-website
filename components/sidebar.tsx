@@ -91,7 +91,7 @@ const NavItem = ({ item, isCollapsed, setIsMainCollapsed, isMobile }) => {
           >
             <span
               className={cn(
-                "group flex w-full items-center rounded-md px-2 py-1.5",
+                "group flex w-full items-center rounded-md px-2 py-1.5 relative",
                 "hover:bg-gray-200/10 transition-colors duration-200",
                 isActive ? "text-white" : "text-white/70 hover:text-white",
                 isCollapsed ? "justify-center" : "justify-start"
@@ -101,7 +101,14 @@ const NavItem = ({ item, isCollapsed, setIsMainCollapsed, isMobile }) => {
                 "transition-transform duration-200 group-hover:scale-110",
                 isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3"
               )} />
-              {!isCollapsed && <span>{item.name}</span>}
+              {!isCollapsed && (
+                <>
+                  <span className="transition-colors duration-200 group-hover:text-white">
+                    {item.name}
+                  </span>
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/50 w-0 group-hover:w-full transition-all duration-500 ease-in-out" />
+                </>
+              )}
             </span>
           </Link>
         </TooltipTrigger>
@@ -121,7 +128,7 @@ const DocItem = ({ item, depth = 0, setIsDocsVisible, isMobile }) => {
       <Link
         href={`/docs/${item.slug}`}
         className={cn(
-          "flex items-center justify-between rounded-sm py-1 text-xs",
+          "flex items-center justify-between rounded-sm py-1 text-xs relative group",
           "text-white/70 hover:text-white transition-colors duration-200",
           depth === 0 && "font-medium"
         )}
@@ -135,7 +142,7 @@ const DocItem = ({ item, depth = 0, setIsDocsVisible, isMobile }) => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="ml-2 text-yellow-500/70">
-                  <Timer className="h-3 w-3" />
+                  <Timer className="h-3 w-3 transition-transform duration-200 group-hover:scale-110" />
                 </span>
               </TooltipTrigger>
               <TooltipContent>
@@ -144,6 +151,7 @@ const DocItem = ({ item, depth = 0, setIsDocsVisible, isMobile }) => {
             </Tooltip>
           </TooltipProvider>
         )}
+        <span className="absolute bottom-0 left-0 right-0 h-[1px] bg-white/50 w-0 group-hover:w-full transition-all duration-500 ease-in-out" />
       </Link>
       {item.items && (
         <ul className="ml-4 mt-1 space-y-1">
@@ -159,7 +167,7 @@ const DocItem = ({ item, depth = 0, setIsDocsVisible, isMobile }) => {
 
 
 const Sidebar = () => {
-  const [isMainCollapsed, setIsMainCollapsed] = useState(false)
+  const [isMainCollapsed, setIsMainCollapsed] = useState(true)
   const [isDocsVisible, setIsDocsVisible] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const pathname = usePathname()
@@ -195,7 +203,7 @@ const Sidebar = () => {
         <div
           className={cn(
             "fixed inset-0 bg-black/50 backdrop-blur-sm z-30",
-            "transition-opacity duration-150 ease-in-out",
+            "transition-opacity duration-200 ease-in-out",
             isMainCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"
           )}
           onClick={() => setIsMainCollapsed(true)}
@@ -212,7 +220,7 @@ const Sidebar = () => {
           "rounded-lg",
           "bg-[#021213] hover:bg-[#0a2f30]",
           "text-white/70 hover:text-white",
-          "transition-[left,width,opacity] duration-150 ease-in-out",
+          "transition-all duration-200",
           "border border-white/10",
           isMainCollapsed ? "left-[13px]" : "left-[158px]",
           !isMobile && "ml-0"  // Reset margin for non-mobile
@@ -222,9 +230,9 @@ const Sidebar = () => {
         }}
       >
         {isMainCollapsed ? (
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4 transition-transform duration-200" />
         ) : (
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4 transition-transform duration-200" />
         )}
       </Button>
 
@@ -232,7 +240,7 @@ const Sidebar = () => {
       <div
         className={cn(
           "h-full bg-[#021213] font-mono shadow-lg",
-          "transition-all duration-150 ease-in-out",
+          "transition-all duration-200 ease-in-out",
           isMobile ? [
             "fixed left-0 top-0 z-40",
             isMainCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"
@@ -248,11 +256,11 @@ const Sidebar = () => {
           marginLeft: !isMobile ? "0" : undefined  // Reset margin for non-mobile
         }}
       >
-        <div className="flex h-[50px] items-center border-b border-white/10 px-4 transition-[opacity,width] duration-150 ease-in-out">
+        <div className="flex h-[50px] items-center border-b border-white/10 px-4 transition-all duration-200 ease-in-out">
           {!isMainCollapsed && (
             <Link href="/" className={cn(
                 "cursor-pointer",
-                "transition-[opacity,visibility] duration-150 ease-in-out",
+                "transition-all duration-200 ease-in-out",
                 isMainCollapsed ? "opacity-0 invisible" : "opacity-100 visible delay-100"
               )}>
               <span className="text-lg font-bold px-2">TextArena</span>
@@ -288,12 +296,12 @@ const Sidebar = () => {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 rounded-full text-white/70 hover:text-white
-                                 hover:bg-white/10 transition-all duration-200"
+                                 hover:bg-white/10 transition-all duration-200 group"
                       >
                         {typeof item.icon === "string" ? (
-                          <img src={item.icon || "/placeholder.svg"} alt={item.name} className="h-4 w-4" />
+                          <img src={item.icon || "/placeholder.svg"} alt={item.name} className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
                         ) : (
-                          <item.icon className="h-4 w-4" />
+                          <item.icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
                         )}
                       </Button>
                     </Link>
@@ -319,14 +327,14 @@ const Sidebar = () => {
             "rounded-lg",
             "bg-[#021213] hover:bg-[#0a2f30]",
             "text-white/70 hover:text-white",
-            "transition-[left] duration-150 ease-in-out",
+            "transition-all duration-200",
             "border border-white/10",
             isMobile 
               ? (isMainCollapsed ? "left-14" : "left-[210px]")
               : (isMainCollapsed ? "left-[71px]" : "left-[211px]")
           )}
         >
-          <Columns className="h-4 w-4" />
+          <Columns className="h-4 w-4 transition-transform duration-200 hover:scale-110" />
         </Button>
       )}
 
