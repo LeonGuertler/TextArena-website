@@ -26,19 +26,22 @@ const CHART_COLORS = [
   "#f43f5e",
 ]
 
-const envSubsets: Record<string, string[]> = {
-  // BalancedSubset: [
-  //   "Chess-v0",
-  //   "DontSayIt-v0",
-  //   "LiarsDice-v0",
-  //   "Negotiation-v0",
-  //   "Poker-v0",
-  //   "SpellingBee-v0",
-  //   "Stratego-v0",
-  //   "Tak-v0",
-  //   "TruthAndDeception-v0",
-  //   "UltimateTicTacToe-v0",
-  // ],
+const envSubsets: Record<string, string[] | null> = {
+  // Grouped subsets
+  'Balanced Subset': [
+    "Chess-v0",
+    "DontSayIt-v0",
+    "LiarsDice-v0",
+    "Negotiation-v0",
+    "Poker-v0",
+    "SpellingBee-v0",
+    "Stratego-v0",
+    "Tak-v0",
+    "TruthAndDeception-v0",
+    "UltimateTicTacToe-v0",
+  ],
+  
+  // Individual games
   Chess: ["Chess-v0"],
   ConnectFour: ["ConnectFour-v0"],
   Debate: ["Debate-v0"],
@@ -55,7 +58,107 @@ const envSubsets: Record<string, string[]> = {
   TruthAndDeception: ["TruthAndDeception-v0"],
   UltimateTicTacToe: ["UltimateTicTacToe-v0"],
   WordChains: ["WordChains-v0"],
-}
+  
+  // Skill-based subsets
+  Adaptability: [
+    "IteratedPrisonersDilemma-v0",
+    "Negotiation-v0",
+    "SpiteAndMalice-v0",
+    "Stratego-v0",
+    "Debate-v0",
+    "DontSayIt-v0",
+    "SpellingBee-v0",
+    "LiarsDice-v0",
+    "WordChains-v0"
+  ],
+  Bluffing: [
+    "Poker-v0",
+    "TruthAndDeception-v0",
+    "DontSayIt-v0",
+    "LiarsDice-v0"
+  ],
+  "Logical Reasoning": [
+    "SpellingBee-v0",
+    "WordChains-v0",
+    "TruthAndDeception-v0",
+    "Battleship-v0",
+    "Tak-v0",
+    "SpiteAndMalice-v0",
+    "ConnectFour-v0",
+    "Mastermind-v0",
+    "UltimateTicTacToe-v0",
+    "Debate-v0",
+    "Chess-v0"
+  ],
+  "Memory Recall": [
+    "Mastermind-v0",
+    "SpellingBee-v0",
+    "WordChains-v0",
+    "Chess-v0",
+    "LiarsDice-v0"
+  ],
+  "Pattern Recognition": [
+    "ConnectFour-v0",
+    "UltimateTicTacToe-v0",
+    "Mastermind-v0",
+    "Tak-v0",
+    "SpellingBee-v0",
+    "Stratego-v0",
+    "Battleship-v0",
+    "Chess-v0",
+    "WordChains-v0"
+  ],
+  Persuasion: [
+    "Poker-v0",
+    "Debate-v0",
+    "Negotiation-v0",
+    "DontSayIt-v0",
+    "TruthAndDeception-v0"
+  ],
+  "Spatial Reasoning": [
+    "UltimateTicTacToe-v0"
+  ],
+  "Spatial Thinking": [
+    "Tak-v0",
+    "Chess-v0",
+    "Battleship-v0",
+    "ConnectFour-v0"
+  ],
+  "Strategic Planning": [
+    "Negotiation-v0",
+    "Tak-v0",
+    "IteratedPrisonersDilemma-v0",
+    "Chess-v0",
+    "Poker-v0",
+    "Stratego-v0",
+    "UltimateTicTacToe-v0",
+    "SpiteAndMalice-v0",
+    "ConnectFour-v0",
+    "Mastermind-v0"
+  ],
+  "Theory of Mind": [
+    "TruthAndDeception-v0",
+    "SpiteAndMalice-v0",
+    "LiarsDice-v0",
+    "Negotiation-v0",
+    "Debate-v0",
+    "Poker-v0",
+    "IteratedPrisonersDilemma-v0",
+    "Stratego-v0",
+    "DontSayIt-v0"
+  ],
+  "Uncertainty Estimation": [
+    "Stratego-v0",
+    "LiarsDice-v0",
+    "Battleship-v0",
+    "Poker-v0",
+    "IteratedPrisonersDilemma-v0",
+    "SpiteAndMalice-v0",
+    "TruthAndDeception-v0"
+  ]
+};
+
+type TimeRange = '48H' | '7D' | '30D';
 
 interface ModelData {
   model_id: number
@@ -78,7 +181,7 @@ interface EloHistoryRow {
 
 function CustomHistoryTooltip({ active, payload, label, isMobile, containerRef }: any) {
   if (active && payload && payload.length > 0) {
-    const formattedTime = new Date(label).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    const formattedTime = new Date(label).toLocaleTimeString([], { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })
     const sortedPayload = [...payload].sort((a, b) => b.value - a.value)
 
     const tooltipContent = (
@@ -92,7 +195,7 @@ function CustomHistoryTooltip({ active, payload, label, isMobile, containerRef }
         <p className="font-bold text-white mb-0.5">{formattedTime}</p>
         {sortedPayload.map((entry: any, index: number) => (
           <p key={index} style={{ color: entry.stroke }} className="m-0 leading-tight">
-            {entry.name}: {Math.round(entry.value)}
+            {Math.round(entry.value)}: {entry.name}
           </p>
         ))}
       </div>
@@ -144,6 +247,21 @@ function EloHistoryChart({
     [isMobile, selectedPoint],
   )
 
+  // Helper function to format the date and time
+  const formatDateTime = (tick: string) => {
+    const d = new Date(tick)
+    const date = d.toLocaleDateString([], {
+      month: 'numeric',
+      day: 'numeric'
+    })
+    const time = d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    })
+    return `${date}, ${time}`
+  }
+
   const chartContent = (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart
@@ -152,7 +270,7 @@ function EloHistoryChart({
           top: 20,
           right: isMobile ? 40 : 20,
           left: 20,
-          bottom: isMobile ? 40 : 20,
+          bottom: isMobile ? 60 : 40, // Increased bottom margin to accommodate longer labels
         }}
         onClick={handleClick}
       >
@@ -160,23 +278,17 @@ function EloHistoryChart({
         <XAxis
           dataKey="date"
           stroke="white"
-          tickFormatter={(tick) => {
-            const d = new Date(tick)
-            return d.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            })
-          }}
+          tickFormatter={formatDateTime}
           tick={{
             fill: "white",
             angle: isMobile ? -65 : -45,
             textAnchor: "end",
             fontSize: isMobile ? 10 : 12,
             fontFamily: "var(--font-mono)",
+            dy: 8 // Adjust vertical position of ticks
           }}
-          height={isMobile ? 60 : 30}
-          interval={isMobile ? 1 : "preserveStartEnd"}
+          height={isMobile ? 80 : 50} // Increased height to prevent label overlap
+          interval={isMobile ? 2 : "preserveStartEnd"} // Show fewer ticks on mobile
         />
         <YAxis
           stroke="white"
@@ -200,7 +312,7 @@ function EloHistoryChart({
             name={name}
             stroke={hoveredModel === name ? "#ffffff" : CHART_COLORS[idx % CHART_COLORS.length]}
             strokeWidth={hoveredModel === name ? 4 : 2}
-            dot={isMobile}
+            dot={false}
             activeDot={{ r: isMobile ? 6 : 8 }}
             opacity={hoveredModel && hoveredModel !== name ? 0.3 : 1}
           />
@@ -226,7 +338,16 @@ function EloHistoryChart({
 }
 
 export function Leaderboard() {
-  const [selectedSubset, setSelectedSubset] = useState<string>("Poker")
+  // const [selectedSubset, setSelectedSubset] = useState<string>("Balanced Subset")
+  const [selectedSubset, setSelectedSubset] = useState<string>(() => {
+    // Try to get the saved value from localStorage
+    const savedSubset = typeof window !== 'undefined' 
+      ? localStorage.getItem('selectedLeaderboardSubset') 
+      : null;
+    
+    // Return saved value or default
+    return savedSubset || "Balanced Subset";
+  });
   const [currentPage, setCurrentPage] = useState(1)
   const [models, setModels] = useState<ModelData[]>([])
   const [eloHistory, setEloHistory] = useState<EloHistoryRow[]>([])
@@ -234,65 +355,137 @@ export function Leaderboard() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hoveredModel, setHoveredModel] = useState<string | null>(null)
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('7D');
 
   const itemsPerPage = 10
 
-  // Fetch models and Elo history in one useEffect, triggered by subset or page change.
+  // First useEffect for fetching leaderboard data
   useEffect(() => {
-    async function fetchData() {
-      setIsLoading(true)
-      setIsLoadingHistory(true)
-      setError(null)
-
+    async function fetchLeaderboardData() {
+      setIsLoading(true);
+      setError(null);
+  
       try {
-        let subsetEnvIds: number[] | null = null
+        let subsetEnvIds: number[] | null = null;
+  
         if (selectedSubset !== "All") {
-          const subsetNames = envSubsets[selectedSubset] || []
+          const subsetNames = envSubsets[selectedSubset] || [];
           if (subsetNames.length > 0) {
             const { data: envData, error: envError } = await supabase
               .from("environments")
               .select("id")
-              .in("env_name", subsetNames)
-            if (envError) throw envError
-            subsetEnvIds = (envData ?? []).map((env: any) => env.id)
+              .in("env_name", subsetNames);
+  
+            if (envError) throw envError;
+            subsetEnvIds = (envData ?? []).map((env: any) => env.id);
           }
         }
-
-        // Fetch models
-        const { data: modelData, error: modelError } = await supabase.rpc("get_leaderboard_from_mv", {
-          selected_env_ids: subsetEnvIds,
-        })
-        if (modelError) throw modelError
-        setModels(modelData || [])
-
-        // Fetch Elo history *only for the currently displayed models*
-        const startIndex = (currentPage - 1) * itemsPerPage
-        const paginatedModelsLocal = (modelData || []).slice(startIndex, startIndex + itemsPerPage)
-
-        if (paginatedModelsLocal.length > 0) {
-          const selectedModelIds = paginatedModelsLocal.map((m) => m.model_id)
-
-          const { data: historyData, error: historyError } = await supabase.rpc("get_elo_history_by_env", {
-            selected_env_ids: subsetEnvIds,
-            selected_model_ids: selectedModelIds, // Pass model IDs.
-          })
-          if (historyError) throw historyError
-          setEloHistory(historyData || [])
-          console.log("Fetched Elo history:", historyData) // Log fetched data
-        } else {
-          setEloHistory([]) // No models on this page, clear the history.
-        }
+  
+        const { data: modelData, error: modelError } = await supabase.rpc(
+          "get_leaderboard_from_mv",
+          { selected_env_ids: subsetEnvIds }
+        );
+        if (modelError) throw modelError;
+        setModels(modelData || []);
       } catch (err: any) {
-        console.error("Error fetching data:", err)
-        setError(err.message || "Failed to load data")
+        console.error("Error fetching leaderboard data:", err);
+        setError(err.message || "Failed to load leaderboard data");
       } finally {
-        setIsLoading(false)
-        setIsLoadingHistory(false)
+        setIsLoading(false);
       }
     }
+  
+    fetchLeaderboardData();
+  }, [selectedSubset]); // Only depends on selectedSubset
 
-    fetchData()
-  }, [selectedSubset, currentPage]) // Only re-fetch when subset or page changes.
+  // Second useEffect for fetching Elo history data
+  useEffect(() => {
+    async function fetchEloHistory() {
+      setIsLoadingHistory(true);
+      
+      try {
+        const groupBasedSubsets = new Set([
+          "Balanced Subset", "All", "Spatial Reasoning", "Spatial Thinking",
+          "Adaptability", "Bluffing", "Logical Reasoning", "Memory Recall",
+          "Pattern Recognition", "Persuasion", "Strategic Planning",
+          "Theory of Mind", "Uncertainty Estimation"
+        ]);
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const paginatedModelsLocal = models.slice(startIndex, startIndex + itemsPerPage);
+  
+        if (paginatedModelsLocal.length > 0) {
+          const selectedModelIds = paginatedModelsLocal.map((m) => m.model_id);
+          
+          let subsetEnvIds: number[] | null = null;
+          if (selectedSubset !== "All") {
+            const subsetNames = envSubsets[selectedSubset] || [];
+            if (subsetNames.length > 0) {
+              const { data: envData, error: envError } = await supabase
+                .from("environments")
+                .select("id")
+                .in("env_name", subsetNames);
+    
+              if (envError) throw envError;
+              subsetEnvIds = (envData ?? []).map((env: any) => env.id);
+            }
+          }
+  
+          const functionNameMap = {
+            '48H': {
+              groups: 'get_elo_history_last48hrs_by_groups',
+              env: 'get_elo_history_last48hrs_by_env'
+            },
+            '7D': {
+              groups: 'get_elo_history_last7days_by_groups',
+              env: 'get_elo_history_last7days_by_env'
+            },
+            '30D': {
+              groups: 'get_elo_history_last30days_by_groups',
+              env: 'get_elo_history_last30days_by_env'
+            }
+          };
+  
+          let historyData, historyError;
+  
+          if (groupBasedSubsets.has(selectedSubset)) {
+            const { data, error } = await supabase.rpc(
+              functionNameMap[selectedTimeRange].groups,
+              {
+                selected_model_ids: selectedModelIds,
+                selected_subset: selectedSubset,
+              }
+            );
+            historyData = data;
+            historyError = error;
+          } else {
+            const { data, error } = await supabase.rpc(
+              functionNameMap[selectedTimeRange].env,
+              {
+                selected_env_ids: subsetEnvIds,
+                selected_model_ids: selectedModelIds,
+              }
+            );
+            historyData = data;
+            historyError = error;
+          }
+  
+          if (historyError) throw historyError;
+          setEloHistory(historyData || []);
+        } else {
+          setEloHistory([]);
+        }
+      } catch (err: any) {
+        console.error("Error fetching Elo history:", err);
+        // We don't set the main error state here since it's just for the history
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    }
+  
+    fetchEloHistory();
+  }, [selectedTimeRange, currentPage, selectedSubset, models]); // Dependencies for Elo history
+
 
   // Calculate paginated models.
   const paginatedModels = useMemo(() => {
@@ -357,12 +550,16 @@ export function Leaderboard() {
           <Filter className="h-4 w-4 text-navbarForeground" />
           <Select
             onValueChange={(value) => {
-              setSelectedSubset(value)
-              setCurrentPage(1)
+              setSelectedSubset(value);
+              setCurrentPage(1);
+              // Save the selection to localStorage
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('selectedLeaderboardSubset', value);
+              }
             }}
             value={selectedSubset}
           >
-            <SelectTrigger className="w-[180px] bg-background text-navbarForeground border-navbar font-mono">
+            <SelectTrigger className="w-[210px] bg-background text-navbarForeground border-navbar font-mono overflow-hidden text-ellipsis whitespace-nowrap">
               <SelectValue placeholder="Select subset" />
             </SelectTrigger>
             <SelectContent>
@@ -413,6 +610,16 @@ export function Leaderboard() {
                       >
                         Retry
                       </Button>
+                    </TableCell>
+                  </TableRow>
+                ) : models.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-navbarForeground">
+                      <div className="flex flex-col items-center gap-2">
+                        <Info className="h-8 w-8 text-muted-foreground" />
+                        <p className="font-medium">No models have played this environment, or all environments in this group, at least once.</p>
+                        <p className="text-sm text-muted-foreground">Try selecting a different environment from the dropdown above.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -471,6 +678,14 @@ export function Leaderboard() {
                     Retry
                   </Button>
                 </div>
+              ) : models.length === 0 ? (
+                <div className="text-center py-8 text-navbarForeground">
+                  <div className="flex flex-col items-center gap-2">
+                    <Info className="h-8 w-8 text-muted-foreground" />
+                    <p className="font-medium">No models have played this environment yet.</p>
+                    <p className="text-sm text-muted-foreground">Try selecting a different environment from the dropdown above.</p>
+                  </div>
+                </div>
               ) : (
                 paginatedModels.map((model, index) => (
                   <LeaderboardCard
@@ -483,57 +698,109 @@ export function Leaderboard() {
             </div>
           )}
 
-          <div className="flex justify-between items-center">
-            <Button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="bg-[hsl(var(--navbar-foreground))] bg-opacity-10 hover:bg-opacity-20 text-[hsl(var(--navbar))] border border-[hsl(var(--navbar))] rounded-md transition-colors font-mono w-15 h-8 text-xs"
-            >
-              {isMobile ? "Prev" : "Previous"}
-            </Button>
+          {models.length > 0 && (
+            <>
+              <div className="flex justify-between items-center">
+                <Button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="bg-[hsl(var(--navbar-foreground))] bg-opacity-10 hover:bg-opacity-20 text-[hsl(var(--navbar))] border border-[hsl(var(--navbar))] rounded-md transition-colors font-mono w-15 h-8 text-xs"
+                >
+                  {isMobile ? "Prev" : "Previous"}
+                </Button>
 
-            <span className="text-navbarForeground font-mono text-xs">
-              Page {currentPage} of {totalPages}
-            </span>
+                <span className="text-navbarForeground font-mono text-xs">
+                  Page {currentPage} of {totalPages}
+                </span>
 
-            <Button
-              onClick={() => setCurrentPage((p) => p + 1)}
-              disabled={currentPage >= totalPages}
-              className="bg-[hsl(var(--navbar-foreground))] bg-opacity-10 hover:bg-opacity-20 text-[hsl(var(--navbar))] border border-[hsl(var(--navbar))] rounded-md transition-colors font-mono w-15 h-8 text-xs"
-            >
-              Next
-            </Button>
-          </div>
+                <Button
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="bg-[hsl(var(--navbar-foreground))] bg-opacity-10 hover:bg-opacity-20 text-[hsl(var(--navbar))] border border-[hsl(var(--navbar))] rounded-md transition-colors font-mono w-15 h-8 text-xs"
+                >
+                  Next
+                </Button>
+              </div>
 
-          <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xl font-bold text-navbarForeground font-mono">Elo History</h3>
-                {isMobile && (
-                  <div className="relative flex items-center">
-                    <div className="group">
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                      <div className="absolute left-0 -top-1 translate-y-[-100%] hidden group-hover:block bg-background p-2 rounded-lg border border-navbar shadow-lg z-20 max-w-[160px]">
-                        <p className="text-xs text-muted-foreground font-mono break-words">
-                          Tap a point to see details
-                        </p>
-                      </div>
+              <div>
+                {/* Desktop view */}
+                {!isMobile && (
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-navbarForeground font-mono">Elo History</h3>
+                    <div className="flex gap-1 bg-background rounded-md p-0.5 border border-navbar">
+                      {[
+                        { label: 'L2D', value: '48H' },
+                        { label: 'L7D', value: '7D' },
+                        { label: 'L30D', value: '30D' }
+                      ].map(({ label, value }) => (
+                        <button
+                          key={value}
+                          onClick={() => setSelectedTimeRange(value as TimeRange)}
+                          className={`px-2 py-1 text-xs font-mono rounded ${
+                            selectedTimeRange === value
+                              ? 'bg-[hsl(var(--navbar))] text-navbarForeground'
+                              : 'text-muted-foreground hover:bg-[hsl(var(--navbar))] hover:bg-opacity-50 hover:text-navbarForeground'
+                          } transition-colors`}
+                        >
+                          {label}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
+
+                {/* Mobile view */}
+                {isMobile && (
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-navbarForeground font-mono">Elo History</h3>
+                      <div className="relative flex items-center">
+                        <div className="group">
+                          <Info className="h-4 w-4 text-muted-foreground" />
+                          <div className="absolute left-0 -top-1 translate-y-[-100%] hidden group-hover:block bg-background p-2 rounded-lg border border-navbar shadow-lg z-20 max-w-[160px]">
+                            <p className="text-xs text-muted-foreground font-mono break-words">
+                              Tap a point to see details
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-1 bg-background rounded-md p-0.5 border border-navbar">
+                      {[
+                        { label: 'L2D', value: '48H' },
+                        { label: 'L7D', value: '7D' },
+                        { label: 'L30D', value: '30D' }
+                      ].map(({ label, value }) => (
+                        <button
+                          key={value}
+                          onClick={() => setSelectedTimeRange(value as TimeRange)}
+                          className={`px-2 py-1 text-xs font-mono rounded ${
+                            selectedTimeRange === value
+                              ? 'bg-[hsl(var(--navbar))] text-navbarForeground'
+                              : 'text-muted-foreground hover:bg-[hsl(var(--navbar))] hover:bg-opacity-50 hover:text-navbarForeground'
+                          } transition-colors`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {isLoadingHistory ? (
+                  <p className="text-navbarForeground">Loading elo history...</p>
+                ) : (
+                  <EloHistoryChart
+                    data={chartData}
+                    modelNames={chartModelNames}
+                    hoveredModel={hoveredModel}
+                    isMobile={isMobile}
+                  />
+                )}
               </div>
-            </div>
-            {isLoadingHistory ? (
-              <p className="text-navbarForeground">Loading elo history...</p>
-            ) : (
-              <EloHistoryChart
-                data={chartData}
-                modelNames={chartModelNames}
-                hoveredModel={hoveredModel}
-                isMobile={isMobile}
-              />
-            )}
-          </div>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

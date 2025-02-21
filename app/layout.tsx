@@ -64,7 +64,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable + " dark"}>
       <body className="font-sans">
-        <ConstructionBanner />
+        {/* <ConstructionBanner /> */}
         <AuthProvider>
           <div className="flex h-screen">
             <Sidebar />

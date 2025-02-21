@@ -191,7 +191,8 @@ export default function AboutPage() {
           We would also like to thank our other contributors: <br />
           <span className="font-medium font-mono">Gabriel Chua</span>,{" "}
           <span className="font-medium font-mono">Romir Patel</span>,{" "}
-          <span className="font-medium font-mono">Ayudh Saxena</span>, and{" "}
+          <span className="font-medium font-mono">Ayudh Saxena</span>,{" "}
+          <span className="font-medium font-mono">Vincent Cheng</span>, and{" "}
           <span className="font-medium font-mono">Dylan Hillier</span>.
         </p>
       </section>
