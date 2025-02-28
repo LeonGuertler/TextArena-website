@@ -175,7 +175,7 @@ interface ModelData {
 interface EloHistoryRow {
   model_id: number
   model_name: string
-  interval_start: string
+  interval_start: string 
   elo_value: number
 }
 
