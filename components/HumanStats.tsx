@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronUp, RefreshCw, Share2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface HumanStatsType {
   total_games: number;
@@ -87,132 +88,23 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const isMobile = useIsMobile(); // Hook to detect mobile mode
 
-  // const fetchStats = async () => {
-  //   if (!isInitialized || !token) return;
-  //   setIsRefreshing(true);
-  //   setError(null);
-  //   setIsLoading(true);
-
-  //   try {
-  //     const { data: overallData, error: overallError } = await supabase
-  //       .rpc("get_human_stats", { human_cookie_id: String(token) });
-  //     if (overallError) throw overallError;
-
-  //     const { data: envData, error: envError } = await supabase
-  //       .rpc("get_human_env_stats", { human_cookie_id: String(token) });
-  //     if (envError) throw envError;
-
-  //     const { data: percentileData, error: percentileError } = await supabase
-  //       .rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
-  //     if (percentileError) throw percentileError;
-
-  //     const numericID = await fetchHumanNumericId(String(token));
-  //     if (!numericID) {
-  //       console.warn("No numeric ID found for token:", token);
-  //     }
-
-  //     let netElo = 0;
-  //     if (numericID) {
-  //       netElo = await fetchNetEloChange(numericID);
-  //     }
-
-  //     // Calculate total games and win rate from wins, draws, and losses
-  //     const total_wins = overallData[0].total_wins;
-  //     const total_draws = overallData[0].total_draws;
-  //     const total_losses = overallData[0].total_losses;
-  //     const actual_total_games = total_wins + total_draws + total_losses;
-  //     const win_rate = actual_total_games > 0 ? (total_wins / actual_total_games) * 100 : 0;
-
-  //     const overallStats: HumanStatsType = {
-  //       ...overallData[0],
-  //       total_games: actual_total_games,
-  //       win_rate,
-  //       net_elo_change: netElo,
-  //     };
-
-  //     setStats(overallStats);
-  //     setEnvStats(envData || []);
-  //     if (percentileData && percentileData.length > 0) {
-  //       setOverallPercentile(percentileData[0].overall_percentile);
-  //     }
-  //   } catch (err) {
-  //     console.error("Error fetching stats:", err);
-  //     setError(err instanceof Error ? err.message : "Failed to load stats");
-  //   } finally {
-  //     setIsLoading(false);
-  //     setIsRefreshing(false);
-  //   }
-  // };
-  // const fetchStats = async () => {
-  //   if (!isInitialized || !token) return;
-  //   setIsRefreshing(true);
-  //   setError(null);
-  //   setIsLoading(true);
-  
-  //   try {
-  //     const { data: overallData, error: overallError } = await supabase.rpc("get_human_stats", { human_cookie_id: String(token) });
-  //     console.log("overallData:", overallData, "overallError:", overallError);
-  
-  //     const { data: envData, error: envError } = await supabase.rpc("get_human_env_stats", { human_cookie_id: String(token) });
-  //     console.log("envData:", envData, "envError:", envError);
-  
-  //     const { data: percentileData, error: percentileError } = await supabase.rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
-  //     console.log("percentileData:", percentileData, "percentileError:", percentileError);
-  
-  //     const numericID = await fetchHumanNumericId(String(token));
-  //     console.log("numericID:", numericID);
-  
-  //     let netElo = 0;
-  //     if (numericID) {
-  //       netElo = await fetchNetEloChange(numericID);
-  //     }
-  //     console.log("netElo:", netElo);
-  
-  //     // Calculate total games and win rate from wins, draws, and losses
-  //     const total_wins = overallData[0].total_wins;
-  //     const total_draws = overallData[0].total_draws;
-  //     const total_losses = overallData[0].total_losses;
-  //     const actual_total_games = total_wins + total_draws + total_losses;
-  //     const win_rate = actual_total_games > 0 ? (total_wins / actual_total_games) * 100 : 0;
-  
-  //     const overallStats: HumanStatsType = {
-  //       ...overallData[0],
-  //       // Use total_games, wins, draws, losses directly from the RPC
-  //       total_games: overallData[0].total_games,
-  //       win_rate: overallData[0].total_games > 0
-  //                  ? (overallData[0].total_wins / overallData[0].total_games) * 100
-  //                  : 0,
-  //       net_elo_change: netElo, // still computed via your separate query
-  //     };
-      
   const fetchStats = async () => {
     if (!isInitialized || !token) return;
     setIsRefreshing(true);
     setError(null);
     setIsLoading(true);
-  
+
     try {
-      // Fetch overall stats
       const { data: overallData, error: overallError } = await supabase.rpc("get_human_stats", { human_cookie_id: String(token) });
       if (overallError) throw overallError;
-      
-      // Fetch environment specific stats
+
       const { data: envData, error: envError } = await supabase.rpc("get_human_env_stats", { human_cookie_id: String(token) });
       if (envError) throw envError;
-      
-      // Fetch overall percentile
-      // const { data: percentileData, error: percentileError } = await supabase.rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
-      // if (percentileError) throw percentileError;
+
       const { data: percentileData, error: percentileError } = await supabase.rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
-      console.log("Percentile data:", {
-        raw: percentileData,
-        first: percentileData?.[0],
-        value: percentileData?.[0]?.overall_percentile,
-        type: percentileData?.[0]?.overall_percentile ? typeof percentileData[0].overall_percentile : 'undefined'
-      });
       
-      // Fetch net ELO change
       const numericID = await fetchHumanNumericId(String(token));
       let netElo = 0;
       if (numericID) {
@@ -223,12 +115,11 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
         throw new Error('No stats data available');
       }
 
-      // Construct overall stats
       const wins = Number(overallData[0].total_wins) || 0;
       const draws = Number(overallData[0].total_draws) || 0;
       const losses = Number(overallData[0].total_losses) || 0;
       const completedGames = wins + draws + losses;
-      
+
       const overallStats: HumanStatsType = {
         total_games: completedGames,
         total_wins: wins,
@@ -237,15 +128,7 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
         win_rate: completedGames > 0 ? (wins / completedGames) * 100 : 0,
         net_elo_change: netElo
       };
-      
 
-      console.log("total_wins:", overallData[0].total_wins);
-      console.log("total_draws:", overallData[0].total_draws);
-      console.log("total_losses:", overallData[0].total_losses);
-      console.log("total_games from RPC:", overallData[0]);
-
-
-  
       setStats(overallStats);
       setEnvStats(envData || []);
       if (percentileData && percentileData.length > 0) {
@@ -259,8 +142,6 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
       setIsRefreshing(false);
     }
   };
-
-  
 
   useEffect(() => {
     fetchStats();
@@ -336,7 +217,9 @@ ${challengingEnvsText}`;
       "
     >
       <CardHeader className="flex items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Your Stats</CardTitle>
+        <CardTitle className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
+          Your Stats
+        </CardTitle>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -368,44 +251,58 @@ ${challengingEnvsText}`;
 
       <CardContent>
         {isLoading ? (
-          <div className="text-center py-4">Loading stats...</div>
+          <div className={`text-center py-4 ${isMobile ? "text-xs" : "text-sm"}`}>
+            Loading stats...
+          </div>
         ) : error ? (
-          <div className="text-center text-red-500 py-4">{error}</div>
+          <div className={`text-center text-red-500 py-4 ${isMobile ? "text-xs" : "text-sm"}`}>
+            {error}
+          </div>
         ) : stats ? (
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Games Played</span>
-                <span className="text-sm">{stats.total_games}</span>
+                <span className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
+                  Games Played
+                </span>
+                <span className={isMobile ? "text-xs" : "text-sm"}>{stats.total_games}</span>
+              </div>
+              <div className={`flex justify-between items-center ${isMobile ? "text-xs" : "text-sm"}`}>
+                <span className="text-green-500">Win: {stats.total_wins}</span>
+                <span className="text-gray-500">Draw: {stats.total_draws}</span>
+                <span className="text-red-500">Loss: {stats.total_losses}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Win Rate</span>
-                <span className="text-sm">{safeToFixed(stats.win_rate)}%</span>
+                <span className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
+                  Win Rate (WR)
+                </span>
+                <span className={isMobile ? "text-xs" : "text-sm"}>
+                  {safeToFixed(stats.win_rate)}%
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Net Elo Change</span>
+                <span className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
+                  Net Elo Change
+                </span>
                 <span
-                  className={`text-sm ${
+                  className={`${
                     stats.net_elo_change !== null &&
                     stats.net_elo_change !== undefined &&
                     stats.net_elo_change >= 0
                       ? "text-green-500"
                       : "text-red-500"
-                  }`}
+                  } ${isMobile ? "text-xs" : "text-sm"}`}
                 >
                   {stats.net_elo_change !== null && stats.net_elo_change !== undefined
                     ? `${stats.net_elo_change >= 0 ? "+" : ""}${safeToFixed(stats.net_elo_change)}`
                     : "N/A"}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-green-500">{stats.total_wins}W</span>
-                <span className="text-gray-500">{stats.total_draws}D</span>
-                <span className="text-red-500">{stats.total_losses}L</span>
-              </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Overall Percentile</span>
-                <span className="text-sm">
+                <span className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
+                  Overall Percentile (P)
+                </span>
+                <span className={isMobile ? "text-xs" : "text-sm"}>
                   {overallPercentile !== null && overallPercentile !== undefined
                     ? safeToFixed(overallPercentile)
                     : "N/A"}
@@ -417,11 +314,13 @@ ${challengingEnvsText}`;
             {envStats.length > 0 && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Best Environments</h4>
+                  <h4 className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
+                    Best Environments
+                  </h4>
                   {bestEnvs.map((env, idx) => (
                     <div
                       key={env.environment_id}
-                      className="flex justify-between items-center text-xs"
+                      className={`flex justify-between items-center ${isMobile ? "text-[10px]" : "text-xs"}`}
                     >
                       <span>{`${idx + 1}. ${env.env_name}`}</span>
                       <span className="flex gap-2">
@@ -440,11 +339,13 @@ ${challengingEnvsText}`;
                   ))}
                 </div>
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Challenging Environments</h4>
+                  <h4 className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
+                    Challenging Environments
+                  </h4>
                   {challengingEnvs.map((env, idx) => (
                     <div
                       key={env.environment_id}
-                      className="flex justify-between items-center text-xs"
+                      className={`flex justify-between items-center ${isMobile ? "text-[10px]" : "text-xs"}`}
                     >
                       <span>{`${idx + 1}. ${env.env_name}`}</span>
                       <span className="flex gap-2">
