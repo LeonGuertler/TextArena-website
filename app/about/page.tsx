@@ -50,6 +50,13 @@ const teamMembers = [
     isFirstAuthor: false,
   },
   {
+    name: "Henry Mao",
+    title: "Independent Researcher",
+    image: "/henry.jpg",
+    link: "https://x.com/calclavia",
+    isFirstAuthor: false,
+  },
+  {
     name: "Cheston Tan",
     title: "Research @ A*Star",
     image: "/cheston.jpeg",
@@ -186,7 +193,7 @@ export default function AboutPage() {
         </h2>
         <p className="font-mono text-gray-400">
           We would also like to thank our other contributors: <br />
-          <span className="font-medium font-mono">Henry Mao</span>,{" "}
+          {/* <span className="font-medium font-mono">Henry Mao</span>,{" "} */}
           <span className="font-medium font-mono">Gabriel Chua</span>,{" "}
           <span className="font-medium font-mono">Romir Patel</span>,{" "}
           <span className="font-medium font-mono">Ayudh Saxena</span>,{" "}
