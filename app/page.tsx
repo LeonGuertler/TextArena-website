@@ -26,6 +26,7 @@ type EnvOption = {
   env_name: string
   description: string
   active: boolean
+  num_players: number // Add this field
 }
 
 type Message = {
@@ -210,13 +211,12 @@ export default function PlayPage() {
   useEffect(() => {
     supabase
       .from("environments")
-      .select("id, env_name, description, active")
+      .select("id, env_name, description, active, num_players") // Add num_players here
       .then(({ data, error }) => {
         if (error) {
           console.error("Error fetching environments:", error)
         } else if (data) {
           setEnvOptions(data)
-          // Filter the environments based on your default selection.
           const defaultEnvIds = data
             .filter((e) => DEFAULT_SELECTED_ENVIRONMENTS.includes(parseInt(e.id)))
             .map((e) => parseInt(e.id))
