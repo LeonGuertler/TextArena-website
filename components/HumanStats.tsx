@@ -152,11 +152,11 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
   }
 
   const bestEnvs = [...envStats]
-    .sort((a, b) => b.percentile - a.percentile)
+    .sort((a, b) => b.net_elo - a.net_elo)
     .slice(0, 3);
 
   const challengingEnvs = [...envStats]
-    .sort((a, b) => a.percentile - b.percentile)
+    .sort((a, b) => a.net_elo - b.net_elo)
     .slice(0, 3)
     .reverse();
 
