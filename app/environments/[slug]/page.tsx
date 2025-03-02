@@ -39,32 +39,31 @@ const components = {
 
 export async function generateStaticParams() {
   return allGames.map((game) => ({
-    category: game.category,
     slug: game.name.toLowerCase(),
   }))
 }
 
-export default async function DocsPage({ params }: { params: { category: string; slug: string } }) {
-  const { category, slug } = params
+export default async function DocsPage({ params }: { params: { slug: string } }) {
+  const { slug } = params
 
-  // Verify that this game exists in this category
-  const game = allGames.find((g) => g.name.toLowerCase() === slug && g.category === category)
+  // Verify that this game exists
+  const game = allGames.find((g) => g.name.toLowerCase() === slug)
 
   if (!game) {
-    return null
+    return null // Or redirect to 404
   }
 
-  const filePath = path.join(process.cwd(), "content", "environments", category, `${slug}.mdx`)
+  const filePath = path.join(process.cwd(), "content", "environments", `${slug}.mdx`)
   const defaultPath = path.join(process.cwd(), "content", "environments", "default.mdx")
 
   let content: string
   try {
     content = await fs.promises.readFile(filePath, "utf8")
   } catch (error) {
-    // If the specific file doesn't exist, use the default template
+    // Use default template if specific file doesn't exist
     content = await fs.promises.readFile(defaultPath, "utf8")
-    // Replace the title with the actual game name
-    content = content.replace("# Coming Soon", `# ${game.name} (${category}-player) is on it's way!`)
+    // Replace the title with the game name (no category)
+    content = content.replace("# Coming Soon", `# ${game.name} is on its way!`)
   }
 
   return (
@@ -74,7 +73,7 @@ export default async function DocsPage({ params }: { params: { category: string;
           {/* GIF Section */}
           <div className="mb-8 rounded-lg overflow-hidden border border-border">
             <FallbackImage
-              src={`/gifs/${category}/${slug}.gif`}
+              src={`/gifs/${slug}.gif`}
               alt={`${game.name} environment demonstration`}
               className="w-full h-auto"
             />
@@ -96,4 +95,3 @@ export default async function DocsPage({ params }: { params: { category: string;
     </div>
   )
 }
-
