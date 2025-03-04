@@ -210,19 +210,19 @@ export default function PlayPage() {
   // Fetch environment options
   useEffect(() => {
     supabase
-      .from("environments")
-      .select("id, env_name, description, active, num_players") // Add num_players here
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error fetching environments:", error)
-        } else if (data) {
-          setEnvOptions(data)
-          const defaultEnvIds = data
-            .filter((e) => DEFAULT_SELECTED_ENVIRONMENTS.includes(parseInt(e.id)))
-            .map((e) => parseInt(e.id))
-          setSelectedGames(defaultEnvIds)
-        }
-      })
+    .from("environments")
+    .select("id, env_name, description, active, num_players")
+    .then(({ data, error }) => {
+      if (error) {
+        console.error("Error fetching environments:", error)
+      } else if (data) {
+        setEnvOptions(data)
+        const defaultEnvIds = data
+          .filter((e) => DEFAULT_SELECTED_ENVIRONMENTS.includes(parseInt(e.id)))
+          .map((e) => parseInt(e.id))
+        setSelectedGames(defaultEnvIds)
+      }
+    })
   }, [])
 
   // Check matchmaking status periodically
