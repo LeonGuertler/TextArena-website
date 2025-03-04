@@ -926,6 +926,20 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
 
   // Add dropdown component for model selection
   const ModelComparisonSelect = () => {
+    // Ensure availableModels is sorted alphabetically (already done in fetchAvailableModels)
+    const sortedModels = [...availableModels].sort((a, b) =>
+      a.model_name.localeCompare(b.model_name)
+    );
+  
+    // Separate "Humanity" and the rest
+    const humanityModel = sortedModels.find(m => m.model_name === "Humanity");
+    const otherModels = sortedModels.filter(
+      m => m.model_name !== "Humanity" && m.model_name !== model.model_name
+    );
+  
+    // Check if the current model is "Humanity"
+    const isCurrentModelHumanity = model.model_name === "Humanity";
+  
     return (
       <div className="flex items-center gap-2 mb-4">
         <Scale className="h-4 w-4 text-navbarForeground" />
@@ -939,20 +953,28 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
           }}
           value={comparisonModel?.model_name || "none"}
         >
-          <SelectTrigger className="w-[180px] bg-background text-navbarForeground border-navbar font-mono">
+          <SelectTrigger className="w-[300px] bg-background text-navbarForeground border-navbar font-mono">
             <SelectValue placeholder="Compare with..." />
           </SelectTrigger>
           <SelectContent>
+            {/* "None" option first */}
             <SelectItem value="none" className="font-mono">
               None
             </SelectItem>
-            {availableModels
-              .filter(m => m.model_name !== model.model_name)
-              .map(m => (
-                <SelectItem key={m.model_name} value={m.model_name} className="font-mono">
-                  {m.model_name}
-                </SelectItem>
-              ))}
+            
+            {/* "Humanity" option next, only if it’s not the current model */}
+            {humanityModel && !isCurrentModelHumanity && (
+              <SelectItem value="Humanity" className="font-mono">
+                Humanity
+              </SelectItem>
+            )}
+            
+            {/* Remaining models in alphabetical order */}
+            {otherModels.map(m => (
+              <SelectItem key={m.model_name} value={m.model_name} className="font-mono">
+                {m.model_name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -1282,15 +1304,15 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                 <div 
                   ref={chartContainerRef}
                   className={isMobile ? "overflow-x-auto" : "flex-1"}
-                  style={{ minHeight: '400px' }}  // Add this
+                  style={{ minHeight: '400px' }} 
                 >
                   <div 
                     style={{ 
-                      width: isMobile ? "300px" : "100%",  // Change from 400px to 300px
+                      width: isMobile ? "350px" : "100%",  // Change from 400px to 350px
                       height: 400, 
                       paddingTop: isMobile ? "150px" : 0,
                       margin: "0 auto",
-                      minWidth: isMobile ? "300px" : "auto"  // Add this
+                      minWidth: isMobile ? "300px" : "auto" 
                     }}
                   >
                     <ResponsiveContainer width="100%" height="100%">
@@ -1387,11 +1409,6 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                   </div>
                 </div>
               </div>
-              {isMobile && (
-                <div className="text-xs text-muted-foreground font-mono mt-2 text-right">
-                  Scroll to see more →
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>

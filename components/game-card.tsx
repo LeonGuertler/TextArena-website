@@ -6,12 +6,12 @@ import { FallbackImage } from "@/components/fallback-image"
 interface GameCardProps {
   name: string
   href: string
-  category: string
+  numPlayers: number
 }
 
-export function GameCard({ name, href, category }: GameCardProps) {
+export function GameCard({ name, href, numPlayers }: GameCardProps) {
   const slug = name.toLowerCase()
-  const gifSrc = `/gifs/${category}/${slug}.gif`
+  const gifSrc = `/gifs/${slug}.gif`
 
   return (
     <Link href={href} passHref>
@@ -23,9 +23,13 @@ export function GameCard({ name, href, category }: GameCardProps) {
           <h3 className={cn("text-lg font-semibold text-center truncate", name.length > 12 ? "text-sm" : "")}>
             {name}
           </h3>
+          <div className="flex justify-center mt-1">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-teal-900/40 text-gray-300">
+              {numPlayers}
+            </span>
+          </div>
         </CardContent>
       </Card>
     </Link>
   )
 }
-

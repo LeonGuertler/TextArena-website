@@ -1,47 +1,32 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-// Example sponsors with two images each: black/white + color
+// Updated sponsors with single image URLs
 const sponsors = [
-  // {
-  //   name: "Google",
-  //   imageBW: "/google-bw.png",
-  //   imageColor: "/google-color.png",
-  //   website: "https://google.com",
-  //   hoverText: "Google – Proud Sponsor",
-  //   description:
-  //     "A global technology company specializing in search, online advertising, and cloud computing.",
-  // },
   {
     name: "Anthropic",
-    imageBW: "/anthropic-bw.png",
-    imageColor: "/anthropic-color.png",
+    image: "https://companieslogo.com/img/orig/anthropic_BIG-be6f1e6e.png?t=1700716362",
     website: "https://anthropic.com",
-    hoverText: "Anthropic – Proud Sponsor",
-    description:
-      "An AI research company focused on developing safe and ethical AI systems.",
+    description: "An AI research company focused on developing safe and ethical AI systems.",
   },
   {
     name: "AWS",
-    imageBW: "/aws-bw.png",
-    imageColor: "/aws-color.png",
+    image: "https://movielabs.com/wp-content/uploads/2022/10/aws-logo-png-4.png",
     website: "https://aws.amazon.com",
-    hoverText: "AWS – Proud Sponsor",
-    description:
-      "A leading cloud computing platform providing scalable infrastructure services.",
+    description: "A leading cloud computing platform providing scalable infrastructure services.",
   },
   {
     name: "OpenRouter",
-    imageBW: "/openrouter-bw.png",
-    imageColor: "/openrouter-color.png",
+    image: "https://millpondresearch.com/img/openrouter-logo-transparent.png",
     website: "https://openrouter.ai",
-    hoverText: "OpenRouter – Proud Sponsor",
-    description:
-      "A unified API gateway for accessing various AI language models.",
+    description: "A unified API gateway for accessing various AI language models.",
   },
 ];
 
-// Added isFirstAuthor flag to distinguish between author groups
+// Team members remain unchanged
 const teamMembers = [
   {
     name: "Leon Guertler",
@@ -68,7 +53,7 @@ const teamMembers = [
     name: "Henry Mao",
     title: "Independent Researcher",
     image: "/henry.jpg",
-    link: "https://x.com/Calclavia",
+    link: "https://x.com/calclavia",
     isFirstAuthor: false,
   },
   {
@@ -81,6 +66,12 @@ const teamMembers = [
 ];
 
 export default function AboutPage() {
+  const [tooltips, setTooltips] = useState({
+    Anthropic: { position: { x: 0, y: 0 }, show: false },
+    AWS: { position: { x: 0, y: 0 }, show: false },
+    OpenRouter: { position: { x: 0, y: 0 }, show: false },
+  });
+
   return (
     <div className="container mx-auto px-4 py-8 text-center">
       {/* Page Heading */}
@@ -88,7 +79,7 @@ export default function AboutPage() {
 
       {/* Intro / Mission */}
       <section className="mb-12">
-        <p className="text-lg mb-4 font-mono">
+        <p className="text-lg text-gray-400 mb-4 font-mono">
           Don't focus on us, focus on getting Humanity to No. 1!
         </p>
       </section>
@@ -96,10 +87,10 @@ export default function AboutPage() {
       {/* Sponsors Section */}
       <section className="mb-12">
         <h2 className="text-2xl font-semibold mb-4 font-mono">Our Sponsors</h2>
-        <p className="mb-4 font-mono">
-          We actually are very greatful for the amazing support TextArena received from the community and the sponsors! 
+        <p className="mb-4 text-gray-400 font-mono">
+          We actually are very grateful for the amazing support TextArena received from the community and the sponsors!
         </p>
-        <p className="mb-6 font-mono">
+        <p className="mb-6 text-gray-400 font-mono">
           If you're interested in supporting TextArena, please don't hesitate
           to reach out {" "}
           <Link
@@ -113,32 +104,45 @@ export default function AboutPage() {
           {sponsors.map((sponsor) => (
             <div
               key={sponsor.name}
-              className="relative group inline-block p-8"
+              className="flex justify-center items-center w-[150px] h-[150px] p-2 rounded-lg bg-transparent transition-colors duration-300 ease-in-out hover:bg-gray-200 group relative"
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left; // X position relative to the wrapper
+                const y = e.clientY - rect.top; // Y position relative to the wrapper
+                setTooltips((prev) => ({
+                  ...prev,
+                  [sponsor.name]: {
+                    position: { x: x + 5, y: y + 5 }, // Offset to position below cursor
+                    show: true,
+                  },
+                }));
+              }}
+              onMouseLeave={() => {
+                setTooltips((prev) => ({
+                  ...prev,
+                  [sponsor.name]: {
+                    ...prev[sponsor.name],
+                    show: false,
+                  },
+                }));
+              }}
             >
               <Link href={sponsor.website} target="_blank">
-                {/* Black-and-white image */}
                 <Image
-                  src={sponsor.imageBW}
+                  src={sponsor.image}
                   alt={sponsor.name}
-                  width={200}
-                  height={200}
-                  className="transition-opacity group-hover:opacity-0"
-                />
-                {/* Color image that appears on hover */}
-                <Image
-                  src={sponsor.imageColor}
-                  alt={sponsor.name}
-                  width={200}
-                  height={200}
-                  className="absolute top-8 left-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  width={sponsor.name === "AWS" ? 100 : 120}
+                  height={sponsor.name === "AWS" ? 40 : 80}
+                  className="max-w-full max-h-[80px] filter brightness-0 invert group-hover:filter-none group-hover:scale-110 transition-all duration-300 ease-in-out"
                 />
               </Link>
-              {/* Sponsor pop-up using CSS variables for background and text colors */}
               <div
-                className="absolute left-1/2 -translate-x-1/2 mt-2 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-mono"
+                className={`absolute text-xs px-2 py-1 rounded w-48 font-mono bg-[hsl(var(--navbar))] text-[hsl(var(--navbar-foreground))] ${tooltips[sponsor.name].show ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                 style={{
-                  backgroundColor: "hsl(var(--navbar))",
-                  color: "hsl(var(--navbar-foreground))",
+                  left: tooltips[sponsor.name].position.x,
+                  top: tooltips[sponsor.name].position.y,
+                  transform: "translate(-50%, 10px)", // Reduced downward shift to 10px
+                  transition: "opacity 300ms ease-in-out", // Ensure smooth opacity transition
                 }}
               >
                 {sponsor.description}
@@ -187,12 +191,15 @@ export default function AboutPage() {
         <h2 className="text-2xl font-semibold mb-4 font-mono">
           Acknowledgements
         </h2>
-        <p className="font-mono">
+        <p className="font-mono text-gray-400">
           We would also like to thank our other contributors: <br />
+          {/* <span className="font-medium font-mono">Henry Mao</span>,{" "} */}
           <span className="font-medium font-mono">Gabriel Chua</span>,{" "}
           <span className="font-medium font-mono">Romir Patel</span>,{" "}
           <span className="font-medium font-mono">Ayudh Saxena</span>,{" "}
           <span className="font-medium font-mono">Vincent Cheng</span>, and{" "}
+          {/* To add in Simon. */}
+
           <span className="font-medium font-mono">Dylan Hillier</span>.
         </p>
       </section>
