@@ -49,7 +49,7 @@ const envSubsets: Record<string, string[] | null> = {
   Battleship: ["Battleship-v0"],
   LiarsDice: ["LiarsDice-v0"],
   Mastermind: ["Mastermind-v0"],
-  Negotiation: ["Negotiation-v0"],
+  'Simple Negotiation': ["SimpleNegotiation-v0"],
   Poker: ["Poker-v0"],
   SpellingBee: ["SpellingBee-v0"],
   SpiteAndMalice: ["SpiteAndMalice-v0"],
@@ -346,7 +346,7 @@ export function Leaderboard() {
       : null;
     
     // Return saved value or default
-    return savedSubset || "Chess";
+    return savedSubset || "Simple Negotiation";
   });
   const [currentPage, setCurrentPage] = useState(1)
   const [models, setModels] = useState<ModelData[]>([])
