@@ -346,7 +346,7 @@ export function Leaderboard() {
       : null;
     
     // Return saved value or default
-    return savedSubset || "Balanced Subset";
+    return savedSubset || "Chess";
   });
   const [currentPage, setCurrentPage] = useState(1)
   const [models, setModels] = useState<ModelData[]>([])
