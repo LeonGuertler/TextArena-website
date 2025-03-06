@@ -26,135 +26,132 @@ const CHART_COLORS = [
   "#f43f5e",
 ]
 
-const envSubsets: Record<string, string[] | null> = {
+const envSubsets: Record<string, number[] | null> = {
   // Grouped subsets
   'Balanced Subset': [
-    "Chess-v0",
-    "DontSayIt-v0",
-    "LiarsDice-v0",
-    "SimpleNegotiation-v0",
-    "Poker-v0",
-    "SpellingBee-v0",
-    "Stratego-v0",
-    "Tak-v0",
-    "TruthAndDeception-v0",
-    "UltimateTicTacToe-v0",
+    0, // chess-v0
+    3, // dontsayit-v0
+    6, // liarsdice-v0
+    8, // simple-negotiation-v0
+    9, // poker-v0
+    10, // spellingbee-v0
+    12, // stratego-v0
+    13, // tak-v0
+    14, // truthanddeception-v0
+    15, // ultimatetictactoe-v0
   ],
   
   // Individual games
-  Chess: ["Chess-v0"],
-  ConnectFour: ["ConnectFour-v0"],
-  Debate: ["Debate-v0"],
-  DontSayIt: ["DontSayIt-v0"],
-  Battleship: ["Battleship-v0"],
-  LiarsDice: ["LiarsDice-v0"],
-  Mastermind: ["Mastermind-v0"],
-  'Simple Negotiation': ["SimpleNegotiation-v0"],
-  Poker: ["Poker-v0"],
-  SpellingBee: ["SpellingBee-v0"],
-  SpiteAndMalice: ["SpiteAndMalice-v0"],
-  Stratego: ["Stratego-v0"],
-  Tak: ["Tak-v0"],
-  TruthAndDeception: ["TruthAndDeception-v0"],
-  UltimateTicTacToe: ["UltimateTicTacToe-v0"],
-  WordChains: ["WordChains-v0"],
+  Chess: [0],
+  ConnectFour: [1],
+  Debate: [2],
+  DontSayIt: [3],
+  Battleship: [5],
+  LiarsDice: [6],
+  Mastermind: [7],
+  'Simple Negotiation': [8],
+  Poker: [9],
+  SpellingBee: [10],
+  SpiteAndMalice: [11],
+  Stratego: [12],
+  Tak: [13],
+  TruthAndDeception: [14],
+  UltimateTicTacToe: [15],
+  WordChains: [16],
   
   // Skill-based subsets
   Adaptability: [
-    "IteratedPrisonersDilemma-v0",
-    "Negotiation-v0",
-    "SpiteAndMalice-v0",
-    "Stratego-v0",
-    "Debate-v0",
-    "DontSayIt-v0",
-    "SpellingBee-v0",
-    "LiarsDice-v0",
-    "WordChains-v0"
+    4, // iteratedprisonersdilemma-v0
+    8, // simple-negotiation-v0
+    11, // spiteandmalice-v0
+    12, // stratego-v0
+    2, // debate-v0
+    3, // dontsayit-v0
+    10, // spellingbee-v0
+    6, // liarsdice-v0
+    16 // wordchains-v0
   ],
   Bluffing: [
-    "Poker-v0",
-    "TruthAndDeception-v0",
-    "DontSayIt-v0",
-    "LiarsDice-v0"
+    9, // poker-v0
+    14, // truthanddeception-v0
+    3,  // dontsayit-v0
+    6  // liarsdice-v0
   ],
   "Logical Reasoning": [
-    "SpellingBee-v0",
-    "WordChains-v0",
-    "TruthAndDeception-v0",
-    "Battleship-v0",
-    "Tak-v0",
-    "SpiteAndMalice-v0",
-    "ConnectFour-v0",
-    "Mastermind-v0",
-    "UltimateTicTacToe-v0",
-    "Debate-v0",
-    "Chess-v0"
+    10, // spellingbee-v0
+    16, // wordchains-v0
+    14, // truthanddeception-v0
+    5, // battleship-v0
+    13, // tak-v0
+    11, // spiteandmalice-v0
+    1, // connectfour-v0
+    7, // mastermind-v0
+    15, // ultimatetictactoe-v0
+    2, // debate-v0
+    0 // chess-v0
   ],
   "Memory Recall": [
-    "Mastermind-v0",
-    "SpellingBee-v0",
-    "WordChains-v0",
-    "Chess-v0",
-    "LiarsDice-v0"
+    7, // mastermind-v0
+    10, // spellingbee-v0
+    16, // wordchains-v0
+    0, // chess-v0
+    6 // liarsdice-v0
   ],
   "Pattern Recognition": [
-    "ConnectFour-v0",
-    "UltimateTicTacToe-v0",
-    "Mastermind-v0",
-    "Tak-v0",
-    "SpellingBee-v0",
-    "Stratego-v0",
-    "Battleship-v0",
-    "Chess-v0",
-    "WordChains-v0"
+    1, // connectfour-v0
+    15, // ultimatetictactoe-v0
+    7, // mastermind-v0
+    13, // tak-v0
+    10, // spellingbee-v0
+    12, // stratego-v0
+    5, // battleship-v0
+    0, // chess-v0
+    16 // wordchains-v0
   ],
   Persuasion: [
-    "Poker-v0",
-    "Debate-v0",
-    "Negotiation-v0",
-    "DontSayIt-v0",
-    "TruthAndDeception-v0"
-  ],
-  "Spatial Reasoning": [
-    "UltimateTicTacToe-v0"
+    9, // poker-v0
+    2, // debate-v0
+    8, // simple-negotiation-v0
+    3, // dontsayit-v0
+    14 // truthanddeception-v0
   ],
   "Spatial Thinking": [
-    "Tak-v0",
-    "Chess-v0",
-    "Battleship-v0",
-    "ConnectFour-v0"
+    13, // tak-v0
+    0, // chess-v0
+    5, // battleship-v0
+    1 // connectfour-v0
   ],
   "Strategic Planning": [
-    "Negotiation-v0",
-    "Tak-v0",
-    "IteratedPrisonersDilemma-v0",
-    "Chess-v0",
-    "Poker-v0",
-    "Stratego-v0",
-    "UltimateTicTacToe-v0",
-    "SpiteAndMalice-v0",
-    "ConnectFour-v0",
-    "Mastermind-v0"
+    8, // simple-negotiation-v0
+    13, // tak-v0
+    4, // iteratedprisonersdilemma-v0
+    0, // chess-v0
+    9, // poker-v0
+    12, // stratego-v0
+    15, // ultimatetictactoe-v0
+    11, // spiteandmalice-v0
+    1, // connectfour-v0
+    7 // mastermind-v0
   ],
   "Theory of Mind": [
-    "TruthAndDeception-v0",
-    "SpiteAndMalice-v0",
-    "LiarsDice-v0",
-    "Negotiation-v0",
-    "Debate-v0",
-    "Poker-v0",
-    "IteratedPrisonersDilemma-v0",
-    "Stratego-v0",
-    "DontSayIt-v0"
+    14, // truthanddeception-v0
+    11, // spiteandmalice-v0
+    6, // liarsdice-v0
+    8, // simple-negotiation-v0
+    2, // debate-v0
+    9, // poker-v0
+    4, // iteratedprisonersdilemma-v0
+    12, // stratego-v0
+    3 // dontsayit-v0
   ],
   "Uncertainty Estimation": [
-    "Stratego-v0",
-    "LiarsDice-v0",
-    "Battleship-v0",
-    "Poker-v0",
-    "IteratedPrisonersDilemma-v0",
-    "SpiteAndMalice-v0",
-    "TruthAndDeception-v0"
+    12, // stratego-v0
+    6, // liarsdice-v0
+    5, // battleship-v0
+    9, // poker-v0
+    4, // iteratedprisonersdilemma-v0
+    11, // spiteandmalice-v0
+    14 // truthanddeception-v0
   ]
 };
 
@@ -387,16 +384,9 @@ export function Leaderboard() {
         let subsetEnvIds: number[] | null = null;
   
         if (selectedSubset !== "All") {
-          const subsetNames = envSubsets[selectedSubset] || [];
-          if (subsetNames.length > 0) {
-            const { data: envData, error: envError } = await supabase
-              .from("environments")
-              .select("id")
-              .in("env_name", subsetNames);
-  
-            if (envError) throw envError;
-            subsetEnvIds = (envData ?? []).map((env: any) => env.id);
-          }
+          subsetEnvIds = envSubsets[selectedSubset] || [];
+          // If subsetEnvIds is empty, treat it as no filter (optional, depending on your intent)
+          if (subsetEnvIds.length === 0) subsetEnvIds = null;
         }
   
         const { data: modelData, error: modelError } = await supabase.rpc(
@@ -437,16 +427,8 @@ export function Leaderboard() {
           
           let subsetEnvIds: number[] | null = null;
           if (selectedSubset !== "All") {
-            const subsetNames = envSubsets[selectedSubset] || [];
-            if (subsetNames.length > 0) {
-              const { data: envData, error: envError } = await supabase
-                .from("environments")
-                .select("id")
-                .in("env_name", subsetNames);
-    
-              if (envError) throw envError;
-              subsetEnvIds = (envData ?? []).map((env: any) => env.id);
-            }
+            subsetEnvIds = envSubsets[selectedSubset] || [];
+            if (subsetEnvIds.length === 0) subsetEnvIds = null; // Optional
           }
   
           const functionNameMap = {
