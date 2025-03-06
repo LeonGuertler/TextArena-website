@@ -32,7 +32,7 @@ const envSubsets: Record<string, string[] | null> = {
     "Chess-v0",
     "DontSayIt-v0",
     "LiarsDice-v0",
-    "Negotiation-v0",
+    "SimpleNegotiation-v0",
     "Poker-v0",
     "SpellingBee-v0",
     "Stratego-v0",
@@ -163,6 +163,7 @@ type TimeRange = '48H' | '7D' | '30D';
 interface ModelData {
   model_id: number
   model_name: string
+  is_standard: boolean
   elo: number
   games_played: number
   win_rate: number
@@ -348,6 +349,12 @@ export function Leaderboard() {
     // Return saved value or default
     return savedSubset || "Simple Negotiation";
   });
+  const [selectedStandardFilter, setSelectedStandardFilter] = useState<string>(() => {
+    const savedFilter = typeof window !== 'undefined' 
+      ? localStorage.getItem('selectedStandardFilter') 
+      : null;
+    return savedFilter || "All";
+  });
   const [currentPage, setCurrentPage] = useState(1)
   const [models, setModels] = useState<ModelData[]>([])
   const [eloHistory, setEloHistory] = useState<EloHistoryRow[]>([])
@@ -358,6 +365,17 @@ export function Leaderboard() {
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('7D');
 
   const itemsPerPage = 10
+
+  const filteredModels = useMemo(() => {
+    if (selectedStandardFilter === "All") return models;
+    return models.filter(model => 
+      selectedStandardFilter === "Standard" ? model.is_standard : !model.is_standard
+    );
+  }, [models, selectedStandardFilter]);
+  
+  const paginatedModels = useMemo(() => {
+    return filteredModels.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  }, [filteredModels, currentPage]);
 
   // First useEffect for fetching leaderboard data
   useEffect(() => {
@@ -487,11 +505,6 @@ export function Leaderboard() {
   }, [selectedTimeRange, currentPage, selectedSubset, models]); // Dependencies for Elo history
 
 
-  // Calculate paginated models.
-  const paginatedModels = useMemo(() => {
-    return models.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-  }, [models, currentPage])
-
   // Prepare chart data. This is now much simpler.
   const chartData = useMemo(() => {
     if (!eloHistory || eloHistory.length === 0) return []
@@ -540,40 +553,162 @@ export function Leaderboard() {
 
   const isMobile = useIsMobile()
 
-  const totalPages = Math.ceil(models.length / itemsPerPage)
+  const totalPages = Math.ceil(filteredModels.length / itemsPerPage);
 
   return (
     <Card className="bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))] max-w-[100%] sm:max-w-[95%] mx-auto overflow-hidden">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 pb-7">
         <CardTitle className="text-3xl font-bold text-navbarForeground font-mono">Leaderboard</CardTitle>
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-navbarForeground" />
-          <Select
-            onValueChange={(value) => {
-              setSelectedSubset(value);
-              setCurrentPage(1);
-              // Save the selection to localStorage
-              if (typeof window !== 'undefined') {
-                localStorage.setItem('selectedLeaderboardSubset', value);
-              }
-            }}
-            value={selectedSubset}
-          >
-            <SelectTrigger className="w-[210px] bg-background text-navbarForeground border-navbar font-mono overflow-hidden text-ellipsis whitespace-nowrap">
-              <SelectValue placeholder="Select subset" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(envSubsets).map((subset) => (
-                <SelectItem key={subset} value={subset} className="font-mono">
-                  {subset}
-                </SelectItem>
-              ))}
-              <SelectItem value="All" className="font-mono">
-                All
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        
+        {isMobile ? (
+          // Mobile layout - filters stacked vertically
+          <div className="flex flex-col w-full gap-3">
+            {/* Game Environment Filter */}
+            <div className="w-full">
+              <div className="flex items-center gap-1 mb-1">
+                <span className="text-navbarForeground text-sm font-mono font-medium">Game Environment</span>
+                <div className="relative group">
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  <div className="absolute left-0 top-0 translate-y-[-100%] hidden group-hover:block bg-background p-2 rounded-lg border border-navbar shadow-lg z-20 w-64">
+                    <p className="text-xs text-muted-foreground font-mono">
+                      Select specific games or skill-based groupings to view model performance.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <Select
+                onValueChange={(value) => {
+                  setSelectedSubset(value);
+                  setCurrentPage(1);
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('selectedLeaderboardSubset', value);
+                  }
+                }}
+                value={selectedSubset}
+              >
+                <SelectTrigger className="w-full bg-background text-navbarForeground border-navbar font-mono overflow-hidden text-ellipsis whitespace-nowrap focus:outline-none focus:ring-0 focus-visible:ring-0 data-[state=open]:border-navbar data-[state=open]:ring-0">
+                  <SelectValue placeholder="Select game environment" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(envSubsets).map((subset) => (
+                    <SelectItem key={subset} value={subset} className="font-mono">
+                      {subset}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="All" className="font-mono">All</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Model Type Filter */}
+            <div className="w-full">
+              <div className="flex items-center gap-1 mb-1">
+                <span className="text-navbarForeground text-sm font-mono font-medium">Model Type</span>
+                <div className="relative group">
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  <div className="absolute left-0 top-0 translate-y-[-100%] hidden group-hover:block bg-background p-2 rounded-lg border border-navbar shadow-lg z-20 w-64">
+                    <p className="text-xs text-muted-foreground font-mono">
+                      Filter models by their classification as standard or all.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <Select
+                onValueChange={(value) => {
+                  setSelectedStandardFilter(value);
+                  setCurrentPage(1);
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('selectedStandardFilter', value);
+                  }
+                }}
+                value={selectedStandardFilter}
+              >
+                <SelectTrigger className="w-full bg-background text-navbarForeground border-navbar font-mono overflow-hidden text-ellipsis whitespace-nowrap focus:outline-none focus:ring-0 focus-visible:ring-0 data-[state=open]:border-navbar data-[state=open]:ring-0">
+                  <SelectValue placeholder="Select model type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All" className="font-mono">All</SelectItem>
+                  <SelectItem value="Standard" className="font-mono">Standard</SelectItem>
+                  {/* <SelectItem value="Non-standard" className="font-mono">Non-standard</SelectItem> */}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ) : (
+          // Desktop layout - filters side-by-side
+          <div className="flex items-center gap-4">
+            {/* Game Environment Filter */}
+            <div>
+              <div className="flex items-center gap-1 mb-1">
+                <span className="text-navbarForeground text-sm font-mono font-medium">Game Environment</span>
+                <div className="relative group">
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  <div className="absolute right-0 top-full mt-1 hidden group-hover:block bg-background p-2 rounded-lg border border-navbar shadow-lg z-20 w-64">
+                    <p className="text-xs text-muted-foreground font-mono">
+                      Select specific games or skill-based groupings to view model performance.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <Select
+                onValueChange={(value) => {
+                  setSelectedSubset(value);
+                  setCurrentPage(1);
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('selectedLeaderboardSubset', value);
+                  }
+                }}
+                value={selectedSubset}
+              >
+                <SelectTrigger className="w-[210px] bg-background text-navbarForeground border-navbar font-mono overflow-hidden text-ellipsis whitespace-nowrap focus:outline-none focus:ring-0 focus-visible:ring-0 data-[state=open]:border-navbar data-[state=open]:ring-0">
+                  <SelectValue placeholder="Select game environment" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(envSubsets).map((subset) => (
+                    <SelectItem key={subset} value={subset} className="font-mono">
+                      {subset}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="All" className="font-mono">All</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Model Type Filter */}
+            <div>
+              <div className="flex items-center gap-1 mb-1">
+                <span className="text-navbarForeground text-sm font-mono font-medium">Model Type</span>
+                <div className="relative group">
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  <div className="absolute right-0 top-full mt-1 hidden group-hover:block bg-background p-2 rounded-lg border border-navbar shadow-lg z-20 w-64">
+                    <p className="text-xs text-muted-foreground font-mono">
+                      Filter models by their classification as standard or all.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <Select
+                onValueChange={(value) => {
+                  setSelectedStandardFilter(value);
+                  setCurrentPage(1);
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('selectedStandardFilter', value);
+                  }
+                }}
+                value={selectedStandardFilter}
+              >
+                <SelectTrigger className="w-[210px] bg-background text-navbarForeground border-navbar font-mono overflow-hidden text-ellipsis whitespace-nowrap focus:outline-none focus:ring-0 focus-visible:ring-0 data-[state=open]:border-navbar data-[state=open]:ring-0">
+                  <SelectValue placeholder="Select model type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All" className="font-mono">All</SelectItem>
+                  <SelectItem value="Standard" className="font-mono">Standard</SelectItem>
+                  {/* <SelectItem value="Non-standard" className="font-mono">Non-standard</SelectItem> */}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="p-2 sm:p-3">
         <div className="space-y-8">
