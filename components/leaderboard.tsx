@@ -26,137 +26,10 @@ const CHART_COLORS = [
   "#f43f5e",
 ]
 
-const envSubsets: Record<string, string[] | null> = {
-  // Grouped subsets
-  'Balanced Subset': [
-    "Chess-v0",
-    "DontSayIt-v0",
-    "LiarsDice-v0",
-    "SimpleNegotiation-v0",
-    "Poker-v0",
-    "SpellingBee-v0",
-    "Stratego-v0",
-    "Tak-v0",
-    "TruthAndDeception-v0",
-    "UltimateTicTacToe-v0",
-  ],
-  
-  // Individual games
-  Chess: ["Chess-v0"],
-  ConnectFour: ["ConnectFour-v0"],
-  Debate: ["Debate-v0"],
-  DontSayIt: ["DontSayIt-v0"],
-  Battleship: ["Battleship-v0"],
-  LiarsDice: ["LiarsDice-v0"],
-  Mastermind: ["Mastermind-v0"],
-  'Simple Negotiation': ["SimpleNegotiation-v0"],
-  Poker: ["Poker-v0"],
-  SpellingBee: ["SpellingBee-v0"],
-  SpiteAndMalice: ["SpiteAndMalice-v0"],
-  Stratego: ["Stratego-v0"],
-  Tak: ["Tak-v0"],
-  TruthAndDeception: ["TruthAndDeception-v0"],
-  UltimateTicTacToe: ["UltimateTicTacToe-v0"],
-  WordChains: ["WordChains-v0"],
-  
-  // Skill-based subsets
-  Adaptability: [
-    "IteratedPrisonersDilemma-v0",
-    "Negotiation-v0",
-    "SpiteAndMalice-v0",
-    "Stratego-v0",
-    "Debate-v0",
-    "DontSayIt-v0",
-    "SpellingBee-v0",
-    "LiarsDice-v0",
-    "WordChains-v0"
-  ],
-  Bluffing: [
-    "Poker-v0",
-    "TruthAndDeception-v0",
-    "DontSayIt-v0",
-    "LiarsDice-v0"
-  ],
-  "Logical Reasoning": [
-    "SpellingBee-v0",
-    "WordChains-v0",
-    "TruthAndDeception-v0",
-    "Battleship-v0",
-    "Tak-v0",
-    "SpiteAndMalice-v0",
-    "ConnectFour-v0",
-    "Mastermind-v0",
-    "UltimateTicTacToe-v0",
-    "Debate-v0",
-    "Chess-v0"
-  ],
-  "Memory Recall": [
-    "Mastermind-v0",
-    "SpellingBee-v0",
-    "WordChains-v0",
-    "Chess-v0",
-    "LiarsDice-v0"
-  ],
-  "Pattern Recognition": [
-    "ConnectFour-v0",
-    "UltimateTicTacToe-v0",
-    "Mastermind-v0",
-    "Tak-v0",
-    "SpellingBee-v0",
-    "Stratego-v0",
-    "Battleship-v0",
-    "Chess-v0",
-    "WordChains-v0"
-  ],
-  Persuasion: [
-    "Poker-v0",
-    "Debate-v0",
-    "Negotiation-v0",
-    "DontSayIt-v0",
-    "TruthAndDeception-v0"
-  ],
-  "Spatial Reasoning": [
-    "UltimateTicTacToe-v0"
-  ],
-  "Spatial Thinking": [
-    "Tak-v0",
-    "Chess-v0",
-    "Battleship-v0",
-    "ConnectFour-v0"
-  ],
-  "Strategic Planning": [
-    "Negotiation-v0",
-    "Tak-v0",
-    "IteratedPrisonersDilemma-v0",
-    "Chess-v0",
-    "Poker-v0",
-    "Stratego-v0",
-    "UltimateTicTacToe-v0",
-    "SpiteAndMalice-v0",
-    "ConnectFour-v0",
-    "Mastermind-v0"
-  ],
-  "Theory of Mind": [
-    "TruthAndDeception-v0",
-    "SpiteAndMalice-v0",
-    "LiarsDice-v0",
-    "Negotiation-v0",
-    "Debate-v0",
-    "Poker-v0",
-    "IteratedPrisonersDilemma-v0",
-    "Stratego-v0",
-    "DontSayIt-v0"
-  ],
-  "Uncertainty Estimation": [
-    "Stratego-v0",
-    "LiarsDice-v0",
-    "Battleship-v0",
-    "Poker-v0",
-    "IteratedPrisonersDilemma-v0",
-    "SpiteAndMalice-v0",
-    "TruthAndDeception-v0"
-  ]
-};
+interface SubsetData {
+  subset_type: string;
+  environment_ids: string[];
+}
 
 type TimeRange = '48H' | '7D' | '30D';
 
@@ -339,7 +212,7 @@ function EloHistoryChart({
 }
 
 export function Leaderboard() {
-  // const [selectedSubset, setSelectedSubset] = useState<string>("Balanced Subset")
+  const [envSubsets, setEnvSubsets] = useState<Record<string, number[] | null>>({});
   const [selectedSubset, setSelectedSubset] = useState<string>(() => {
     // Try to get the saved value from localStorage
     const savedSubset = typeof window !== 'undefined' 
@@ -353,7 +226,7 @@ export function Leaderboard() {
     const savedFilter = typeof window !== 'undefined' 
       ? localStorage.getItem('selectedStandardFilter') 
       : null;
-    return savedFilter || "All";
+    return savedFilter || "Standard";
   });
   const [currentPage, setCurrentPage] = useState(1)
   const [models, setModels] = useState<ModelData[]>([])
@@ -363,6 +236,28 @@ export function Leaderboard() {
   const [error, setError] = useState<string | null>(null)
   const [hoveredModel, setHoveredModel] = useState<string | null>(null)
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('7D');
+
+  useEffect(() => {
+    async function fetchEnvSubsets() {
+      try {
+        const { data, error } = await supabase.rpc("get_env_subsets");
+  
+        if (error) throw error;
+  
+        const subsets: Record<string, number[] | null> = {};
+        (data as SubsetData[]).forEach((item) => {
+          subsets[item.subset_type] = item.environment_ids.map((id) => parseInt(id, 10));
+        });
+        subsets["All"] = null; // Add "All" option
+        setEnvSubsets(subsets);
+      } catch (err: any) {
+        console.error("Error fetching env subsets:", err.message);
+        // Optionally set an error state if you want to display it
+      }
+    }
+  
+    fetchEnvSubsets();
+  }, []); // Empty dependency array to run once on mount
 
   const itemsPerPage = 10
 
@@ -379,29 +274,16 @@ export function Leaderboard() {
 
   // First useEffect for fetching leaderboard data
   useEffect(() => {
+    if (Object.keys(envSubsets).length === 0) return; // Wait for envSubsets to load
+  
     async function fetchLeaderboardData() {
       setIsLoading(true);
       setError(null);
   
       try {
-        let subsetEnvIds: number[] | null = null;
-  
-        if (selectedSubset !== "All") {
-          const subsetNames = envSubsets[selectedSubset] || [];
-          if (subsetNames.length > 0) {
-            const { data: envData, error: envError } = await supabase
-              .from("environments")
-              .select("id")
-              .in("env_name", subsetNames);
-  
-            if (envError) throw envError;
-            subsetEnvIds = (envData ?? []).map((env: any) => env.id);
-          }
-        }
-  
         const { data: modelData, error: modelError } = await supabase.rpc(
-          "get_leaderboard_from_mv",
-          { selected_env_ids: subsetEnvIds }
+          "get_leaderboard_from_mv_new",
+          { skill_subset: selectedSubset }
         );
         if (modelError) throw modelError;
         setModels(modelData || []);
@@ -414,13 +296,15 @@ export function Leaderboard() {
     }
   
     fetchLeaderboardData();
-  }, [selectedSubset]); // Only depends on selectedSubset
+  }, [selectedSubset, envSubsets]);
 
   // Second useEffect for fetching Elo history data
   useEffect(() => {
+    if (Object.keys(envSubsets).length === 0) return; // Wait for envSubsets
+  
     async function fetchEloHistory() {
       setIsLoadingHistory(true);
-      
+  
       try {
         const groupBasedSubsets = new Set([
           "Balanced Subset", "All", "Spatial Reasoning", "Spatial Thinking",
@@ -428,40 +312,23 @@ export function Leaderboard() {
           "Pattern Recognition", "Persuasion", "Strategic Planning",
           "Theory of Mind", "Uncertainty Estimation"
         ]);
-
+  
         const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginatedModelsLocal = models.slice(startIndex, startIndex + itemsPerPage);
+        const paginatedModelsLocal = filteredModels.slice(startIndex, startIndex + itemsPerPage);
   
         if (paginatedModelsLocal.length > 0) {
           const selectedModelIds = paginatedModelsLocal.map((m) => m.model_id);
-          
           let subsetEnvIds: number[] | null = null;
+  
           if (selectedSubset !== "All") {
-            const subsetNames = envSubsets[selectedSubset] || [];
-            if (subsetNames.length > 0) {
-              const { data: envData, error: envError } = await supabase
-                .from("environments")
-                .select("id")
-                .in("env_name", subsetNames);
-    
-              if (envError) throw envError;
-              subsetEnvIds = (envData ?? []).map((env: any) => env.id);
-            }
+            subsetEnvIds = envSubsets[selectedSubset] || [];
+            if (subsetEnvIds.length === 0) subsetEnvIds = null;
           }
   
           const functionNameMap = {
-            '48H': {
-              groups: 'get_elo_history_last48hrs_by_groups',
-              env: 'get_elo_history_last48hrs_by_env'
-            },
-            '7D': {
-              groups: 'get_elo_history_last7days_by_groups',
-              env: 'get_elo_history_last7days_by_env'
-            },
-            '30D': {
-              groups: 'get_elo_history_last30days_by_groups',
-              env: 'get_elo_history_last30days_by_env'
-            }
+            '48H': { groups: 'get_elo_history_last48hrs_by_groups', env: 'get_elo_history_last48hrs_by_env' },
+            '7D': { groups: 'get_elo_history_last7days_by_groups', env: 'get_elo_history_last7days_by_env' },
+            '30D': { groups: 'get_elo_history_last30days_by_groups', env: 'get_elo_history_last30days_by_env' }
           };
   
           let historyData, historyError;
@@ -469,20 +336,14 @@ export function Leaderboard() {
           if (groupBasedSubsets.has(selectedSubset)) {
             const { data, error } = await supabase.rpc(
               functionNameMap[selectedTimeRange].groups,
-              {
-                selected_model_ids: selectedModelIds,
-                selected_subset: selectedSubset,
-              }
+              { selected_model_ids: selectedModelIds, selected_subset: selectedSubset }
             );
             historyData = data;
             historyError = error;
           } else {
             const { data, error } = await supabase.rpc(
               functionNameMap[selectedTimeRange].env,
-              {
-                selected_env_ids: subsetEnvIds,
-                selected_model_ids: selectedModelIds,
-              }
+              { selected_env_ids: subsetEnvIds, selected_model_ids: selectedModelIds }
             );
             historyData = data;
             historyError = error;
@@ -495,14 +356,13 @@ export function Leaderboard() {
         }
       } catch (err: any) {
         console.error("Error fetching Elo history:", err);
-        // We don't set the main error state here since it's just for the history
       } finally {
         setIsLoadingHistory(false);
       }
     }
   
     fetchEloHistory();
-  }, [selectedTimeRange, currentPage, selectedSubset, models]); // Dependencies for Elo history
+  }, [selectedTimeRange, currentPage, selectedSubset, filteredModels, envSubsets]); // Add envSubsets
 
 
   // Prepare chart data. This is now much simpler.
@@ -595,7 +455,7 @@ export function Leaderboard() {
                       {subset}
                     </SelectItem>
                   ))}
-                  <SelectItem value="All" className="font-mono">All</SelectItem>
+                  {/* <SelectItem value="All" className="font-mono">All</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>
@@ -660,7 +520,7 @@ export function Leaderboard() {
                 }}
                 value={selectedSubset}
               >
-                <SelectTrigger className="w-[210px] bg-background text-navbarForeground border-navbar font-mono overflow-hidden text-ellipsis whitespace-nowrap focus:outline-none focus:ring-0 focus-visible:ring-0 data-[state=open]:border-navbar data-[state=open]:ring-0">
+                <SelectTrigger className="w-[320px] bg-background text-navbarForeground border-navbar font-mono overflow-hidden text-ellipsis whitespace-nowrap focus:outline-none focus:ring-0 focus-visible:ring-0 data-[state=open]:border-navbar data-[state=open]:ring-0">
                   <SelectValue placeholder="Select game environment" />
                 </SelectTrigger>
                 <SelectContent>
@@ -669,7 +529,7 @@ export function Leaderboard() {
                       {subset}
                     </SelectItem>
                   ))}
-                  <SelectItem value="All" className="font-mono">All</SelectItem>
+                  {/* <SelectItem value="All" className="font-mono">All</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>
