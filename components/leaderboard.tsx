@@ -26,134 +26,10 @@ const CHART_COLORS = [
   "#f43f5e",
 ]
 
-const envSubsets: Record<string, number[] | null> = {
-  // Grouped subsets
-  'Balanced Subset': [
-    0, // chess-v0
-    3, // dontsayit-v0
-    6, // liarsdice-v0
-    8, // simple-negotiation-v0
-    9, // poker-v0
-    10, // spellingbee-v0
-    12, // stratego-v0
-    13, // tak-v0
-    14, // truthanddeception-v0
-    15, // ultimatetictactoe-v0
-  ],
-  
-  // Individual games
-  Chess: [0],
-  ConnectFour: [1],
-  Debate: [2],
-  DontSayIt: [3],
-  Battleship: [5],
-  LiarsDice: [6],
-  Mastermind: [7],
-  'Simple Negotiation': [8],
-  Poker: [9],
-  SpellingBee: [10],
-  SpiteAndMalice: [11],
-  Stratego: [12],
-  Tak: [13],
-  TruthAndDeception: [14],
-  UltimateTicTacToe: [15],
-  WordChains: [16],
-  
-  // Skill-based subsets
-  Adaptability: [
-    4, // iteratedprisonersdilemma-v0
-    8, // simple-negotiation-v0
-    11, // spiteandmalice-v0
-    12, // stratego-v0
-    2, // debate-v0
-    3, // dontsayit-v0
-    10, // spellingbee-v0
-    6, // liarsdice-v0
-    16 // wordchains-v0
-  ],
-  Bluffing: [
-    9, // poker-v0
-    14, // truthanddeception-v0
-    3,  // dontsayit-v0
-    6  // liarsdice-v0
-  ],
-  "Logical Reasoning": [
-    10, // spellingbee-v0
-    16, // wordchains-v0
-    14, // truthanddeception-v0
-    5, // battleship-v0
-    13, // tak-v0
-    11, // spiteandmalice-v0
-    1, // connectfour-v0
-    7, // mastermind-v0
-    15, // ultimatetictactoe-v0
-    2, // debate-v0
-    0 // chess-v0
-  ],
-  "Memory Recall": [
-    7, // mastermind-v0
-    10, // spellingbee-v0
-    16, // wordchains-v0
-    0, // chess-v0
-    6 // liarsdice-v0
-  ],
-  "Pattern Recognition": [
-    1, // connectfour-v0
-    15, // ultimatetictactoe-v0
-    7, // mastermind-v0
-    13, // tak-v0
-    10, // spellingbee-v0
-    12, // stratego-v0
-    5, // battleship-v0
-    0, // chess-v0
-    16 // wordchains-v0
-  ],
-  Persuasion: [
-    9, // poker-v0
-    2, // debate-v0
-    8, // simple-negotiation-v0
-    3, // dontsayit-v0
-    14 // truthanddeception-v0
-  ],
-  "Spatial Thinking": [
-    13, // tak-v0
-    0, // chess-v0
-    5, // battleship-v0
-    1 // connectfour-v0
-  ],
-  "Strategic Planning": [
-    8, // simple-negotiation-v0
-    13, // tak-v0
-    4, // iteratedprisonersdilemma-v0
-    0, // chess-v0
-    9, // poker-v0
-    12, // stratego-v0
-    15, // ultimatetictactoe-v0
-    11, // spiteandmalice-v0
-    1, // connectfour-v0
-    7 // mastermind-v0
-  ],
-  "Theory of Mind": [
-    14, // truthanddeception-v0
-    11, // spiteandmalice-v0
-    6, // liarsdice-v0
-    8, // simple-negotiation-v0
-    2, // debate-v0
-    9, // poker-v0
-    4, // iteratedprisonersdilemma-v0
-    12, // stratego-v0
-    3 // dontsayit-v0
-  ],
-  "Uncertainty Estimation": [
-    12, // stratego-v0
-    6, // liarsdice-v0
-    5, // battleship-v0
-    9, // poker-v0
-    4, // iteratedprisonersdilemma-v0
-    11, // spiteandmalice-v0
-    14 // truthanddeception-v0
-  ]
-};
+interface SubsetData {
+  subset_type: string;
+  environment_ids: string[];
+}
 
 type TimeRange = '48H' | '7D' | '30D';
 
@@ -336,7 +212,7 @@ function EloHistoryChart({
 }
 
 export function Leaderboard() {
-  // const [selectedSubset, setSelectedSubset] = useState<string>("Balanced Subset")
+  const [envSubsets, setEnvSubsets] = useState<Record<string, number[] | null>>({});
   const [selectedSubset, setSelectedSubset] = useState<string>(() => {
     // Try to get the saved value from localStorage
     const savedSubset = typeof window !== 'undefined' 
@@ -350,7 +226,7 @@ export function Leaderboard() {
     const savedFilter = typeof window !== 'undefined' 
       ? localStorage.getItem('selectedStandardFilter') 
       : null;
-    return savedFilter || "All";
+    return savedFilter || "Standard";
   });
   const [currentPage, setCurrentPage] = useState(1)
   const [models, setModels] = useState<ModelData[]>([])
@@ -360,6 +236,28 @@ export function Leaderboard() {
   const [error, setError] = useState<string | null>(null)
   const [hoveredModel, setHoveredModel] = useState<string | null>(null)
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('7D');
+
+  useEffect(() => {
+    async function fetchEnvSubsets() {
+      try {
+        const { data, error } = await supabase.rpc("get_env_subsets");
+  
+        if (error) throw error;
+  
+        const subsets: Record<string, number[] | null> = {};
+        (data as SubsetData[]).forEach((item) => {
+          subsets[item.subset_type] = item.environment_ids.map((id) => parseInt(id, 10));
+        });
+        subsets["All"] = null; // Add "All" option
+        setEnvSubsets(subsets);
+      } catch (err: any) {
+        console.error("Error fetching env subsets:", err.message);
+        // Optionally set an error state if you want to display it
+      }
+    }
+  
+    fetchEnvSubsets();
+  }, []); // Empty dependency array to run once on mount
 
   const itemsPerPage = 10
 
@@ -376,22 +274,16 @@ export function Leaderboard() {
 
   // First useEffect for fetching leaderboard data
   useEffect(() => {
+    if (Object.keys(envSubsets).length === 0) return; // Wait for envSubsets to load
+  
     async function fetchLeaderboardData() {
       setIsLoading(true);
       setError(null);
   
       try {
-        let subsetEnvIds: number[] | null = null;
-  
-        if (selectedSubset !== "All") {
-          subsetEnvIds = envSubsets[selectedSubset] || [];
-          // If subsetEnvIds is empty, treat it as no filter (optional, depending on your intent)
-          if (subsetEnvIds.length === 0) subsetEnvIds = null;
-        }
-  
         const { data: modelData, error: modelError } = await supabase.rpc(
-          "get_leaderboard_from_mv",
-          { selected_env_ids: subsetEnvIds }
+          "get_leaderboard_from_mv_new",
+          { skill_subset: selectedSubset }
         );
         if (modelError) throw modelError;
         setModels(modelData || []);
@@ -404,13 +296,15 @@ export function Leaderboard() {
     }
   
     fetchLeaderboardData();
-  }, [selectedSubset]); // Only depends on selectedSubset
+  }, [selectedSubset, envSubsets]);
 
   // Second useEffect for fetching Elo history data
   useEffect(() => {
+    if (Object.keys(envSubsets).length === 0) return; // Wait for envSubsets
+  
     async function fetchEloHistory() {
       setIsLoadingHistory(true);
-      
+  
       try {
         const groupBasedSubsets = new Set([
           "Balanced Subset", "All", "Spatial Reasoning", "Spatial Thinking",
@@ -418,32 +312,23 @@ export function Leaderboard() {
           "Pattern Recognition", "Persuasion", "Strategic Planning",
           "Theory of Mind", "Uncertainty Estimation"
         ]);
-
+  
         const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginatedModelsLocal = models.slice(startIndex, startIndex + itemsPerPage);
+        const paginatedModelsLocal = filteredModels.slice(startIndex, startIndex + itemsPerPage);
   
         if (paginatedModelsLocal.length > 0) {
           const selectedModelIds = paginatedModelsLocal.map((m) => m.model_id);
-          
           let subsetEnvIds: number[] | null = null;
+  
           if (selectedSubset !== "All") {
             subsetEnvIds = envSubsets[selectedSubset] || [];
-            if (subsetEnvIds.length === 0) subsetEnvIds = null; // Optional
+            if (subsetEnvIds.length === 0) subsetEnvIds = null;
           }
   
           const functionNameMap = {
-            '48H': {
-              groups: 'get_elo_history_last48hrs_by_groups',
-              env: 'get_elo_history_last48hrs_by_env'
-            },
-            '7D': {
-              groups: 'get_elo_history_last7days_by_groups',
-              env: 'get_elo_history_last7days_by_env'
-            },
-            '30D': {
-              groups: 'get_elo_history_last30days_by_groups',
-              env: 'get_elo_history_last30days_by_env'
-            }
+            '48H': { groups: 'get_elo_history_last48hrs_by_groups', env: 'get_elo_history_last48hrs_by_env' },
+            '7D': { groups: 'get_elo_history_last7days_by_groups', env: 'get_elo_history_last7days_by_env' },
+            '30D': { groups: 'get_elo_history_last30days_by_groups', env: 'get_elo_history_last30days_by_env' }
           };
   
           let historyData, historyError;
@@ -451,20 +336,14 @@ export function Leaderboard() {
           if (groupBasedSubsets.has(selectedSubset)) {
             const { data, error } = await supabase.rpc(
               functionNameMap[selectedTimeRange].groups,
-              {
-                selected_model_ids: selectedModelIds,
-                selected_subset: selectedSubset,
-              }
+              { selected_model_ids: selectedModelIds, selected_subset: selectedSubset }
             );
             historyData = data;
             historyError = error;
           } else {
             const { data, error } = await supabase.rpc(
               functionNameMap[selectedTimeRange].env,
-              {
-                selected_env_ids: subsetEnvIds,
-                selected_model_ids: selectedModelIds,
-              }
+              { selected_env_ids: subsetEnvIds, selected_model_ids: selectedModelIds }
             );
             historyData = data;
             historyError = error;
@@ -477,14 +356,13 @@ export function Leaderboard() {
         }
       } catch (err: any) {
         console.error("Error fetching Elo history:", err);
-        // We don't set the main error state here since it's just for the history
       } finally {
         setIsLoadingHistory(false);
       }
     }
   
     fetchEloHistory();
-  }, [selectedTimeRange, currentPage, selectedSubset, models]); // Dependencies for Elo history
+  }, [selectedTimeRange, currentPage, selectedSubset, filteredModels, envSubsets]); // Add envSubsets
 
 
   // Prepare chart data. This is now much simpler.
@@ -577,7 +455,7 @@ export function Leaderboard() {
                       {subset}
                     </SelectItem>
                   ))}
-                  <SelectItem value="All" className="font-mono">All</SelectItem>
+                  {/* <SelectItem value="All" className="font-mono">All</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>
@@ -642,7 +520,7 @@ export function Leaderboard() {
                 }}
                 value={selectedSubset}
               >
-                <SelectTrigger className="w-[210px] bg-background text-navbarForeground border-navbar font-mono overflow-hidden text-ellipsis whitespace-nowrap focus:outline-none focus:ring-0 focus-visible:ring-0 data-[state=open]:border-navbar data-[state=open]:ring-0">
+                <SelectTrigger className="w-[320px] bg-background text-navbarForeground border-navbar font-mono overflow-hidden text-ellipsis whitespace-nowrap focus:outline-none focus:ring-0 focus-visible:ring-0 data-[state=open]:border-navbar data-[state=open]:ring-0">
                   <SelectValue placeholder="Select game environment" />
                 </SelectTrigger>
                 <SelectContent>
@@ -651,7 +529,7 @@ export function Leaderboard() {
                       {subset}
                     </SelectItem>
                   ))}
-                  <SelectItem value="All" className="font-mono">All</SelectItem>
+                  {/* <SelectItem value="All" className="font-mono">All</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>
