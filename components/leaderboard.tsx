@@ -220,7 +220,7 @@ export function Leaderboard() {
       : null;
     
     // Return saved value or default
-    return savedSubset || "Simple Negotiation";
+    return savedSubset || "Balanced Subset";
   });
   const [selectedStandardFilter, setSelectedStandardFilter] = useState<string>(() => {
     const savedFilter = typeof window !== 'undefined' 
