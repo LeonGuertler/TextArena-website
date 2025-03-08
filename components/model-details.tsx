@@ -1031,7 +1031,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         </div>
       </div>
 
-      <p className={`text-mutedForeground font-mono mb-8 ${isMobile ? "text-xs" : "text-lg"}`}>{model.description}</p>
+      {/* <p className={`text-mutedForeground font-mono mb-8 ${isMobile ? "text-xs" : "text-lg"}`}>{model.description}</p> */}
 
       {/* Top Row: Overall Statistics & Elo History */}
       <div className={`${isMobile ? "grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" : "flex gap-6 mb-8 items-stretch"}`}>
