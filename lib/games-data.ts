@@ -43,5 +43,7 @@ export const allGames = [
   { name: "Risk", num_players: "2 to 6 players" },
   { name: "SettlersOfCatan", num_players: "3 to 4 players" },
   { name: "TerraformingMars", num_players: "1 to 5 players" },
-  { name: "Werewolf", num_players: "6 or more players" }
+  { name: "Werewolf", num_players: "6 or more players" },
+  { name: "Nim", num_players: "2 players" },
+  { name: "Snake", num_players: "2 players" },
 ]
