@@ -189,7 +189,7 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
 --------------------
 🎮 Games: ${stats.total_games}
 ✅ Win Rate: ${safeToFixed(stats.win_rate)}%
-📈 Net Elo: ${
+📈 Net Trueskill: ${
       stats.net_elo_change !== null && stats.net_elo_change !== undefined
         ? `${stats.net_elo_change >= 0 ? "+" : ""}${safeToFixed(stats.net_elo_change)}`
         : "N/A"
@@ -282,7 +282,7 @@ ${challengingEnvsText}`;
               </div>
               <div className="flex justify-between items-center">
                 <span className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
-                  Net Elo Change
+                  Net Trueskill Change
                 </span>
                 <span
                   className={`${
@@ -330,7 +330,7 @@ ${challengingEnvsText}`;
                             (env.net_elo ?? 0) >= 0 ? "text-green-500" : "text-red-500"
                           }
                         >
-                          Net Elo: {(env.net_elo ?? 0) >= 0 ? "+" : ""}
+                          Net Trueskill: {(env.net_elo ?? 0) >= 0 ? "+" : ""}
                           {safeToFixed(env.net_elo ?? 0)}
                         </span>
                         <span>P: {safeToFixed(env.percentile)}%</span>
@@ -355,7 +355,7 @@ ${challengingEnvsText}`;
                             (env.net_elo ?? 0) >= 0 ? "text-green-500" : "text-red-500"
                           }
                         >
-                          Net Elo: {(env.net_elo ?? 0) >= 0 ? "+" : ""}
+                          Net Trueskill: {(env.net_elo ?? 0) >= 0 ? "+" : ""}
                           {safeToFixed(env.net_elo ?? 0)}
                         </span>
                         <span>P: {safeToFixed(env.percentile)}%</span>

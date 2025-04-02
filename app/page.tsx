@@ -26,7 +26,7 @@ type EnvOption = {
   env_name: string
   description: string
   active: boolean
-  num_players: number // Add this field
+  num_players: number
 }
 
 type Message = {
@@ -45,9 +45,12 @@ type GameResult = {
 
 type MatchmakingStatus = {
   avg_queue_time: number
-  num_active_players: number
+  num_players_in_queue: number
   allow_connection: boolean
 }
+
+// Server URLs - Update these with your actual server addresses
+const MATCHMAKING_WS_URI = "ws://54.179.78.11:8000/ws"
 
 // Sound effect paths
 const SOUND_MATCHFOUND_COMMON = "/sounds/match_found_common.wav"
@@ -80,11 +83,17 @@ export default function PlayPage() {
   const [showGameSelection, setShowGameSelection] = useState(false)
   const [isInQueue, setIsInQueue] = useState(false)
   const [isInMatch, setIsInMatch] = useState(false)
+  const [gameConnected, setGameConnected] = useState(false)
 
-  // WebSocket
+  // WebSocket - separate refs for matchmaking and game connections
   const { token, isInitialized } = useAuth()
-  const wsRef = useRef<WebSocket | null>(null)
+  const matchmakingWsRef = useRef<WebSocket | null>(null)
+  const gameWsRef = useRef<WebSocket | null>(null)
   const [wsStatus, setWsStatus] = useState("Disconnected")
+  
+  // Game server info from matchmaking
+  const [gameServerIP, setGameServerIP] = useState<string | null>(null)
+  const [environmentId, setEnvironmentId] = useState<number | null>(null)
 
   // Player & turn
   const [playerId, setPlayerId] = useState<number | null>(null)
@@ -140,6 +149,19 @@ export default function PlayPage() {
 
   // Return to queue handler
   const handleReturnToQueue = () => {
+    // Close any existing WebSocket connections
+    if (gameWsRef.current) {
+      gameWsRef.current.close()
+      gameWsRef.current = null
+    }
+    
+    if (matchmakingWsRef.current) {
+      matchmakingWsRef.current.close()
+      matchmakingWsRef.current = null
+    }
+    
+    // Reset all game state
+    setGameConnected(false)  // Add this line
     setIsInMatch(false)
     setGameResult(null)
     setIsGameResultMinimized(false)
@@ -153,45 +175,16 @@ export default function PlayPage() {
     setPlayerId(null)
     playerIdRef.current = null
     setShowGameSelection(true)
-    setConnectionLost(false) // Reset connection lost state
+    setConnectionLost(false)
+    setGameServerIP(null)
+    setEnvironmentId(null)
 
-    // Reconnect WebSocket if needed
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      const newWs = new WebSocket(`wss://api.textarena.ai/ws?user_id=${token}`)
-      wsRef.current = newWs
-
-      newWs.onopen = () => {
-        console.log("WebSocket reconnected")
-        setWsStatus("Connected")
-      }
-
-      newWs.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data)
-          handleServerMessage(msg)
-        } catch (err) {
-          console.warn("Non-JSON message:", event.data)
-        }
-      }
-    }
+    // Reconnect to matchmaking if needed
+    connectToMatchmaking()
   }
 
   // Detect mobile devices
   const isMobile = useIsMobile();
-
-  // Get status dot color based on websocket status
-  // const getStatusColor = (status) => {
-  //   switch (status.toLowerCase()) {
-  //     case 'connected':
-  //       return 'bg-green-500';
-  //     case 'disconnected':
-  //       return 'bg-gray-500';
-  //     case 'error':
-  //       return 'bg-red-500';
-  //     default:
-  //       return 'bg-white-500';
-  //   }
-  // }
 
   // Get icon color based on connection state
   const getIconColor = (status) => {
@@ -204,6 +197,108 @@ export default function PlayPage() {
         return 'text-yellow-500';
       default:
         return 'text-gray-500';
+    }
+  }
+
+  // Connect to the matchmaking server
+  const connectToMatchmaking = () => {
+    if (!isInitialized || !token) return
+    
+    // Close any existing connections
+    if (matchmakingWsRef.current) {
+      matchmakingWsRef.current.close()
+    }
+    
+    // Set up new connection to matchmaking server
+    const matchmakingWs = new WebSocket(`${MATCHMAKING_WS_URI}?user_id=${token}`)
+    matchmakingWsRef.current = matchmakingWs
+    
+    matchmakingWs.onopen = () => {
+      console.log("Connected to matchmaking server")
+      setWsStatus("Connected")
+    }
+    
+    matchmakingWs.onmessage = (event) => {
+      console.log("Received from matchmaking:", event.data)
+      try {
+        const msg = JSON.parse(event.data)
+        handleMatchmakingMessage(msg)
+      } catch (err) {
+        console.warn("Non-JSON message from matchmaking:", event.data)
+      }
+    }
+    
+    matchmakingWs.onerror = (error) => {
+      console.error("Matchmaking WebSocket error:", error)
+      setWsStatus("Error")
+    }
+    
+    matchmakingWs.onclose = () => {
+      console.log("Matchmaking WebSocket closed")
+      // Only set disconnected if we're not transitioning to a game server
+      if (!gameServerIP) {
+        setWsStatus("Disconnected")
+      }
+    }
+  }
+  
+  // Connect to a game server after getting server info from matchmaking
+  const connectToGameServer = () => {
+    if (!gameServerIP || !token) {
+      console.error("No game server IP or token available")
+      return
+    }
+    
+    // Close any existing game connection
+    if (gameWsRef.current) {
+      gameWsRef.current.close()
+    }
+    
+    // Set up new connection to game server
+    const gameWs = new WebSocket(`ws://${gameServerIP}:8000/ws?token=${token}`)
+    gameWsRef.current = gameWs
+    
+    gameWs.onopen = () => {
+      console.log("Connected to game server:", gameServerIP)
+      setWsStatus("Connected")
+      
+      // Start sending periodic pings to keep connection alive
+      const pingInterval = setInterval(() => {
+        if (gameWs.readyState === WebSocket.OPEN) {
+          gameWs.send(JSON.stringify({ command: "ping" }))
+        } else {
+          clearInterval(pingInterval)
+        }
+      }, 25000)
+    }
+    
+    gameWs.onmessage = (event) => {
+      console.log("Received from game server:", event.data)
+      try {
+        const msg = JSON.parse(event.data)
+        handleGameServerMessage(msg)
+      } catch (err) {
+        console.warn("Non-JSON message from game server:", event.data)
+      }
+    }
+    
+    gameWs.onerror = (error) => {
+      console.error("Game server WebSocket error:", error)
+      setWsStatus("Error")
+    }
+    
+    gameWs.onclose = () => {
+      console.log("Game server WebSocket closed")
+      setWsStatus("Disconnected")
+      stopTurnTimer()
+      stopOpponentTimer()
+      setGameConnected(false) // Reset gameConnected
+      
+      // Only show connection lost if we're still in an active match
+      // and don't have a game result (which would indicate proper game end)
+      if (isInMatch && !gameResult) {
+        setConnectionLost(true)
+      }
     }
   }
 
@@ -228,7 +323,8 @@ export default function PlayPage() {
   // Check matchmaking status periodically
   const checkMatchmakingStatus = async () => {
     try {
-      const response = await fetch('https://api.textarena.ai/check_matchmaking', {
+      // Updated to use the new matchmaking server
+      const response = await fetch('http://54.179.78.11:8000/check_matchmaking', {
         method: 'GET',
         credentials: 'include',
       })
@@ -241,7 +337,7 @@ export default function PlayPage() {
 
       setServerStats({
         avgQueueTime: formatQueueTime(data.avg_queue_time),
-        activePlayers: data.num_active_players,
+        activePlayers: data.num_players_in_queue,
         allowConnection: data.allow_connection
       })
     } catch (error) {
@@ -260,45 +356,28 @@ export default function PlayPage() {
     }
   }, [])
 
-  // WebSocket connection
+  // Initial connection to matchmaking
   useEffect(() => {
     if (!isInitialized || !token) return
-
-    const ws = new WebSocket(`wss://api.textarena.ai/ws?user_id=${token}`)
-    wsRef.current = ws
-
-    ws.onopen = () => {
-      console.log("WebSocket connected")
-      setWsStatus("Connected")
-    }
-
-    ws.onmessage = (event) => {
-      console.log("Received from backend:", event.data)
-      try {
-        const msg = JSON.parse(event.data)
-        handleServerMessage(msg)
-      } catch (err) {
-        console.warn("Non-JSON message:", event.data)
+    connectToMatchmaking()
+    
+    return () => {
+      // Clean up connections on unmount
+      if (matchmakingWsRef.current) {
+        matchmakingWsRef.current.close()
+      }
+      if (gameWsRef.current) {
+        gameWsRef.current.close()
       }
     }
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error)
-      setWsStatus("Error")
-    }
-
-    ws.onclose = () => {
-      console.log("WebSocket closed")
-      setWsStatus("Disconnected")
-      stopTurnTimer()
-      stopOpponentTimer()
-      setConnectionLost(true)
-    }
-
-    return () => {
-      ws.close()
-    }
   }, [isInitialized, token])
+
+  // Connect to game server when IP becomes available
+  useEffect(() => {
+    if (gameServerIP) {
+      connectToGameServer()
+    }
+  }, [gameServerIP])
 
   // Update elapsed queue time
   useEffect(() => {
@@ -333,13 +412,13 @@ export default function PlayPage() {
     }
   }, [gameResult])
 
-  // Server message handler
-  function handleServerMessage(msg: any) {
+  // Matchmaking message handler
+  function handleMatchmakingMessage(msg: any) {
     switch (msg.command) {
       case "init":
         setServerStats({
           avgQueueTime: formatQueueTime(msg.avg_queue_time),
-          activePlayers: msg.num_active_players,
+          activePlayers: msg.num_players_in_queue,
           allowConnection: msg.allow_connection
         })
         break
@@ -347,11 +426,11 @@ export default function PlayPage() {
       case "queued":
         setIsInQueue(true)
         setQueueStartTime(Date.now())
-        if (msg.avg_queue_time !== undefined && msg.num_active_players !== undefined) {
+        if (msg.avg_queue_time !== undefined && msg.num_players_in_queue !== undefined) {
           setServerStats(prev => ({
             ...prev,
             avgQueueTime: formatQueueTime(msg.avg_queue_time),
-            activePlayers: msg.num_active_players
+            activePlayers: msg.num_players_in_queue
           }))
         }
         break
@@ -362,30 +441,51 @@ export default function PlayPage() {
         break
 
       case "match_found":
+        // This is the key difference - now we get a server IP to connect to
+        playMatchFoundSound();
+        console.log("Match found! Connecting to game server:", msg.server_ip)
         setIsInQueue(false)
-        setIsInMatch(true)
         setQueueStartTime(null)
-        setPlayerId(msg.player_id)
-        playerIdRef.current = msg.player_id
-        setOpponentTimeLeft(180)
-        playMatchFoundSound()
+        
+        // Store game server information
+        setGameServerIP(msg.server_ip)
+        setEnvironmentId(msg.environment_id)
+        
+        // Set gameConnected to true, but don't set isInMatch yet
+        setGameConnected(true)
+        setShowGameSelection(false)
+        
+        // We will transition to the game server connection in the useEffect
+        break;
 
-        if (msg.observation) {
-          if (Array.isArray(msg.observation) && msg.observation.length > 0) {
-            const firstObs = msg.observation[0]
-            if (Array.isArray(firstObs)) {
-              firstObs[0] = "game"
-            }
-          }
-          startMyTurn(msg.observation, msg.player_id)
-        }
+      case "error":
+        console.error("Matchmaking error:", msg.message)
         break
 
+      default:
+        console.warn("Unhandled matchmaking command:", msg)
+        break
+    }
+  }
+
+  // Game server message handler
+  function handleGameServerMessage(msg: any) {
+    switch (msg.command) {
       case "observation":
-        if (playerIdRef.current !== null) {
-          startMyTurn(msg.observation, playerIdRef.current)
+        if (msg.player_id !== undefined) {
+          // First observation also sets the player ID
+          console.log("Setting player ID and activating match UI:", msg.player_id);
+          setPlayerId(msg.player_id);
+          playerIdRef.current = msg.player_id;
+          setIsInMatch(true); // Now we're in a match with player IDs assigned
+          setGameResult(null); // Clear any previous game results
+          setIsGameResultMinimized(false);
+          setShowGameSelection(false); // Ensure game selection is hidden
+          startMyTurn(msg.observation, msg.player_id);
+        } else if (playerIdRef.current !== null) {
+          startMyTurn(msg.observation, playerIdRef.current);
         }
-        break
+        break;
 
       case "game_over":
         setMyTurn(false)
@@ -394,27 +494,33 @@ export default function PlayPage() {
         setMessages(prev => [...prev, { sender: "center", text: "Game Over." }])
         setGameResult({
           game_id: msg.game_id,
-          opponent_name: msg.opponent_name,
-          opponent_elo: msg.opponent_elo,
-          change_in_elo: msg.change_in_elo,
+          opponent_name: msg.opponents,
+          opponent_elo: msg.opponents_ts,
+          change_in_elo: msg.trueskill_change,
           outcome: msg.outcome,
           reason: msg.reason || "Unknown"
         })
-
-        // If game ended due to disconnection, ensure proper cleanup
+        
+        // Mark that the match is over - add this line
+        setIsInMatch(false)
+        
+        // The rest of the game_over handler remains the same
         if (msg.reason === "disconnect" || msg.reason?.includes("disconnect")) {
-          setIsInMatch(false)
           setQueueStartTime(null)
           setShowGameSelection(false)
         }
         break
 
       case "error":
-        console.error("Backend error:", msg.message)
+        console.error("Game server error:", msg.message)
+        break
+
+      case "pong":
+        // Response to our ping - no action needed
         break
 
       default:
-        console.warn("Unhandled command:", msg)
+        console.warn("Unhandled game server command:", msg)
         break
     }
   }
@@ -452,7 +558,7 @@ export default function PlayPage() {
         if (t <= 1) {
           stopTurnTimer()
           setMyTurn(false)
-          wsRef.current?.send(JSON.stringify({ command: "action", action: "TIMEOUT" }))
+          gameWsRef.current?.send(JSON.stringify({ command: "action", action: "TIMEOUT" }))
           return 0
         }
         return t - 1
@@ -501,22 +607,46 @@ export default function PlayPage() {
         return { sender: "left" as const, text }
       }
     })
-
+  
     setMessages(prev => {
-      if (prev.length > 0 && newMsgs.length > 0 && prev[prev.length - 1].text === newMsgs[0].text) {
-        return [...prev, ...newMsgs.slice(1)]
-      }
-      return [...prev, ...newMsgs]
-    })
+      // Filter out server-echoed messages that are just the user's input with formatting
+      const filteredMsgs = newMsgs.filter(newMsg => {
+        if (newMsg.sender !== "right") return true; // Keep non-user messages
+        
+        // Check if this is just an echo of the last user message
+        if (prev.length > 0) {
+          const lastMsg = prev[prev.length - 1];
+          
+          // If the last message was from the user
+          if (lastMsg.sender === "right") {
+            const userInput = lastMsg.text;
+            const serverEcho = newMsg.text;
+            
+            // Check if server echo is the same as user input or just has brackets/formatting
+            const normalizedInput = userInput.trim();
+            const normalizedEcho = serverEcho.replace(/^\[|\]$/g, '').trim();
+            
+            // If it's essentially the same message, filter it out
+            if (normalizedInput === normalizedEcho || 
+                serverEcho.includes(userInput)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      });
+  
+      return [...prev, ...filteredMsgs];
+    });
   }
 
   function sendAction() {
     if (!myTurn || !playerInput.trim()) return
-    if (!isInMatch || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+    if (!isInMatch || !gameWsRef.current || gameWsRef.current.readyState !== WebSocket.OPEN) return
 
     const userMessage = playerInput.trim()
     setMessages(prev => [...prev, { sender: "right", text: userMessage }])
-    wsRef.current.send(JSON.stringify({ command: "action", action: userMessage }))
+    gameWsRef.current.send(JSON.stringify({ command: "action", action: userMessage }))
     setMyTurn(false)
     setPlayerInput("")
     stopTurnTimer()
@@ -528,51 +658,34 @@ export default function PlayPage() {
     setGameResult(null)
     setIsGameResultMinimized(false)
     setIsInMatch(false)
-    setMessages([]) // (Optional) Clear any leftover messages if desired.
+    setMessages([])
     setQueueStartTime(null)
 
-    const ws = wsRef.current
+    const ws = matchmakingWsRef.current
 
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      const newWs = new WebSocket(`wss://api.textarena.ai/ws?user_id=${token}`)
-      wsRef.current = newWs
-    
-      newWs.onopen = () => {
-        console.log("WebSocket reconnected")
-        setWsStatus("Connected")
-        // Send the queue command after reconnection.
-        if (selectedGames.length > 0) {
-          newWs.send(JSON.stringify({ command: "queue", environments: selectedGames }))
-          setShowGameSelection(false)
+      // Reconnect to matchmaking
+      connectToMatchmaking()
+      
+      // We'll queue once the connection is established in the onopen handler
+      const newWs = matchmakingWsRef.current
+      if (newWs) {
+        const originalOnOpen = newWs.onopen
+        newWs.onopen = (event) => {
+          // Call the original handler if it exists
+          if (originalOnOpen) originalOnOpen.call(newWs, event)
+          
+          // Then send the queue command
+          if (selectedGames.length > 0) {
+            newWs.send(JSON.stringify({ command: "queue", environments: selectedGames }))
+            setShowGameSelection(false)
+          }
         }
       }
-    
-      newWs.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data)
-          handleServerMessage(msg)
-        } catch (err) {
-          console.warn("Non-JSON message:", event.data)
-        }
-      }
-    
-      newWs.onerror = (error) => {
-        console.error("WebSocket error:", error)
-        setWsStatus("Error")
-      }
-    
-      newWs.onclose = () => {
-        console.log("WebSocket closed")
-        setWsStatus("Disconnected")
-        stopTurnTimer()
-        stopOpponentTimer()
-        setConnectionLost(true)
-      }
-    
+      
       return
     }
     
-
     if (selectedGames.length === 0) {
       alert("Please select at least one environment.")
       return
@@ -583,7 +696,7 @@ export default function PlayPage() {
   }
 
   function handleLeaveQueue() {
-    const ws = wsRef.current
+    const ws = matchmakingWsRef.current
     if (!ws || ws.readyState !== WebSocket.OPEN) return
 
     ws.send(JSON.stringify({ command: "leave" }))
@@ -599,11 +712,15 @@ export default function PlayPage() {
     setIsInQueue(false)
     setMyTurn(false)
     setPlayerInput("")
-    wsRef.current = null
+    gameWsRef.current = null
+    matchmakingWsRef.current = null
+    
+    // Reconnect to matchmaking
+    connectToMatchmaking()
   }
 
+  // Rest of the component remains largely the same (render methods)
   return (
-    // Added font-mono here so that all text on the page uses the monospaced font.
     <div className="flex flex-col h-screen relative font-mono">
       {/* Chat Messages */}
       <div ref={chatContainerRef} className="flex-1 overflow-auto pt-16 px-4 pb-4">
@@ -640,8 +757,8 @@ export default function PlayPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Overlay: Waiting for opponent’s first action */}
-      {isInMatch && !myTurn && messages.length === 0 && (
+      {/* Overlay: Waiting for opponent's first action */}
+      {gameConnected && !myTurn && messages.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="bg-background/80 p-4 rounded">
             <span className="text-lg text-muted-foreground">
@@ -704,7 +821,7 @@ export default function PlayPage() {
       )}
 
       {/* Queue Overlay */}
-      {!isInMatch && !isGameResultMinimized && serverStats.allowConnection && (
+      {!isInMatch && !gameConnected && !connectionLost && !isGameResultMinimized && serverStats.allowConnection && (
         <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
           <AnimatedQueueDisplay
             isInQueue={isInQueue}
@@ -782,7 +899,6 @@ export default function PlayPage() {
         </div>
       </div>
 
-
       {/* HumanStats Panel */}
       <HumanStats
         isMinimized={!statsVisible}
@@ -797,7 +913,7 @@ export default function PlayPage() {
           onReturnToQueue={handleReturnToQueue}
           onMinimize={(minimized) => setIsGameResultMinimized(minimized)}
           chatRef={chatContainerRef}
-          wsRef={wsRef}
+          wsRef={gameWsRef}
         />
       )}
 
@@ -808,7 +924,6 @@ export default function PlayPage() {
             <h2 className="text-lg font-semibold mb-2">Connection Lost</h2>
             <p className="mb-4">
               Your opponent has disconnected from the server. This game won't be counted.
-              {/* The connection to the server was lost. Please try to queue again. */}
             </p>
             <Button
               onClick={handleConnectionLostClose}
