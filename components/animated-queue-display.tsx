@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
 
-interface AnimatedQueueDisplayProps {
+interface AnimatedQueueDisplayProps { 
   isInQueue?: boolean;
   environments?: string[];
   elapsedTime?: string;
