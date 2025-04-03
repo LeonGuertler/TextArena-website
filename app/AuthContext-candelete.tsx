@@ -4,7 +4,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
 // Define the matchmaking server URL
-const MATCHMAKING_HTTP_URI = "http://54.179.78.11:8000";
+const MATCHMAKING_HTTP_URI = "https://matchmaking.textarena.ai";
 
 interface AuthContextValue {
   token: string | null;

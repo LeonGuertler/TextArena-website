@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     // Make the API call to verify/get a token
-    fetch("http://54.179.78.11:8000/init", { 
+    fetch("https://matchmaking.textarena.ai/init", { 
       credentials: "include",
       headers: storedToken 
         ? { "X-User-Token": storedToken } // Send token as header too

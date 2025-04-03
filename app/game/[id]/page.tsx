@@ -33,7 +33,7 @@ useEffect(() => {
     const fetchGame = async () => {
       try {
         //const response = await fetch(`https://localhost:8000/api/games/${params.id}`);
-        const response = await fetch(`http://54.179.78.11:8000/api/games/${params.id}`);
+        const response = await fetch(`https://matchmaking.textarena.ai/api/games/${params.id}`);
         if (!response.ok) throw new Error('Game not found');
         const data = await response.json();
         setGameData(data);

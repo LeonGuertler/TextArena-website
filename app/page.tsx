@@ -50,7 +50,7 @@ type MatchmakingStatus = {
 }
 
 // Server URLs - Update these with your actual server addresses
-const MATCHMAKING_WS_URI = "ws://54.179.78.11:8000/ws"
+const MATCHMAKING_WS_URI = "wss://matchmaking.textarena.ai/ws"
 
 // Sound effect paths
 const SOUND_MATCHFOUND_COMMON = "/sounds/match_found_common.wav"
@@ -324,7 +324,7 @@ export default function PlayPage() {
   const checkMatchmakingStatus = async () => {
     try {
       // Updated to use the new matchmaking server
-      const response = await fetch('http://54.179.78.11:8000/check_matchmaking', {
+      const response = await fetch('https://matchmaking.textarena.ai/check_matchmaking', {
         method: 'GET',
         credentials: 'include',
       })
