@@ -80,7 +80,7 @@ export function GameOverModal({
 
   const handleCopyGame = async () => {
     try {
-      const response = await fetch('http://54.179.78.11:8000/save_game', {
+      const response = await fetch('https://matchmaking.textarena.ai/save_game', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -174,7 +174,7 @@ export function GameOverModal({
         },
       };
 
-      const response = await fetch('http://54.179.78.11:8000/save_game', {
+      const response = await fetch('https://matchmaking.textarena.ai/save_game', {
         method: 'POST',
         credentials: 'include',
         headers: {
