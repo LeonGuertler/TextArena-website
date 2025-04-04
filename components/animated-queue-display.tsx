@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react';
 
 interface AnimatedQueueDisplayProps { 
   isInQueue?: boolean;
+  isMatchFound?: boolean; // New prop to indicate match found state
   environments?: string[];
   elapsedTime?: string;
   avgQueueTime?: string;
@@ -16,10 +17,12 @@ interface AnimatedQueueDisplayProps {
   onQueueClick?: () => void;
   onLeaveQueue?: () => void;
   wsStatus?: string;
+  connectionStatus?: string; // New prop to show connection status
 }
 
 const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
-  isInQueue = false, // Default to false
+  isInQueue = false,
+  isMatchFound = false, // Default to false
   environments = ['Production', 'Staging'],
   elapsedTime = '1:30',
   avgQueueTime = '2min',
@@ -31,6 +34,7 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
   onQueueClick = () => {},
   onLeaveQueue = () => {},
   wsStatus = 'Connected',
+  connectionStatus = '', // Default empty
 }) => {
   const messages = [
     "Get ready to fight for humanity!",
@@ -44,7 +48,6 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
     "'sehr cool!' - my mom",
     "For the love of god, please read the instructions!",
     "I hope the queue is slow so I can read all of these.",
-    // "'Mayonnaise colored Benz, I push miracle whips' - Kanye West (Ye)",
     "supercalifragilisticexpialidocious",
     "Those are great, I hope it doesn't match too quickly.",
     "Think you have a SuperArtificial Intelligence?",
@@ -52,8 +55,6 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
     "It's just an AI they said; how hard can it possibly be, they said.",
     "'If a machine is expected to be infallible, it cannot also be intelligent.' - Alan Turing",
     "Alt+F4 for instant win.",
-    // "'I just told you who I thought I was, a god' - Kanye West (Ye)",
-    // "'If my manager insults me again I will be assaulting him' - Kanye West (Ye)",
     "'I am become Death, destroyer of bots.' - Also Oppenheimer, probably",
     "'GPT-4 is kind of mid.' - Socrates, probably",
     "You either defeat the machine, or you become the training data.",
@@ -64,14 +65,12 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
     "'Highway to the danger zone' - Kenny Loggins",
     "'It's not AGI, it just looks super intelligent.' - Coping scientist",
     "It's just predicting the next token' – You, moments before being outplayed.",
-    "Imagine losing a game to a big matrix. Couldn’t be me.",
-    "'The AI doesn’t have common sense.' - You, immediately losing to it",
-    "Remember, it’s just a game… unless the AI remembers you.",
+    "Imagine losing a game to a big matrix. Couldn't be me.",
+    "'The AI doesn't have common sense.' - You, immediately losing to it",
+    "Remember, it's just a game… unless the AI remembers you.",
     "Okayyy Let's go!",
     "You will meet the love of your life🔮",
     "Whole day I'm fkn buys only get few money.",
-    // "'I am a machine. I am a robot. You cannot offend a robot.' - Kanye West",
-    // "'Sometimes I feel like I’m just the best computer ever.' - Kanye West",
   ];
 
   const [shuffledMessages, setShuffledMessages] = useState<string[]>([]);
@@ -91,7 +90,7 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
   }, []);
 
   useEffect(() => {
-    if (isInQueue) {
+    if (isInQueue && !isMatchFound) {
       const interval = setInterval(() => {
         setMessageIndex((prevIndex) => {
           const nextIndex = prevIndex + 1;
@@ -105,7 +104,7 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [isInQueue, messages.length]);
+  }, [isInQueue, isMatchFound, messages.length]);
 
   const messageVariants = {
     initial: { opacity: 0, y: 20 },
@@ -113,10 +112,66 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
     exit: { opacity: 0, y: -20 },
   };
 
+  const matchFoundVariants = {
+    initial: { scale: 0.95, opacity: 0 },
+    animate: { 
+      scale: 1,
+      opacity: 1,
+      transition: {
+        duration: 0.4,
+        ease: "easeOut"
+      }
+    }
+  };
+
   return (
-    // Added font-mono to ensure all text uses your monospaced font.
     <div className="min-h-[400px] w-full flex flex-col items-center justify-center p-6 font-mono">
-      {isInQueue ? (
+      {isMatchFound ? (
+        // Match found display
+        <motion.div 
+          className="flex flex-col items-center space-y-6"
+          initial="initial"
+          animate="animate"
+          variants={matchFoundVariants}
+          layout
+        >
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-foreground mb-1">
+              Match Found!
+            </h2>
+            <p className="text-base text-mutedForeground">
+              Initialising game: {environments.join(' | ')}
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center">
+            <div className="mb-4">
+              <motion.div
+                className="w-16 h-16 border-4 border-border border-dashed rounded-full"
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
+              />
+            </div>
+
+            <div className="text-center">
+              <AnimatePresence mode="wait">
+                {connectionStatus && (
+                  <motion.p 
+                    key={connectionStatus}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-lg text-foreground font-semibold mt-4"
+                  >
+                    {connectionStatus}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </motion.div>
+      ) : isInQueue ? (
         // Queue status display
         <div className="flex flex-col items-center space-y-6">
           <div className="text-center">
@@ -166,9 +221,8 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
           </div>
 
           <Button
-            variant="secondary" // Use secondary variant
+            variant="secondary"
             onClick={onLeaveQueue}
-            // className="bg-white hover:bg-white/90 text-[#0b2b26]"
             className="bg-white text-[#0b2b26] hover:bg-[#0b2b26] hover:text-white transition-colors duration-300"
           >
             Leave Queue
@@ -193,18 +247,6 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
             </div>
           )}
 
-          {/* <Button
-            variant="outline"
-            onClick={onQueueClick}
-            disabled={wsStatus !== "Connected"}
-            className={`${
-              wsStatus === "Connected"
-                ? "bg-white hover:bg-white/90 text-[#0b2b26]"
-                : "bg-navbar text-white cursor-not-allowed"
-            } disabled:bg-muted disabled:text-muted-foreground`}
-          >
-            {wsStatus === "Connected" ? "Queue for Selected Games" : "Connecting…"}
-          </Button> */}
           <Button
             variant="outline"
             onClick={onQueueClick}
@@ -217,7 +259,6 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
           >
             {wsStatus === "Connected" ? "Queue for Selected Games" : "Connecting…"}
           </Button>
-
 
           <div className="text-sm text-mutedForeground mt-2">
             {/* Desktop view (inline display) */}

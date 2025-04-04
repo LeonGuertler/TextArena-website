@@ -84,6 +84,8 @@ export default function PlayPage() {
   const [isInQueue, setIsInQueue] = useState(false)
   const [isInMatch, setIsInMatch] = useState(false)
   const [gameConnected, setGameConnected] = useState(false)
+  const [isMatchFound, setIsMatchFound] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('');
 
   // WebSocket - separate refs for matchmaking and game connections
   const { token, isInitialized } = useAuth()
@@ -151,36 +153,38 @@ export default function PlayPage() {
   const handleReturnToQueue = () => {
     // Close any existing WebSocket connections
     if (gameWsRef.current) {
-      gameWsRef.current.close()
-      gameWsRef.current = null
+      gameWsRef.current.close();
+      gameWsRef.current = null;
     }
     
     if (matchmakingWsRef.current) {
-      matchmakingWsRef.current.close()
-      matchmakingWsRef.current = null
+      matchmakingWsRef.current.close();
+      matchmakingWsRef.current = null;
     }
     
     // Reset all game state
-    setGameConnected(false)  // Add this line
-    setIsInMatch(false)
-    setGameResult(null)
-    setIsGameResultMinimized(false)
-    setMyTurn(false)
-    setMessages([])
-    setPlayerInput("")
-    setIsInQueue(false)
-    setQueueStartTime(null)
-    stopTurnTimer()
-    stopOpponentTimer()
-    setPlayerId(null)
-    playerIdRef.current = null
-    setShowGameSelection(true)
-    setConnectionLost(false)
-    setGameServerIP(null)
-    setEnvironmentId(null)
+    setGameConnected(false);
+    setIsInMatch(false);
+    setIsMatchFound(false); // Also reset match found state
+    setConnectionStatus('');
+    setGameResult(null);
+    setIsGameResultMinimized(false);
+    setMyTurn(false);
+    setMessages([]);
+    setPlayerInput("");
+    setIsInQueue(false);
+    setQueueStartTime(null);
+    stopTurnTimer();
+    stopOpponentTimer();
+    setPlayerId(null);
+    playerIdRef.current = null;
+    setShowGameSelection(true);
+    setConnectionLost(false);
+    setGameServerIP(null);
+    setEnvironmentId(null);
 
     // Reconnect to matchmaking if needed
-    connectToMatchmaking()
+    connectToMatchmaking();
   }
 
   // Detect mobile devices
@@ -245,62 +249,174 @@ export default function PlayPage() {
   // Connect to a game server after getting server info from matchmaking
   const connectToGameServer = () => {
     if (!gameServerIP || !token) {
-      console.error("No game server IP or token available")
-      return
+      console.error("No game server IP or token available");
+      return;
     }
+    
+    // Explicitly hide queue UI elements but keep match found state
+    setShowGameSelection(false);
+    setIsInQueue(false);
+    setQueueStartTime(null);
     
     // Close any existing game connection
     if (gameWsRef.current) {
-      gameWsRef.current.close()
+      gameWsRef.current.close();
     }
     
-    // Set up new connection to game server
-    const gameWs = new WebSocket(`ws://${gameServerIP}:8000/ws?token=${token}`)
-    gameWsRef.current = gameWs
+    // ===== BUFFER PERIOD BEFORE ATTEMPTING CONNECTION =====
+    // Show "Match Found" animation for a bit longer to give server time to initialize
+    const bufferPeriod = 10000; // 10 second buffer before first connection attempt
+    const initialDelay = 7000; // Additional 3 second server preparation time after buffer
+    const totalDelayBeforeConnect = bufferPeriod + initialDelay;
     
-    gameWs.onopen = () => {
-      console.log("Connected to game server:", gameServerIP)
-      setWsStatus("Connected")
+    // Update UI to show initialization starting
+    setConnectionStatus("Preparing game environment...");
+    
+    console.log(`Waiting ${bufferPeriod/1000}s buffer period for match found screen...`);
+    
+    // First wait for buffer period to show match found animation
+    setTimeout(() => {
+      setConnectionStatus("Initializing game server...");
+      console.log(`Buffer period complete. Waiting ${initialDelay/1000}s for server initialization...`);
       
-      // Start sending periodic pings to keep connection alive
-      const pingInterval = setInterval(() => {
-        if (gameWs.readyState === WebSocket.OPEN) {
-          gameWs.send(JSON.stringify({ command: "ping" }))
-        } else {
-          clearInterval(pingInterval)
-        }
-      }, 25000)
-    }
-    
-    gameWs.onmessage = (event) => {
-      console.log("Received from game server:", event.data)
-      try {
-        const msg = JSON.parse(event.data)
-        handleGameServerMessage(msg)
-      } catch (err) {
-        console.warn("Non-JSON message from game server:", event.data)
-      }
-    }
-    
-    gameWs.onerror = (error) => {
-      console.error("Game server WebSocket error:", error)
-      setWsStatus("Error")
-    }
-    
-    gameWs.onclose = () => {
-      console.log("Game server WebSocket closed")
-      setWsStatus("Disconnected")
-      stopTurnTimer()
-      stopOpponentTimer()
-      setGameConnected(false) // Reset gameConnected
-      
-      // Only show connection lost if we're still in an active match
-      // and don't have a game result (which would indicate proper game end)
-      if (isInMatch && !gameResult) {
-        setConnectionLost(true)
-      }
-    }
-  }
+      // Then wait for server initialization
+      setTimeout(() => {
+        // Retry configuration
+        const maxAttempts = 10;
+        let currentAttempt = 1;
+        const baseDelay = 2000; // 2 seconds
+        
+        // Function to attempt connection with retries
+        const attemptConnection = () => {
+          console.log(`Connecting to game server (attempt ${currentAttempt}/${maxAttempts}): ${gameServerIP}`);
+          setConnectionStatus(`Connecting to game server (attempt ${currentAttempt}/${maxAttempts})...`);
+          
+          // Set up new connection to game server
+          const gameWs = new WebSocket(`wss://${gameServerIP}/ws?token=${token}`);
+          gameWsRef.current = gameWs;
+          
+          let connectionTimeout = setTimeout(() => {
+            // If connection is still connecting after 10 seconds, consider it failed
+            if (gameWs.readyState === WebSocket.CONNECTING) {
+              console.log("Connection attempt timed out after 10 seconds");
+              gameWs.close();
+              retryConnection();
+            }
+          }, 10000);
+          
+          gameWs.onopen = () => {
+            clearTimeout(connectionTimeout);
+            console.log("Connected to game server:", gameServerIP);
+            setWsStatus("Connected");
+            setConnectionStatus("Connected to game server. Waiting for game to start...");
+            
+            // Successfully connected, now transition to game UI
+            setGameConnected(true);
+            setIsMatchFound(false); // Hide the match found UI
+            
+            // // Only add the connection message once we've transitioned to the game UI
+            // // This prevents duplicate messages between AnimatedQueueDisplay and the game chat
+            // setMessages([{
+            //   sender: "center",
+            //   text: "Connected to game server. Waiting for game to start..."
+            // }]);
+            
+            // Start sending periodic pings to keep connection alive
+            const pingInterval = setInterval(() => {
+              if (gameWs.readyState === WebSocket.OPEN) {
+                gameWs.send(JSON.stringify({ command: "ping" }));
+              } else {
+                clearInterval(pingInterval);
+              }
+            }, 25000);
+          };
+          
+          gameWs.onmessage = (event) => {
+            console.log("Received from game server:", event.data);
+            try {
+              const msg = JSON.parse(event.data);
+              handleGameServerMessage(msg);
+            } catch (err) {
+              console.warn("Non-JSON message from game server:", event.data);
+            }
+          };
+          
+          gameWs.onerror = (error) => {
+            clearTimeout(connectionTimeout);
+            console.error("Game server WebSocket error:", error);
+            setWsStatus("Error");
+            retryConnection();
+          };
+          
+          gameWs.onclose = (event) => {
+            clearTimeout(connectionTimeout);
+            console.log(`Game server WebSocket closed with code ${event.code}`);
+            setWsStatus("Disconnected");
+            stopTurnTimer();
+            stopOpponentTimer();
+            
+            // Only show connection lost if we're still in an active match
+            // and don't have a game result (which would indicate proper game end)
+            if (isInMatch && !gameResult) {
+              // If this is the first few connection attempts, don't show connection lost yet
+              if (currentAttempt >= maxAttempts / 2) {
+                setConnectionLost(true);
+                setGameConnected(false); // Reset gameConnected state
+                setIsMatchFound(false); // Also reset match found state
+              } else {
+                retryConnection();
+              }
+            } else if (currentAttempt >= maxAttempts) {
+              // If we've exhausted all attempts and never got into a match
+              setGameConnected(false);
+              setIsMatchFound(false); // Reset match found state
+              setConnectionLost(true);
+            }
+          };
+        };
+        
+        // Function to handle retries with exponential backoff
+        const retryConnection = () => {
+          if (currentAttempt < maxAttempts) {
+            currentAttempt++;
+            // Calculate delay with exponential backoff (2^attempt seconds)
+            const delay = Math.min(baseDelay * Math.pow(2, currentAttempt - 1), 30000); // Max 30 seconds
+            console.log(`Retrying connection in ${delay/1000}s (attempt ${currentAttempt}/${maxAttempts})`);
+            
+            // Update connection status
+            setConnectionStatus(`Connection failed. Retrying in ${Math.round(delay/1000)}s...`);
+            
+            // Only update messages if we're not showing the match found UI anymore
+            if (!isMatchFound) {
+              setMessages(prev => [...prev, {
+                sender: "center",
+                text: `Connection failed. Retrying in ${Math.round(delay/1000)}s...`
+              }]);
+            }
+            
+            setTimeout(attemptConnection, delay);
+          } else {
+            console.error("Failed to connect after maximum attempts");
+            setGameConnected(false); // Make sure to reset this
+            setIsMatchFound(false); // Also reset match found state
+            setConnectionLost(true);
+            
+            // Only add failure message if we're not showing the match found UI
+            if (!isMatchFound) {
+              setMessages(prev => [...prev, {
+                sender: "center",
+                text: "Failed to connect to game server after multiple attempts."
+              }]);
+            }
+          }
+        };
+        
+        // Start the first connection attempt
+        attemptConnection();
+        
+      }, initialDelay);
+    }, bufferPeriod);
+  };
 
   // Fetch environment options
   useEffect(() => {
@@ -413,6 +529,7 @@ export default function PlayPage() {
   }, [gameResult])
 
   // Matchmaking message handler
+  // Matchmaking message handler
   function handleMatchmakingMessage(msg: any) {
     switch (msg.command) {
       case "init":
@@ -441,25 +558,44 @@ export default function PlayPage() {
         break
 
       case "match_found":
-        // This is the key difference - now we get a server IP to connect to
         playMatchFoundSound();
-        console.log("Match found! Connecting to game server:", msg.server_ip)
-        setIsInQueue(false)
-        setQueueStartTime(null)
+        console.log("Match found! Game info:", msg);
+        
+        // Reset queue states but keep isInQueue true to show transition
+        setQueueStartTime(null);
+        
+        // Explicitly hide game selection UI 
+        setShowGameSelection(false);
         
         // Store game server information
-        setGameServerIP(msg.server_ip)
-        setEnvironmentId(msg.environment_id)
+        const serverUrl = msg.game_url || msg.server_ip;
+        if (!serverUrl) {
+          console.error("No game server URL/IP provided in match_found message");
+          return;
+        }
         
-        // Set gameConnected to true, but don't set isInMatch yet
-        setGameConnected(true)
-        setShowGameSelection(false)
+        // Store the game server URL and environment ID
+        setGameServerIP(serverUrl);
+        setEnvironmentId(msg.environment_id);
         
-        // We will transition to the game server connection in the useEffect
+        // Set matchFound state to true to show the match found screen
+        setIsMatchFound(true);
+        
+        // Set connection status for the AnimatedQueueDisplay
+        setConnectionStatus("Connecting to game server...");
+        
+        // Don't add messages when using AnimatedQueueDisplay
+        // We'll only add messages once the actual game connection happens
+        
         break;
 
       case "error":
         console.error("Matchmaking error:", msg.message)
+        // Show error to the user
+        setMessages(prev => [...prev, {
+          sender: "center",
+          text: `Matchmaking error: ${msg.message}`
+        }])
         break
 
       default:
@@ -486,7 +622,7 @@ export default function PlayPage() {
           startMyTurn(msg.observation, playerIdRef.current);
         }
         break;
-
+  
       case "game_over":
         setMyTurn(false)
         stopTurnTimer()
@@ -501,7 +637,7 @@ export default function PlayPage() {
           reason: msg.reason || "Unknown"
         })
         
-        // Mark that the match is over - add this line
+        // Mark that the match is over
         setIsInMatch(false)
         
         // The rest of the game_over handler remains the same
@@ -510,15 +646,49 @@ export default function PlayPage() {
           setShowGameSelection(false)
         }
         break
-
+        
+      case "timed_out":
+        setMyTurn(false)
+        stopTurnTimer()
+        stopOpponentTimer()
+        setMessages(prev => [...prev, { 
+          sender: "center", 
+          text: `Game ended: ${msg.message || "A player timed out"}` 
+        }])
+        // Mark that the match is over
+        setIsInMatch(false)
+        setConnectionLost(true)
+        break
+  
+      case "server_shutdown":
+        setMessages(prev => [...prev, { 
+          sender: "center", 
+          text: "The game server is shutting down. Game complete." 
+        }])
+        // Handle similar to disconnection
+        setIsInMatch(false)
+        if (!gameResult) {
+          setConnectionLost(true)
+        }
+        break
+  
       case "error":
         console.error("Game server error:", msg.message)
+        setMessages(prev => [...prev, { 
+          sender: "center", 
+          text: `Error: ${msg.message}` 
+        }])
         break
-
+  
       case "pong":
         // Response to our ping - no action needed
         break
-
+  
+      case "action_ack":
+        // Acknowledgment of our action - can be used for UI feedback
+        console.log("Action acknowledged by server")
+        break
+  
       default:
         console.warn("Unhandled game server command:", msg)
         break
@@ -712,8 +882,24 @@ export default function PlayPage() {
     setIsInQueue(false)
     setMyTurn(false)
     setPlayerInput("")
-    gameWsRef.current = null
-    matchmakingWsRef.current = null
+    setGameConnected(false)
+    setIsMatchFound(false)
+    setGameResult(null)
+    setIsGameResultMinimized(false)
+    setShowGameSelection(true)  // Show game selection in the queue overlay
+    setConnectionStatus('')
+    setMessages([])
+    
+    // Clear WebSocket references
+    if (gameWsRef.current) {
+      gameWsRef.current.close()
+      gameWsRef.current = null
+    }
+    
+    if (matchmakingWsRef.current) {
+      matchmakingWsRef.current.close()
+      matchmakingWsRef.current = null
+    }
     
     // Reconnect to matchmaking
     connectToMatchmaking()
@@ -825,6 +1011,7 @@ export default function PlayPage() {
         <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
           <AnimatedQueueDisplay
             isInQueue={isInQueue}
+            isMatchFound={isMatchFound}
             environments={selectedGames.map(envId => {
               const env = envOptions.find(e => parseInt(e.id) === envId)
               return env ? env.env_name : `Env #${envId}`
@@ -833,7 +1020,12 @@ export default function PlayPage() {
             avgQueueTime={serverStats.avgQueueTime}
             activePlayers={serverStats.activePlayers}
             showGameSelection={showGameSelection}
-            onShowGameSelection={setShowGameSelection}
+            onShowGameSelection={(show) => {
+              // Only allow showing game selection if we're not connecting to a game
+              if ((!gameConnected && !isMatchFound) || !show) {
+                setShowGameSelection(show)
+              }
+            }}
             selectedGamesCount={selectedGames.length}
             gameSelectionUI={
               <EnvironmentSelector
@@ -845,6 +1037,7 @@ export default function PlayPage() {
             onQueueClick={handleQueueClick}
             onLeaveQueue={handleLeaveQueue}
             wsStatus={wsStatus}
+            connectionStatus={connectionStatus}
           />
         </div>
       )}
