@@ -73,7 +73,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" type="image/x-icon" />
       </head>
       <body className="font-sans">
-        <ConstructionBanner />
+        {/* <ConstructionBanner /> */}
         <AuthProvider>
           <div className="flex h-screen">
             <Sidebar />
