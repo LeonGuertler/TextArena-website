@@ -57,7 +57,7 @@ async function fetchNetEloChange(numericHumanId: number): Promise<number> {
   try {
     const { data, error } = await supabase
       .from("player_games")
-      .select("elo_change")
+      .select("trueskill_change")
       .eq("human_id", numericHumanId);
 
     if (error) {
@@ -70,7 +70,7 @@ async function fetchNetEloChange(numericHumanId: number): Promise<number> {
     }
 
     const total = data.reduce((acc: number, row: any) => {
-      return acc + (row.elo_change ?? 0);
+      return acc + (row.trueskill_change ?? 0);
     }, 0);
 
     return total;

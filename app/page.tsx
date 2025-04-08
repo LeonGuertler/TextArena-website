@@ -125,6 +125,17 @@ export default function PlayPage() {
 
   // Connection lost popup state
   const [connectionLost, setConnectionLost] = useState(false)
+  
+  // Add this state variable
+  const [timeoutInfo, setTimeoutInfo] = useState<{
+    playerId: number | null;
+    isMe: boolean;
+    message: string;
+  }>({
+    playerId: null,
+    isMe: false,
+    message: "Your opponent has disconnected from the server."
+  });
 
   // Mute state & ref to avoid stale closures in callbacks
   const [isMuted, setIsMuted] = useState(false)
@@ -651,14 +662,41 @@ export default function PlayPage() {
         setMyTurn(false)
         stopTurnTimer()
         stopOpponentTimer()
+        
+        // Extract player ID information if available in the message
+        let timedOutPlayerId = null;
+        let timedOutMessage = msg.message || "A player timed out";
+        let isCurrentPlayer = false;
+        
+        // Check if the message contains player ID information
+        if (timedOutMessage.includes("Player")) {
+          // Try to extract player ID from message like "Player 0 timed out"
+          const match = timedOutMessage.match(/Player (\d+)/);
+          if (match && match[1]) {
+            timedOutPlayerId = parseInt(match[1]);
+            // Check if it was the current player who timed out
+            isCurrentPlayer = timedOutPlayerId === playerIdRef.current;
+          }
+        }
+        
+        // Set timeout information with appropriate message
+        setTimeoutInfo({
+          playerId: timedOutPlayerId,
+          isMe: isCurrentPlayer,
+          message: isCurrentPlayer 
+            ? "You have timed out. This game won't be counted."
+            : "Your opponent has timed out. This game won't be counted."
+        });
+        
         setMessages(prev => [...prev, { 
           sender: "center", 
-          text: `Game ended: ${msg.message || "A player timed out"}` 
-        }])
+          text: `Game ended: ${timedOutMessage}` 
+        }]);
+        
         // Mark that the match is over
-        setIsInMatch(false)
-        setConnectionLost(true)
-        break
+        setIsInMatch(false);
+        setConnectionLost(true);
+        break;
   
       case "server_shutdown":
         setMessages(prev => [...prev, { 
@@ -728,7 +766,7 @@ export default function PlayPage() {
         if (t <= 1) {
           stopTurnTimer()
           setMyTurn(false)
-          gameWsRef.current?.send(JSON.stringify({ command: "action", action: "TIMEOUT" }))
+          // gameWsRef.current?.send(JSON.stringify({ command: "action", action: "TIMEOUT" }))
           return 0
         }
         return t - 1
@@ -1114,9 +1152,11 @@ export default function PlayPage() {
       {connectionLost && (
         <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-40">
           <div className="bg-navbar p-6 rounded-md shadow-lg w-full max-w-sm text-navbarForeground text-center font-mono">
-            <h2 className="text-lg font-semibold mb-2">Connection Lost</h2>
+            <h2 className="text-lg font-semibold mb-2">
+              {timeoutInfo.isMe ? "You Timed Out" : "Connection Lost"}
+            </h2>
             <p className="mb-4">
-              Your opponent has disconnected from the server. This game won't be counted.
+              {timeoutInfo.message}
             </p>
             <Button
               onClick={handleConnectionLostClose}
