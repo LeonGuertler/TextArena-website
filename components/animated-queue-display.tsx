@@ -207,7 +207,7 @@ const AnimatedQueueDisplay: React.FC<AnimatedQueueDisplayProps> = ({
                     transition={{ duration: 0.5 }}
                     className="text-lg text-foreground font-semibold"
                   >
-                    {messages[messageIndex]}
+                    {shuffledMessages[messageIndex]}
                   </motion.div>
                 </AnimatePresence>
               </div>
