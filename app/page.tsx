@@ -962,9 +962,18 @@ export default function PlayPage() {
             bubbleClass = "bg-primary text-primary-foreground px-3 py-1.5 rounded-lg"
           }
 
+          // Name text alignment class based on sender position
+          const nameAlignClass = m.sender === "left" ? "text-left" : "text-right"
+
           return (
             <div key={i} className={containerClass}>
               <div className={maxWidthClass}>
+                {/* Player name with appropriate alignment */}
+                {m.sender !== "center" && (
+                  <div className={`text-xs text-muted-foreground mb-1 ${nameAlignClass}`}>
+                    {m.sender === "left" ? `Player ${playerId === 0 ? 1 : 0}` : `Player ${playerId}`}
+                  </div>
+                )}
                 <span
                   className={cn(
                     bubbleClass,
