@@ -14,7 +14,7 @@ interface HumanStatsType {
   total_draws: number;
   total_losses: number;
   win_rate: number | null;
-  net_elo_change: number | null;
+  net_trueskill_change: number | null;
 }
 
 interface EnvironmentStats {
@@ -22,7 +22,7 @@ interface EnvironmentStats {
   env_name: string;
   games_played: number;
   win_rate: number;
-  net_elo: number;
+  net_trueskill: number;
   percentile: number;
 }
 
@@ -53,7 +53,7 @@ async function fetchHumanNumericId(token: string): Promise<number | null> {
   return data.id as number;
 }
 
-async function fetchNetEloChange(numericHumanId: number): Promise<number> {
+async function fetchNetTrueskillChange(numericHumanId: number): Promise<number> {
   try {
     const { data, error } = await supabase
       .from("player_games")
@@ -61,7 +61,7 @@ async function fetchNetEloChange(numericHumanId: number): Promise<number> {
       .eq("human_id", numericHumanId);
 
     if (error) {
-      console.error("Error fetching net elo change:", error);
+      console.error("Error fetching net trueskill change:", error);
       return 0;
     }
 
@@ -75,7 +75,7 @@ async function fetchNetEloChange(numericHumanId: number): Promise<number> {
 
     return total;
   } catch (err) {
-    console.error("Error in fetchNetEloChange:", err);
+    console.error("Error in fetchNetTrueskillChange:", err);
     return 0;
   }
 }
@@ -106,9 +106,9 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
       const { data: percentileData, error: percentileError } = await supabase.rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
       
       const numericID = await fetchHumanNumericId(String(token));
-      let netElo = 0;
+      let netTrueskill = 0;
       if (numericID) {
-        netElo = await fetchNetEloChange(numericID);
+        netTrueskill = await fetchNetTrueskillChange(numericID);
       }
 
       if (!overallData || !overallData[0]) {
@@ -126,7 +126,7 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
         total_draws: draws,
         total_losses: losses,
         win_rate: completedGames > 0 ? (wins / completedGames) * 100 : 0,
-        net_elo_change: netElo
+        net_trueskill_change: netTrueskill
       };
 
       setStats(overallStats);
@@ -152,11 +152,11 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
   }
 
   const bestEnvs = [...envStats]
-    .sort((a, b) => b.net_elo - a.net_elo)
+    .sort((a, b) => b.net_trueskill - a.net_trueskill)
     .slice(0, 3);
 
   const challengingEnvs = [...envStats]
-    .sort((a, b) => a.net_elo - b.net_elo)
+    .sort((a, b) => a.net_trueskill - b.net_trueskill)
     .slice(0, 3)
     .reverse();
 
@@ -190,8 +190,8 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
 🎮 Games: ${stats.total_games}
 ✅ Win Rate: ${safeToFixed(stats.win_rate)}%
 📈 Net Trueskill: ${
-      stats.net_elo_change !== null && stats.net_elo_change !== undefined
-        ? `${stats.net_elo_change >= 0 ? "+" : ""}${safeToFixed(stats.net_elo_change)}`
+      stats.net_trueskill_change !== null && stats.net_trueskill_change !== undefined
+        ? `${stats.net_trueskill_change >= 0 ? "+" : ""}${safeToFixed(stats.net_trueskill_change)}`
         : "N/A"
     }
 🏆 Overall Percentile: ${safeToFixed(overallPercentile)}%
@@ -286,15 +286,15 @@ ${challengingEnvsText}`;
                 </span>
                 <span
                   className={`${
-                    stats.net_elo_change !== null &&
-                    stats.net_elo_change !== undefined &&
-                    stats.net_elo_change >= 0
+                    stats.net_trueskill_change !== null &&
+                    stats.net_trueskill_change !== undefined &&
+                    stats.net_trueskill_change >= 0
                       ? "text-green-500"
                       : "text-red-500"
                   } ${isMobile ? "text-xs" : "text-sm"}`}
                 >
-                  {stats.net_elo_change !== null && stats.net_elo_change !== undefined
-                    ? `${stats.net_elo_change >= 0 ? "+" : ""}${safeToFixed(stats.net_elo_change)}`
+                  {stats.net_trueskill_change !== null && stats.net_trueskill_change !== undefined
+                    ? `${stats.net_trueskill_change >= 0 ? "+" : ""}${safeToFixed(stats.net_trueskill_change)}`
                     : "N/A"}
                 </span>
               </div>
@@ -327,11 +327,11 @@ ${challengingEnvsText}`;
                         <span>WR: {safeToFixed(env.win_rate)}%</span>
                         <span
                           className={
-                            (env.net_elo ?? 0) >= 0 ? "text-green-500" : "text-red-500"
+                            (env.net_trueskill ?? 0) >= 0 ? "text-green-500" : "text-red-500"
                           }
                         >
-                          Net Trueskill: {(env.net_elo ?? 0) >= 0 ? "+" : ""}
-                          {safeToFixed(env.net_elo ?? 0)}
+                          Net Trueskill: {(env.net_trueskill ?? 0) >= 0 ? "+" : ""}
+                          {safeToFixed(env.net_trueskill ?? 0)}
                         </span>
                         <span>P: {safeToFixed(env.percentile)}%</span>
                       </span>
@@ -352,11 +352,11 @@ ${challengingEnvsText}`;
                         <span>WR: {safeToFixed(env.win_rate)}%</span>
                         <span
                           className={
-                            (env.net_elo ?? 0) >= 0 ? "text-green-500" : "text-red-500"
+                            (env.net_trueskill ?? 0) >= 0 ? "text-green-500" : "text-red-500"
                           }
                         >
-                          Net Trueskill: {(env.net_elo ?? 0) >= 0 ? "+" : ""}
-                          {safeToFixed(env.net_elo ?? 0)}
+                          Net Trueskill: {(env.net_trueskill ?? 0) >= 0 ? "+" : ""}
+                          {safeToFixed(env.net_trueskill ?? 0)}
                         </span>
                         <span>P: {safeToFixed(env.percentile)}%</span>
                       </span>
