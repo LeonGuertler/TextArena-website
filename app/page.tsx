@@ -32,6 +32,7 @@ type EnvOption = {
 type Message = {
   sender: "left" | "right" | "center"
   text: string
+  senderId?: number | string  // Optional sender ID for identifying other players
 }
 
 type GameResult = {
@@ -86,6 +87,7 @@ export default function PlayPage() {
   const [gameConnected, setGameConnected] = useState(false)
   const [isMatchFound, setIsMatchFound] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('');
+  const [currentPlayerCount, setCurrentPlayerCount] = useState(2); // Default to 2 players
 
   // WebSocket - separate refs for matchmaking and game connections
   const { token, isInitialized } = useAuth()
@@ -629,6 +631,14 @@ export default function PlayPage() {
           setIsGameResultMinimized(false);
           setShowGameSelection(false); // Ensure game selection is hidden
           startMyTurn(msg.observation, msg.player_id);
+          
+          // If we have environment ID, get the player count
+          if (environmentId !== null) {
+            const env = envOptions.find(e => parseInt(e.id) === environmentId);
+            if (env) {
+              setCurrentPlayerCount(env.num_players);
+            }
+          }
         } else if (playerIdRef.current !== null) {
           startMyTurn(msg.observation, playerIdRef.current);
         }
@@ -810,9 +820,9 @@ export default function PlayPage() {
       if (id === "game" || id === "-1" || senderId === -1) {
         return { sender: "center" as const, text }
       } else if (senderId === myPlayer) {
-        return { sender: "right" as const, text }
+        return { sender: "right" as const, text, senderId: myPlayer }
       } else {
-        return { sender: "left" as const, text }
+        return { sender: "left" as const, text, senderId: senderId }
       }
     })
   
@@ -968,10 +978,13 @@ export default function PlayPage() {
           return (
             <div key={i} className={containerClass}>
               <div className={maxWidthClass}>
-                {/* Player name with appropriate alignment */}
+                {/* Only show player name for non-center messages */}
                 {m.sender !== "center" && (
                   <div className={`text-xs text-muted-foreground mb-1 ${nameAlignClass}`}>
-                    {m.sender === "left" ? `Player ${playerId === 0 ? 1 : 0}` : `Player ${playerId}`}
+                    {m.sender === "right" 
+                      ? `Player ${playerId}` // Current user (always right side)
+                      : `Player ${m.senderId !== undefined ? m.senderId : (1 - playerId)}` // For 2-player game
+                    }
                   </div>
                 )}
                 <span
@@ -1047,7 +1060,12 @@ export default function PlayPage() {
             </>
           ) : (
             <span className="text-sm">
-              Waiting for Opponent... (Time left: {opponentTimeLeft}s)
+              Waiting for Opponent... 
+              {currentPlayerCount === 2 ? (
+                <span>(Time left: {opponentTimeLeft}s)</span>
+              ) : (
+                <span>(Time left: Each player has 180s per turn)</span>
+              )}
             </span>
           )}
         </div>
