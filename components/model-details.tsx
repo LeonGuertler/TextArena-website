@@ -32,6 +32,14 @@ import { createRoot } from "react-dom/client"
 // -------------------------------------------------------------------
 // 1. New Skills & Explanations
 // -------------------------------------------------------------------
+
+const RADAR_COLORS = {
+  main: "#8884d8", // Purple for main model
+  comparison1: "#82ca9d", // Green for first comparison
+  comparison2: "#ffc658", // Yellow/Orange for second comparison
+  comparison3: "#ff8042"  // Orange/Red for third comparison
+};
+
 const SKILLS = [
   "Strategic Planning",
   "Spatial Thinking",
@@ -205,16 +213,52 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
       if (active && payload && payload.length > 0) {
         const data = payload[0].payload;
         
-        // Get sorted environments for both models
-        const mainEnvsSorted = [...data.mainEnvs].sort((a, b) => b.relativeWeight - a.relativeWeight);
-        const comparisonEnvsSorted = data.comparisonEnvs ? 
-          [...data.comparisonEnvs].sort((a, b) => b.relativeWeight - a.relativeWeight) : [];
-
-        // Combine environment data for comparison
-        const allEnvironments = new Set([
-          ...mainEnvsSorted.map(env => env.name),
-          ...comparisonEnvsSorted.map(env => env.name)
-        ]);
+        // Get all environments from all models
+        const allEnvNames = new Set<string>();
+        
+        // Collect environment names from each model
+        data.mainEnvs?.forEach(env => allEnvNames.add(env.name));
+        data.comparisonEnvs?.forEach(env => allEnvNames.add(env.name));
+        data.comparisonEnvs2?.forEach(env => allEnvNames.add(env.name));
+        data.comparisonEnvs3?.forEach(env => allEnvNames.add(env.name));
+        
+        // Convert to array and sort alphabetically
+        const allEnvironments = [...allEnvNames].sort();
+        
+        // Check which models have data
+        const models = [
+          { name: payload[0].name, color: RADAR_COLORS.main, elo: data.mainElo, envs: data.mainEnvs || [] },
+        ];
+        
+        if (data.comparisonElo > 0 && payload.length > 1) {
+          models.push({ 
+            name: payload[1].name, 
+            color: RADAR_COLORS.comparison1, 
+            elo: data.comparisonElo, 
+            envs: data.comparisonEnvs || [] 
+          });
+        }
+        
+        if (data.comparisonElo2 > 0 && payload.length > 2) {
+          models.push({ 
+            name: payload[2].name, 
+            color: RADAR_COLORS.comparison2, 
+            elo: data.comparisonElo2, 
+            envs: data.comparisonEnvs2 || [] 
+          });
+        }
+        
+        if (data.comparisonElo3 > 0 && payload.length > 3) {
+          models.push({ 
+            name: payload[3].name, 
+            color: RADAR_COLORS.comparison3, 
+            elo: data.comparisonElo3, 
+            envs: data.comparisonEnvs3 || [] 
+          });
+        }
+        
+        // Sort models by skill elo (highest first)
+        models.sort((a, b) => b.elo - a.elo);
 
         root.render(
           <div 
@@ -232,25 +276,22 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
             </div>
 
             {/* Overall Elo Comparison */}
-            <div className="flex justify-between border-t border-b border-muted-foreground py-2 min-h-[80px] gap-4">
-              <div className="min-w-0 flex-1 flex flex-col justify-between">
-                <div className={`text-[#8884d8] font-semibold ${isMobile ? "text-[10px]" : "text-xs"} break-words text-left`}>
-                  {payload[0].name}
-                </div>
-                <div className={`font-bold ${isMobile ? "text-[12px]" : "text-lg"} whitespace-nowrap`}>
-                  {data.mainElo.toFixed(1)}
-                </div>
+            <div className="flex justify-between border-t border-b border-muted-foreground py-2 min-h-[80px]">
+              <div className="grid grid-cols-2 gap-4 w-full">
+                {models.map((model, idx) => (
+                  <div key={idx} className="min-w-0 flex-1 flex flex-col justify-between">
+                    <div 
+                      className={`font-semibold ${isMobile ? "text-[10px]" : "text-xs"} break-words ${idx % 2 === 0 ? "text-left" : "text-right"}`} 
+                      style={{ color: model.color }}
+                    >
+                      {model.name}
+                    </div>
+                    <div className={`font-bold ${isMobile ? "text-[12px]" : "text-lg"} whitespace-nowrap ${idx % 2 === 0 ? "text-left" : "text-right"}`}>
+                      {model.elo.toFixed(1)}
+                    </div>
+                  </div>
+                ))}
               </div>
-              {data.comparisonElo > 0 && (
-                <div className="min-w-0 flex-1 flex flex-col justify-between">
-                  <div className={`text-[#82ca9d] font-semibold ${isMobile ? "text-[10px]" : "text-xs"} break-words text-right`}>
-                    {payload.length > 1 ? payload[1].name : ""}
-                  </div>
-                  <div className={`font-bold ${isMobile ? "text-[12px]" : "text-lg"} text-right whitespace-nowrap`}>
-                    {data.comparisonElo.toFixed(1)}
-                  </div>
-                </div>
-              )}
             </div>
             
             {/* Environments Section */}
@@ -258,53 +299,68 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
               <div className={`text-muted-foreground font-semibold mb-2 ${isMobile ? "text-[9px]" : "text-xs"}`}>
                 Environment Contributions
               </div>
+              
               <div className={`space-y-2 ${isMobile ? "text-[8px]" : "text-[10px]"}`}>
-                {[...allEnvironments].map((envName) => {
-                  const mainEnv = mainEnvsSorted.find(e => e.name === envName);
-                  const compEnv = comparisonEnvsSorted.find(e => e.name === envName);
+                {allEnvironments.map((envName) => {
+                  // Get this environment's data for each model
+                  const modelEnvData = models.map(model => {
+                    const env = model.envs.find(e => e.name === envName);
+                    return {
+                      modelName: model.name,
+                      color: model.color,
+                      elo: env?.elo || 0,
+                      relativeWeight: env?.relativeWeight || 0,
+                      hasData: !!env
+                    };
+                  });
+                  
+                  // Filter to only models that have data for this environment
+                  const modelsWithData = modelEnvData.filter(m => m.hasData);
+                  
+                  // Only show environments that at least one model has data for
+                  if (modelsWithData.length === 0) return null;
+                  
+                  // Find the model with highest elo for this environment
+                  const highestEloModel = [...modelsWithData].sort((a, b) => b.elo - a.elo)[0];
+                  
+                  // Find the percentage for the main model
+                  const mainModelData = modelEnvData.find(m => m.modelName === payload[0].name);
+                  const mainModelPercentage = mainModelData?.hasData 
+                    ? `(${(mainModelData.relativeWeight * 100).toFixed(0)}%)` 
+                    : '';
                   
                   return (
-                    <div key={envName} className="grid grid-cols-[1fr,auto,1fr] gap-2 items-baseline">
-                      {/* Main model values */}
-                      <div className="text-left">
-                        {mainEnv && (
-                          <span 
-                            className={`text-[#8884d8] ${
-                              compEnv && mainEnv.elo > compEnv.elo ? "underline" : ""
-                            }`}
-                          >
-                            {mainEnv.elo.toFixed(1)}
-                          </span>
-                        )}
+                    <div key={envName} className="grid grid-cols-[150px,1fr] gap-2 items-baseline">
+                      {/* Environment name and percentage - Fixed width */}
+                      <div className="text-navbar-foreground font-medium flex items-baseline">
+                        <div className="truncate mr-1">{envName.replace(/-/g, "\u200B-")}</div>
+                        <span className="text-muted-foreground font-medium text-[7px] flex-shrink-0">
+                          {mainModelPercentage}
+                        </span>
                       </div>
                       
-                      {/* Environment name and percentage on separate lines */}
-                      <div className="flex flex-col items-center text-navbar-foreground font-medium">
-                        <div className="whitespace-nowrap">
-                          {envName.replace(/-/g, "\u200B-")}
-                        </div>
-                        {mainEnv && (
-                          <div className="text-muted-foreground font-medium">
-                            ({(mainEnv.relativeWeight * 100).toFixed(1)}%)
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Comparison model values */}
-                      <div className="text-right">
-                        {compEnv && (
-                          <span 
-                            className={`text-[#82ca9d] ${
-                              mainEnv && compEnv.elo > mainEnv.elo ? "underline" : ""
-                            }`}
-                          >
-                            {compEnv.elo.toFixed(1)}
-                          </span>
-                        )}
+                      {/* Model values - Fixed column layout */}
+                      <div className="grid grid-cols-4 gap-1">
+                        {models.map((model, idx) => {
+                          const modelData = modelEnvData.find(m => m.modelName === model.name);
+                          if (!modelData || !modelData.hasData) {
+                            return <div key={idx} className="text-right">-</div>;
+                          }
+                          
+                          return (
+                            <div 
+                              key={idx} 
+                              className={`text-right font-mono ${modelData.elo === highestEloModel.elo ? "underline" : ""}`}
+                              style={{ color: model.color }}
+                            >
+                              {modelData.elo.toFixed(1)}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
-                })}
+                }).filter(Boolean)}
               </div>
             </div>
           </div>
@@ -467,8 +523,8 @@ function buildSkillDistribution(environments: ModelData["environment_performance
 }
 
 const calculateDomain = (eloValues: number[]) => {
-  // Filter out undefined/null values to avoid computation errors
-  const validEloValues = eloValues.filter(value => value !== undefined && value !== null);
+  // Filter out undefined/null/zero values to avoid computation errors
+  const validEloValues = eloValues.filter(value => value !== undefined && value !== null && value > 0);
 
   if (validEloValues.length === 0) return [0, 100]; // Default if no valid data is available
 
@@ -480,22 +536,25 @@ const calculateDomain = (eloValues: number[]) => {
     return [minValue - 10, maxValue + 10];
   }
 
-  // Check if there's any `comparisonElo`
-  const hasComparisonElo = validEloValues.some(value => value !== minValue && value !== maxValue);
+  // Check if there's more than one model being compared
+  const hasMultipleModels = validEloValues.length > SKILLS.length;
 
-  if (!hasComparisonElo) {
-    // No comparison model: use 20% above and below the mean Elo
+  if (!hasMultipleModels) {
+    // Only one model: use 20% buffer around the mean Elo
     const meanValue = validEloValues.reduce((sum, val) => sum + val, 0) / validEloValues.length;
     const buffer = meanValue * 0.2; // 20% buffer
 
     return [Math.floor(meanValue - buffer), Math.ceil(meanValue + buffer)];
   }
 
-  // Default behavior: Apply a small buffer (at least 5 Elo or 10% of the range)
+  // Multiple models: Apply a reasonable buffer
   const buffer = Math.max(5, (maxValue - minValue) * 0.1);
+  // You could replace this with a fixed range if preferred
   // return [Math.floor(minValue - buffer), Math.ceil(maxValue + buffer)];
-  return [850, 1150];
+  // Or use a predefined range like:
+  return [850, 1100];
 };
+
 
 
 
@@ -512,6 +571,8 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   const [chartRadius, setChartRadius] = useState(isMobile ? 90 : 150);
   // First, add state for comparison model and available models
   const [comparisonModel, setComparisonModel] = useState<ModelData | null>(null);
+  const [comparisonModel2, setComparisonModel2] = useState<ModelData | null>(null);
+  const [comparisonModel3, setComparisonModel3] = useState<ModelData | null>(null);
   const [availableModels, setAvailableModels] = useState<{model_name: string}[]>([]);
   // second,
   const [selectedEnvs, setSelectedEnvs] = useState<string[]>([
@@ -774,6 +835,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       const { data, error } = await supabase
         .from('models')
         .select('model_name')
+        .or('is_standard.eq.true,model_name.eq.Humanity')
         .order('model_name');
       
       if (error) throw error;
@@ -784,18 +846,23 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   }
 
   // Add function to fetch comparison model
-  async function fetchComparisonModel(modelNameToCompare: string) {
+  async function fetchComparisonModel(modelNameToCompare: string, setModelFunction: (model: ModelData | null) => void) {
     try {
+      if (modelNameToCompare === "none") {
+        setModelFunction(null);
+        return;
+      }
+      
       const { data, error } = await supabase.rpc("get_model_details_by_name_v2", {
         model_name_param: modelNameToCompare,
       });
-
+  
       if (error) throw error;
       if (!data || data.length === 0) {
-        setComparisonModel(null);
+        setModelFunction(null);
         return;
       }
-
+  
       // Process the data similarly to the main model
       const uniqueEnvs: Record<string, any> = {};
       (data[0].environment_performance || []).forEach((env: any) => {
@@ -805,7 +872,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         }
       });
       const dedupedEnvs = Object.values(uniqueEnvs);
-
+  
       const rawModel = data[0];
       const processedModel: ModelData = {
         model_name: rawModel.model_name,
@@ -822,11 +889,11 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         recent_games: rawModel.recent_games,
         id: rawModel.id,
       };
-
-      setComparisonModel(processedModel);
+  
+      setModelFunction(processedModel);
     } catch (err) {
       console.error("Error fetching comparison model:", err);
-      setComparisonModel(null);
+      setModelFunction(null);
     }
   }
 
@@ -926,57 +993,159 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
 
   // Add dropdown component for model selection
   const ModelComparisonSelect = () => {
-    // Ensure availableModels is sorted alphabetically (already done in fetchAvailableModels)
+    // Ensure availableModels is sorted alphabetically
     const sortedModels = [...availableModels].sort((a, b) =>
       a.model_name.localeCompare(b.model_name)
     );
-  
+    
     // Separate "Humanity" and the rest
     const humanityModel = sortedModels.find(m => m.model_name === "Humanity");
     const otherModels = sortedModels.filter(
-      m => m.model_name !== "Humanity" && m.model_name !== model.model_name
+      m => m.model_name !== "Humanity" && m.model_name !== model?.model_name
     );
-  
+    
     // Check if the current model is "Humanity"
-    const isCurrentModelHumanity = model.model_name === "Humanity";
+    const isCurrentModelHumanity = model?.model_name === "Humanity";
+    
+    // Create a filtered list for each dropdown that excludes already selected models
+    const getFilteredModels = (excludeModels: string[]) => {
+      const filtered = sortedModels.filter(
+        m => m.model_name !== model?.model_name && !excludeModels.includes(m.model_name)
+      );
+      
+      // Always include Humanity unless it's the main model
+      const filteredHumanity = !isCurrentModelHumanity && !excludeModels.includes("Humanity") 
+        ? humanityModel 
+        : null;
+        
+      const filteredOthers = filtered.filter(
+        m => m.model_name !== "Humanity"
+      );
+      
+      return { filteredHumanity, filteredOthers };
+    };
+    
+    // Get currently selected model names for filtering
+    const selectedModels = [
+      comparisonModel?.model_name, 
+      comparisonModel2?.model_name, 
+      comparisonModel3?.model_name
+    ].filter(Boolean) as string[];
+    
+    // Get filtered lists for each dropdown
+    const dropdown1Models = getFilteredModels([]);
+    const dropdown2Models = getFilteredModels([comparisonModel?.model_name].filter(Boolean) as string[]);
+    const dropdown3Models = getFilteredModels([
+      comparisonModel?.model_name, 
+      comparisonModel2?.model_name
+    ].filter(Boolean) as string[]);
   
     return (
-      <div className="flex items-center gap-2 mb-4">
-        <Scale className="h-4 w-4 text-navbarForeground" />
-        <Select
-          onValueChange={(value) => {
-            if (value === "none") {
-              setComparisonModel(null);
-            } else {
-              fetchComparisonModel(value);
-            }
-          }}
-          value={comparisonModel?.model_name || "none"}
-        >
-          <SelectTrigger className="w-[300px] bg-background text-navbarForeground border-navbar font-mono">
-            <SelectValue placeholder="Compare with..." />
-          </SelectTrigger>
-          <SelectContent>
-            {/* "None" option first */}
-            <SelectItem value="none" className="font-mono">
-              None
-            </SelectItem>
-            
-            {/* "Humanity" option next, only if it’s not the current model */}
-            {humanityModel && !isCurrentModelHumanity && (
-              <SelectItem value="Humanity" className="font-mono">
-                Humanity
-              </SelectItem>
-            )}
-            
-            {/* Remaining models in alphabetical order */}
-            {otherModels.map(m => (
-              <SelectItem key={m.model_name} value={m.model_name} className="font-mono">
-                {m.model_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className={`${isMobile ? 'mb-24 space-y-2' : ''}`}>
+        <div className="flex items-center gap-2 mb-4">
+          <Scale className="h-4 w-4 text-navbarForeground" />
+          <span className="text-navbarForeground font-mono">Compare with up to 3 models</span>
+        </div>
+        
+        {/* Horizontal layout for desktop, vertical for mobile */}
+        <div className={isMobile ? 'flex flex-col space-y-2' : 'flex flex-row space-x-4 items-start'}>
+          {/* First comparison dropdown */}
+          <div className={`flex items-center gap-2`}>
+            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: RADAR_COLORS.comparison1 }}></div>
+            <Select
+              onValueChange={(value) => {
+                fetchComparisonModel(value, setComparisonModel);
+                // Reset dependent models if this one is set to none
+                if (value === "none") {
+                  setComparisonModel2(null);
+                  setComparisonModel3(null);
+                }
+              }}
+              value={comparisonModel?.model_name || "none"}
+            >
+              <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-background text-navbarForeground border-navbar font-mono text-sm`}>
+                <SelectValue placeholder="First model..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none" className="font-mono">None</SelectItem>
+                
+                {dropdown1Models.filteredHumanity && (
+                  <SelectItem value="Humanity" className="font-mono">Humanity</SelectItem>
+                )}
+                
+                {dropdown1Models.filteredOthers.map(m => (
+                  <SelectItem key={m.model_name} value={m.model_name} className="font-mono">
+                    {m.model_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Second comparison dropdown - only show if first comparison is selected */}
+          {comparisonModel && (
+            <div className={`flex items-center gap-2`}>
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: RADAR_COLORS.comparison2 }}></div>
+              <Select
+                onValueChange={(value) => {
+                  fetchComparisonModel(value, setComparisonModel2);
+                  // Reset dependent model if this one is set to none
+                  if (value === "none") {
+                    setComparisonModel3(null);
+                  }
+                }}
+                value={comparisonModel2?.model_name || "none"}
+              >
+                <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-background text-navbarForeground border-navbar font-mono text-sm`}>
+                  <SelectValue placeholder="Second model..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none" className="font-mono">None</SelectItem>
+                  
+                  {dropdown2Models.filteredHumanity && (
+                    <SelectItem value="Humanity" className="font-mono">Humanity</SelectItem>
+                  )}
+                  
+                  {dropdown2Models.filteredOthers.map(m => (
+                    <SelectItem key={m.model_name} value={m.model_name} className="font-mono">
+                      {m.model_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          {/* Third comparison dropdown - only show if second comparison is selected */}
+          {comparisonModel2 && (
+            <div className={`flex items-center gap-2`}>
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: RADAR_COLORS.comparison3 }}></div>
+              <Select
+                onValueChange={(value) => {
+                  fetchComparisonModel(value, setComparisonModel3);
+                }}
+                value={comparisonModel3?.model_name || "none"}
+              >
+                <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-background text-navbarForeground border-navbar font-mono text-sm`}>
+                  <SelectValue placeholder="Third model..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none" className="font-mono">None</SelectItem>
+                  
+                  {dropdown3Models.filteredHumanity && (
+                    <SelectItem value="Humanity" className="font-mono">Humanity</SelectItem>
+                  )}
+                  
+                  {dropdown3Models.filteredOthers.map(m => (
+                    <SelectItem key={m.model_name} value={m.model_name} className="font-mono">
+                      {m.model_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -990,16 +1159,92 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       ? buildSkillDistribution(comparisonModel.environment_performance)
           .find(s => s.skill === skill) || { elo: 0, envs: [] }
       : { elo: 0, envs: [] };
-
+      
+    const comparisonModel2Skill = comparisonModel2 
+      ? buildSkillDistribution(comparisonModel2.environment_performance)
+          .find(s => s.skill === skill) || { elo: 0, envs: [] }
+      : { elo: 0, envs: [] };
+      
+    const comparisonModel3Skill = comparisonModel3 
+      ? buildSkillDistribution(comparisonModel3.environment_performance)
+          .find(s => s.skill === skill) || { elo: 0, envs: [] }
+      : { elo: 0, envs: [] };
+  
     return {
       skill,
       mainElo: mainModelSkill.elo,
       comparisonElo: comparisonModelSkill.elo,
+      comparisonElo2: comparisonModel2Skill.elo,
+      comparisonElo3: comparisonModel3Skill.elo,
       // Keep the environment data for tooltips
       mainEnvs: mainModelSkill.envs,
-      comparisonEnvs: comparisonModelSkill.envs
+      comparisonEnvs: comparisonModelSkill.envs,
+      comparisonEnvs2: comparisonModel2Skill.envs,
+      comparisonEnvs3: comparisonModel3Skill.envs
     };
   });
+
+  // This function will sort models by their ELO values across all skills
+  const sortModelsByArea = (mainModel, compModel1, compModel2, compModel3, skillData) => {
+    // Calculate total area (sum of all ELO values) for each model
+    const calculateArea = (dataKey) => {
+      return skillData.reduce((sum, item) => sum + (item[dataKey] || 0), 0);
+    };
+
+    // Create array of models with their areas
+    const models = [];
+    
+    if (mainModel) {
+      models.push({ 
+        model: mainModel, 
+        area: calculateArea('mainElo'),
+        name: mainModel.model_name,
+        dataKey: 'mainElo',
+        color: RADAR_COLORS.main
+      });
+    }
+    
+    if (compModel1) {
+      models.push({ 
+        model: compModel1, 
+        area: calculateArea('comparisonElo'),
+        name: compModel1.model_name,
+        dataKey: 'comparisonElo',
+        color: RADAR_COLORS.comparison1
+      });
+    }
+    
+    if (compModel2) {
+      models.push({ 
+        model: compModel2, 
+        area: calculateArea('comparisonElo2'),
+        name: compModel2.model_name,
+        dataKey: 'comparisonElo2',
+        color: RADAR_COLORS.comparison2
+      });
+    }
+    
+    if (compModel3) {
+      models.push({ 
+        model: compModel3, 
+        area: calculateArea('comparisonElo3'),
+        name: compModel3.model_name,
+        dataKey: 'comparisonElo3',
+        color: RADAR_COLORS.comparison3
+      });
+    }
+    
+    // Sort by area - DESCENDING order so largest areas come first (rendered first, on bottom)
+    return models.sort((a, b) => b.area - a.area);
+  };
+
+  // Extract all possible model ELO values for domain calculation
+  const allEloValues = combinedSkillData.flatMap(item => [
+    item.mainElo, 
+    item.comparisonElo, 
+    item.comparisonElo2,
+    item.comparisonElo3
+  ].filter(elo => elo > 0));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -1282,21 +1527,30 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
 
           <CardContent>
             <div className="relative">
-              <div className="relative z-20">
+              {/* Model Selection UI */}
+              <div className={`relative z-20 ${isMobile ? 'mb-24' : ''}`}>
                 <ModelComparisonSelect />
               </div>
+              
+              {/* Mobile Tooltip Container - Adjust positioning to avoid overlap */}
               {isMobile && (
                 <div
                   ref={RadarTooltipContainerRef}
-                  className="absolute top-[60px] left-0 right-0 z-10 flex justify-center items-start h-[120px] bg-[hsl(var(--navbar))] bg-opacity-95 transition-all duration-200 py-2 px-4 overflow-y-auto pointer-events-auto border border-[hsl(var(--border))] rounded-lg"
+                  className="absolute top-[180px] left-0 right-0 z-10 flex justify-center items-start h-[200px] bg-[hsl(var(--navbar))] bg-opacity-95 transition-all duration-200 py-2 px-4 overflow-y-auto pointer-events-auto border border-[hsl(var(--border))] rounded-lg"
                 ></div>
               )}
+
+              {/* Add a divider between selection and chart on desktop */}
+              {!isMobile && (
+                <div className="border-t border-[hsl(var(--border))] my-4"></div>
+              )}
+              
               <div className={`flex ${isMobile ? "block" : "gap-4"}`}>
                 {/* Tooltip Container for Desktop */}
                 {!isMobile && (
                   <div 
                     ref={RadarTooltipContainerRef}
-                    className="w-1/3 h-[400px] bg-[hsl(var(--navbar))] border border-[hsl(var(--border))] rounded-lg p-2 overflow-y-auto"
+                    className="w-1/2 h-[400px] bg-[hsl(var(--navbar))] border border-[hsl(var(--border))] rounded-lg p-2 overflow-y-auto"
                   ></div>
                 )}
                 
@@ -1308,9 +1562,9 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                 >
                   <div 
                     style={{ 
-                      width: isMobile ? "350px" : "100%",  // Change from 400px to 350px
-                      height: 400, 
-                      paddingTop: isMobile ? "150px" : 0,
+                      width: isMobile ? "350px" : "100%",
+                      height: 450, 
+                      paddingTop: isMobile ? "200px" : 0, // Increased padding for mobile to make room for tooltip
                       margin: "0 auto",
                       minWidth: isMobile ? "300px" : "auto" 
                     }}
@@ -1318,9 +1572,10 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart 
                         data={combinedSkillData}
-                        margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
+                        margin={{ top: 20, right: 30, left: 30, bottom: isMobile ? 40 : 20 }}
                         outerRadius={isMobile ? 90 : chartRadius}
                       >
+                        {/* Chart components remain the same */}
                         <PolarGrid stroke="white" radialLines={true} />
                         <PolarAngleAxis
                           dataKey="skill"
@@ -1346,7 +1601,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                           }}
                         />
                         <PolarRadiusAxis
-                          domain={calculateDomain(combinedSkillData.flatMap(item => [item.mainElo, item.comparisonElo]))}
+                          domain={calculateDomain(allEloValues)}
                           axisLine={false}
                           tick={false}
                           angle={90}
@@ -1360,29 +1615,15 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                           }
                           trigger="click"
                         />
-                        {/* Main model radar */}
-                        <Radar 
-                          name={model.model_name}
-                          dataKey="mainElo" 
-                          stroke="#8884d8" 
-                          fill="#8884d8" 
-                          fillOpacity={0.6}
-                          className="cursor-pointer"
-                          radiusScale={0.75}
-                          activeDot={{
-                            r: isMobile ? 4 : 6,
-                            stroke: "white",
-                            strokeWidth: 2,
-                            fill: "#8884d8",
-                          }}
-                        />
-                        {/* Comparison model radar */}
-                        {comparisonModel && (
+
+                        {/* Dynamic rendering of sorted radar charts */}
+                        {sortModelsByArea(model, comparisonModel, comparisonModel2, comparisonModel3, combinedSkillData).map((modelData, index) => (
                           <Radar
-                            name={comparisonModel.model_name}
-                            dataKey="comparisonElo"
-                            stroke="#82ca9d"
-                            fill="#82ca9d"
+                            key={index}
+                            name={modelData.name}
+                            dataKey={modelData.dataKey}
+                            stroke={modelData.color}
+                            fill={modelData.color}
                             fillOpacity={0.6}
                             className="cursor-pointer"
                             radiusScale={0.75}
@@ -1390,10 +1631,11 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                               r: isMobile ? 4 : 6,
                               stroke: "white",
                               strokeWidth: 2,
-                              fill: "#82ca9d",
+                              fill: modelData.color,
                             }}
                           />
-                        )}
+                        ))}
+                        
                         <Legend 
                           align="center"
                           verticalAlign="top"
@@ -1401,7 +1643,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                             color: "white", 
                             fontFamily: "var(--font-mono)",
                             fontSize: isMobile ? 9 : 11,
-                            marginTop:isMobile ?  "-35px"  : "-20px"  // Add this to move it higher
+                            marginTop: isMobile ? "-80px" : "-20px"
                           }}
                         />
                       </RadarChart>
