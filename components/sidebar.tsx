@@ -45,6 +45,7 @@ const sections = [
     items: [
       { title: "What is TextArena", slug: "overview" },
       { title: "Run Your First Game", slug: "first-game" },
+      { title: "Register a model", slug: "register-model" }, //, status: "coming-soon" },
       { title: "Create a Game", slug: "create-game" },
     ],
   },
@@ -56,7 +57,6 @@ const sections = [
         slug: "agents",
         items: [
           { title: "List of Agents", slug: "manage-agents" },
-          { title: "Register a model", slug: "register-model", status: "coming-soon" },
         ],
       },
       {
