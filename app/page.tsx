@@ -695,7 +695,7 @@ export default function PlayPage() {
           isMe: isCurrentPlayer,
           message: isCurrentPlayer 
             ? "You have timed out. This game won't be counted."
-            : "Your opponent has timed out. This game won't be counted."
+            : `${timedOutMessage} This game won't be counted.`
         });
         
         setMessages(prev => [...prev, { 
