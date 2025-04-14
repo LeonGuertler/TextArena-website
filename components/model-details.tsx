@@ -225,40 +225,61 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
         // Convert to array and sort alphabetically
         const allEnvironments = [...allEnvNames].sort();
         
-        // Check which models have data
-        const models = [
-          { name: payload[0].name, color: RADAR_COLORS.main, elo: data.mainElo, envs: data.mainEnvs || [] },
-        ];
+        // Get color mapping from the window object (set by sortModelsByArea)
+        const colorMapping = window.radarColorMapping || {
+          mainElo: RADAR_COLORS.main,
+          comparisonElo: RADAR_COLORS.comparison1,
+          comparisonElo2: RADAR_COLORS.comparison2,
+          comparisonElo3: RADAR_COLORS.comparison3
+        };
         
-        if (data.comparisonElo > 0 && payload.length > 1) {
-          models.push({ 
-            name: payload[1].name, 
-            color: RADAR_COLORS.comparison1, 
-            elo: data.comparisonElo, 
-            envs: data.comparisonEnvs || [] 
+        // Create models array with the data that's needed
+        const modelList = [];
+        
+        // Add main model if it has data
+        if (data.mainElo > 0) {
+          modelList.push({
+            name: payload.find(p => p.dataKey === 'mainElo')?.name || 'Main Model',
+            color: colorMapping.mainElo,
+            elo: data.mainElo,
+            envs: data.mainEnvs || [],
+            dataKey: 'mainElo'
           });
         }
         
-        if (data.comparisonElo2 > 0 && payload.length > 2) {
-          models.push({ 
-            name: payload[2].name, 
-            color: RADAR_COLORS.comparison2, 
-            elo: data.comparisonElo2, 
-            envs: data.comparisonEnvs2 || [] 
+        // Add comparison models if they have data
+        if (data.comparisonElo > 0) {
+          modelList.push({
+            name: payload.find(p => p.dataKey === 'comparisonElo')?.name || 'Comparison 1',
+            color: colorMapping.comparisonElo,
+            elo: data.comparisonElo,
+            envs: data.comparisonEnvs || [],
+            dataKey: 'comparisonElo'
           });
         }
         
-        if (data.comparisonElo3 > 0 && payload.length > 3) {
-          models.push({ 
-            name: payload[3].name, 
-            color: RADAR_COLORS.comparison3, 
-            elo: data.comparisonElo3, 
-            envs: data.comparisonEnvs3 || [] 
+        if (data.comparisonElo2 > 0) {
+          modelList.push({
+            name: payload.find(p => p.dataKey === 'comparisonElo2')?.name || 'Comparison 2',
+            color: colorMapping.comparisonElo2,
+            elo: data.comparisonElo2,
+            envs: data.comparisonEnvs2 || [],
+            dataKey: 'comparisonElo2'
           });
         }
         
-        // Sort models by skill elo (highest first)
-        models.sort((a, b) => b.elo - a.elo);
+        if (data.comparisonElo3 > 0) {
+          modelList.push({
+            name: payload.find(p => p.dataKey === 'comparisonElo3')?.name || 'Comparison 3',
+            color: colorMapping.comparisonElo3,
+            elo: data.comparisonElo3,
+            envs: data.comparisonEnvs3 || [],
+            dataKey: 'comparisonElo3'
+          });
+        }
+        
+        // Sort models by skill elo (highest first) for display
+        const models = modelList.sort((a, b) => b.elo - a.elo);
 
         root.render(
           <div 
@@ -286,7 +307,8 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
                     >
                       {model.name}
                     </div>
-                    <div className={`font-bold ${isMobile ? "text-[12px]" : "text-lg"} whitespace-nowrap ${idx % 2 === 0 ? "text-left" : "text-right"}`}>
+                    <div className={`font-bold ${isMobile ? "text-[12px]" : "text-lg"} whitespace-nowrap ${idx % 2 === 0 ? "text-left" : "text-right"}`}
+                         style={{ color: model.color }}>
                       {model.elo.toFixed(1)}
                     </div>
                   </div>
@@ -308,6 +330,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
                     return {
                       modelName: model.name,
                       color: model.color,
+                      dataKey: model.dataKey,
                       elo: env?.elo || 0,
                       relativeWeight: env?.relativeWeight || 0,
                       hasData: !!env
@@ -323,8 +346,8 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
                   // Find the model with highest elo for this environment
                   const highestEloModel = [...modelsWithData].sort((a, b) => b.elo - a.elo)[0];
                   
-                  // Find the percentage for the main model
-                  const mainModelData = modelEnvData.find(m => m.modelName === payload[0].name);
+                  // Find the percentage for the main model (using payload[0] which should be the main model)
+                  const mainModelData = modelEnvData.find(m => m.dataKey === 'mainElo');
                   const mainModelPercentage = mainModelData?.hasData 
                     ? `(${(mainModelData.relativeWeight * 100).toFixed(0)}%)` 
                     : '';
@@ -342,7 +365,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
                       {/* Model values - Fixed column layout */}
                       <div className="grid grid-cols-4 gap-1">
                         {models.map((model, idx) => {
-                          const modelData = modelEnvData.find(m => m.modelName === model.name);
+                          const modelData = modelEnvData.find(m => m.dataKey === model.dataKey);
                           if (!modelData || !modelData.hasData) {
                             return <div key={idx} className="text-right">-</div>;
                           }
@@ -1190,7 +1213,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     const calculateArea = (dataKey) => {
       return skillData.reduce((sum, item) => sum + (item[dataKey] || 0), 0);
     };
-
+  
     // Create array of models with their areas
     const models = [];
     
@@ -1200,7 +1223,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         area: calculateArea('mainElo'),
         name: mainModel.model_name,
         dataKey: 'mainElo',
-        color: RADAR_COLORS.main
+        color: RADAR_COLORS.main  // Keep original color
       });
     }
     
@@ -1210,7 +1233,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         area: calculateArea('comparisonElo'),
         name: compModel1.model_name,
         dataKey: 'comparisonElo',
-        color: RADAR_COLORS.comparison1
+        color: RADAR_COLORS.comparison1  // Keep original color
       });
     }
     
@@ -1220,7 +1243,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         area: calculateArea('comparisonElo2'),
         name: compModel2.model_name,
         dataKey: 'comparisonElo2',
-        color: RADAR_COLORS.comparison2
+        color: RADAR_COLORS.comparison2  // Keep original color
       });
     }
     
@@ -1230,11 +1253,12 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         area: calculateArea('comparisonElo3'),
         name: compModel3.model_name,
         dataKey: 'comparisonElo3',
-        color: RADAR_COLORS.comparison3
+        color: RADAR_COLORS.comparison3  // Keep original color
       });
     }
     
     // Sort by area - DESCENDING order so largest areas come first (rendered first, on bottom)
+    // This only affects the rendering order, not the assigned colors
     return models.sort((a, b) => b.area - a.area);
   };
 
