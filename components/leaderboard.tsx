@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea } from "recharts"
 import { supabase } from "@/lib/supabase"
 import { LeaderboardCard } from "@/components/leaderboard-card"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -37,7 +37,8 @@ interface ModelData {
   model_id: number
   model_name: string
   is_standard: boolean
-  elo: number
+  trueskill: number
+  trueskill_sd: number
   games_played: number
   win_rate: number
   wins: number
@@ -46,17 +47,24 @@ interface ModelData {
   avg_time: number
 }
 
-interface EloHistoryRow {
+interface TrueskillHistoryRow {
   model_id: number
   model_name: string
   interval_start: string 
-  elo_value: number
+  trueskill_value: number
+  trueskill_sd_value: number
 }
 
 function CustomHistoryTooltip({ active, payload, label, isMobile, containerRef }: any) {
   if (active && payload && payload.length > 0) {
     const formattedTime = new Date(label).toLocaleTimeString([], { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })
-    const sortedPayload = [...payload].sort((a, b) => b.value - a.value)
+    
+    // Filter payload to only include the main series (not the upper/lower bounds)
+    const mainPayload = payload.filter((entry: any) => {
+      return !entry.dataKey.includes('_upper') && !entry.dataKey.includes('_lower');
+    });
+    
+    const sortedPayload = [...mainPayload].sort((a, b) => b.value - a.value)
 
     const tooltipContent = (
       <div
@@ -67,11 +75,22 @@ function CustomHistoryTooltip({ active, payload, label, isMobile, containerRef }
         }`}
       >
         <p className="font-bold text-white mb-0.5">{formattedTime}</p>
-        {sortedPayload.map((entry: any, index: number) => (
-          <p key={index} style={{ color: entry.stroke }} className="m-0 leading-tight">
-            {Math.round(entry.value)}: {entry.name}
-          </p>
-        ))}
+        {sortedPayload.map((entry: any, index: number) => {
+          // Find the corresponding upper and lower bounds
+          const upperEntry = payload.find((p: any) => p.dataKey === `${entry.dataKey}_upper`);
+          const lowerEntry = payload.find((p: any) => p.dataKey === `${entry.dataKey}_lower`);
+          
+          // Calculate the confidence interval (if bounds exist)
+          const confidenceText = (upperEntry && lowerEntry) 
+            ? ` (${lowerEntry.value.toFixed(1)}-${upperEntry.value.toFixed(1)})`
+            : '';
+            
+          return (
+            <p key={index} style={{ color: entry.stroke }} className="m-0 leading-tight">
+              {entry.value.toFixed(1)}{confidenceText}: {entry.name}
+            </p>
+          );
+        })}
       </div>
     )
 
@@ -85,7 +104,7 @@ function CustomHistoryTooltip({ active, payload, label, isMobile, containerRef }
   return null
 }
 
-function EloHistoryChart({
+function TrueskillHistoryChart({
   data,
   modelNames,
   hoveredModel,
@@ -178,6 +197,61 @@ function EloHistoryChart({
           wrapperStyle={{ outline: "none" }}
           position={isMobile ? { x: 0, y: 0 } : undefined}
         />
+        
+        {/* Always render ReferenceAreas but control visibility with opacity */}
+        {data.length > 0 && modelNames.map((name, idx) => 
+          data.map((point, pointIdx) => {
+            // Skip if we don't have both upper and lower values
+            if (!point[`${name}_upper`] || !point[`${name}_lower`]) return null;
+            
+            // Always render but control visibility with opacity
+            return (
+              <ReferenceArea
+                key={`${name}_band_${pointIdx}`}
+                x1={point.date}
+                x2={point.date}
+                y1={point[`${name}_lower`]}
+                y2={point[`${name}_upper`]}
+                fill={CHART_COLORS[idx % CHART_COLORS.length]}
+                fillOpacity={hoveredModel === name ? 0.2 : 0}
+                stroke="none"
+              />
+            );
+          })
+        )}
+        
+        {/* Always render confidence bands but control visibility with opacity */}
+        {modelNames.map((name, idx) => (
+          <Line
+            key={`${name}_lower`}
+            type="monotone"
+            dataKey={`${name}_lower`}
+            stroke={CHART_COLORS[idx % CHART_COLORS.length]}
+            strokeWidth={1.5}
+            strokeDasharray="3 3"
+            dot={false}
+            connectNulls={true}
+            activeDot={false}
+            opacity={hoveredModel === name ? 0.7 : 0}
+          />
+        ))}
+        
+        {modelNames.map((name, idx) => (
+          <Line
+            key={`${name}_upper`}
+            type="monotone"
+            dataKey={`${name}_upper`}
+            stroke={CHART_COLORS[idx % CHART_COLORS.length]}
+            strokeWidth={1.5}
+            strokeDasharray="3 3"
+            dot={false}
+            connectNulls={true}
+            activeDot={false}
+            opacity={hoveredModel === name ? 0.7 : 0}
+          />
+        ))}
+        
+        {/* Render the main trueskill lines on top */}
         {modelNames.map((name, idx) => (
           <Line
             key={name}
@@ -188,7 +262,7 @@ function EloHistoryChart({
             strokeWidth={hoveredModel === name ? 4 : 2}
             dot={false}
             activeDot={{ r: isMobile ? 6 : 8 }}
-            opacity={hoveredModel && hoveredModel !== name ? 0.3 : 1}
+            opacity={hoveredModel ? (hoveredModel === name ? 1 : 0.15) : 1}
           />
         ))}
       </LineChart>
@@ -230,7 +304,7 @@ export function Leaderboard() {
   });
   const [currentPage, setCurrentPage] = useState(1)
   const [models, setModels] = useState<ModelData[]>([])
-  const [eloHistory, setEloHistory] = useState<EloHistoryRow[]>([])
+  const [trueskillHistory, setTrueskillHistory] = useState<TrueskillHistoryRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingHistory, setIsLoadingHistory] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -282,7 +356,7 @@ export function Leaderboard() {
   
       try {
         const { data: modelData, error: modelError } = await supabase.rpc(
-          "get_leaderboard_from_mv_new",
+          "get_leaderboard_from_mv_trueskill",
           { skill_subset: selectedSubset }
         );
         if (modelError) throw modelError;
@@ -298,11 +372,11 @@ export function Leaderboard() {
     fetchLeaderboardData();
   }, [selectedSubset, envSubsets]);
 
-  // Second useEffect for fetching Elo history data
+  // Second useEffect for fetching Trueskill history data
   useEffect(() => {
     if (Object.keys(envSubsets).length === 0) return; // Wait for envSubsets
   
-    async function fetchEloHistory() {
+    async function fetchTrueskillHistory() {
       setIsLoadingHistory(true);
   
       try {
@@ -326,9 +400,9 @@ export function Leaderboard() {
           }
   
           const functionNameMap = {
-            '48H': { groups: 'get_elo_history_last48hrs_by_groups', env: 'get_elo_history_last48hrs_by_env' },
-            '7D': { groups: 'get_elo_history_last7days_by_groups', env: 'get_elo_history_last7days_by_env' },
-            '30D': { groups: 'get_elo_history_last30days_by_groups', env: 'get_elo_history_last30days_by_env' }
+            '48H': { groups: 'get_trueskill_history_last48hrs_by_groups', env: 'get_trueskill_history_last48hrs_by_env' },
+            '7D': { groups: 'get_trueskill_history_last7days_by_groups', env: 'get_trueskill_history_last7days_by_env' },
+            '30D': { groups: 'get_trueskill_history_last30days_by_groups', env: 'get_trueskill_history_last30days_by_env' }
           };
   
           let historyData, historyError;
@@ -350,61 +424,72 @@ export function Leaderboard() {
           }
   
           if (historyError) throw historyError;
-          setEloHistory(historyData || []);
+          setTrueskillHistory(historyData || []);
         } else {
-          setEloHistory([]);
+          setTrueskillHistory([]);
         }
       } catch (err: any) {
-        console.error("Error fetching Elo history:", err);
+        console.error("Error fetching Trueskill history:", err);
       } finally {
         setIsLoadingHistory(false);
       }
     }
   
-    fetchEloHistory();
+    fetchTrueskillHistory();
   }, [selectedTimeRange, currentPage, selectedSubset, filteredModels, envSubsets]); // Add envSubsets
 
 
   // Prepare chart data. This is now much simpler.
   const chartData = useMemo(() => {
-    if (!eloHistory || eloHistory.length === 0) return []
-
+    if (!trueskillHistory || trueskillHistory.length === 0) return []
+  
     const grouped: Record<string, any> = {}
-
+  
     // Group by date and model.
-    eloHistory.forEach((row) => {
+    trueskillHistory.forEach((row) => {
       const dt = new Date(row.interval_start)
       dt.setMinutes(0, 0, 0) // Normalize to the hour.
       const dateKey = dt.toISOString()
-
+  
       if (!grouped[dateKey]) {
         grouped[dateKey] = { date: dateKey }
       }
-
+  
       // Always update, ensuring the *last* value for the hour is used.
-      grouped[dateKey][row.model_name] = row.elo_value
+      grouped[dateKey][row.model_name] = row.trueskill_value
+      
+      // Add upper and lower bounds for confidence bands
+      grouped[dateKey][`${row.model_name}_upper`] = row.trueskill_value + row.trueskill_sd_value
+      grouped[dateKey][`${row.model_name}_lower`] = row.trueskill_value - row.trueskill_sd_value
     })
-
+  
     // Sort by date.
     const sortedData = Object.values(grouped).sort(
       (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     )
-
+  
     // Fill in missing data for *all* models on the current page.
     const currentModelNames = new Set(paginatedModels.map((model) => model.model_name))
     currentModelNames.forEach((modelName) => {
-      let lastValue: number | undefined = 1000 // Initialize with a default
+      let lastValue: number | undefined = 25 // Initialize with a default
+      let lastUpper: number | undefined = 25 + 8 // Default + default SD
+      let lastLower: number | undefined = 25 - 8 // Default - default SD
+      
       sortedData.forEach((row: any) => {
         if (row[modelName] === undefined) {
           row[modelName] = lastValue
+          row[`${modelName}_upper`] = lastUpper
+          row[`${modelName}_lower`] = lastLower
         } else {
           lastValue = row[modelName]
+          lastUpper = row[`${modelName}_upper`]
+          lastLower = row[`${modelName}_lower`]
         }
       })
     })
-
+  
     return sortedData
-  }, [eloHistory, paginatedModels])
+  }, [trueskillHistory, paginatedModels])
 
   const chartModelNames = useMemo(() => {
     if (!paginatedModels) return []
@@ -579,7 +664,7 @@ export function Leaderboard() {
                 <TableRow>
                   <TableHead className="w-[60px] text-navbarForeground">Rank</TableHead>
                   <TableHead className="text-navbarForeground">Model</TableHead>
-                  <TableHead className="text-right text-navbarForeground">Elo</TableHead>
+                  <TableHead className="text-right text-navbarForeground">Trueskill</TableHead>
                   <TableHead className="text-right text-navbarForeground">Games</TableHead>
                   <TableHead className="text-right text-navbarForeground">Win Rate</TableHead>
                   <TableHead className="text-center text-navbarForeground">W/D/L</TableHead>
@@ -637,7 +722,7 @@ export function Leaderboard() {
                         </Link>
                       </TableCell>
                       <TableCell className="text-right font-semibold text-navbarForeground">
-                        {Math.round(model.elo)}
+                        {model.trueskill.toFixed(1)} ± {model.trueskill_sd.toFixed(1)}
                       </TableCell>
                       <TableCell className="text-right text-navbarForeground">
                         {model.games_played.toLocaleString()}
@@ -721,7 +806,7 @@ export function Leaderboard() {
                 {/* Desktop view */}
                 {!isMobile && (
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold text-navbarForeground font-mono">Elo History</h3>
+                    <h3 className="text-xl font-bold text-navbarForeground font-mono">Trueskill History</h3>
                     <div className="flex gap-1 bg-background rounded-md p-0.5 border border-navbar">
                       {[
                         { label: 'L2D', value: '48H' },
@@ -748,7 +833,7 @@ export function Leaderboard() {
                 {isMobile && (
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-bold text-navbarForeground font-mono">Elo History</h3>
+                      <h3 className="text-xl font-bold text-navbarForeground font-mono">Trueskill History</h3>
                       <div className="relative flex items-center">
                         <div className="group">
                           <Info className="h-4 w-4 text-muted-foreground" />
@@ -784,9 +869,9 @@ export function Leaderboard() {
                 )}
 
                 {isLoadingHistory ? (
-                  <p className="text-navbarForeground">Loading elo history...</p>
+                  <p className="text-navbarForeground">Loading trueskill history...</p>
                 ) : (
-                  <EloHistoryChart
+                  <TrueskillHistoryChart
                     data={chartData}
                     modelNames={chartModelNames}
                     hoveredModel={hoveredModel}
