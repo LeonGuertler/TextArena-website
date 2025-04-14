@@ -43,6 +43,20 @@ const teamMembers = [
     isFirstAuthor: true,
   },
   {
+    name: "Simon Yu",
+    title: "PhD @ Northeastern University",
+    image: "/simon.jpeg",
+    link: "https://x.com/simon_ycl",
+    isFirstAuthor: false,
+  },
+  {
+    name: "Bo Liu",
+    title: "PhD @ NUS",
+    image: "/bo.jpeg",
+    link: "https://x.com/benjamin_eecs",
+    isFirstAuthor: false,
+  },
+  {
     name: "Leshem Coshen",
     title: "Research @ MIT,\nMIT-IBM Watson lab",
     image: "/leshem.jpg",
