@@ -126,32 +126,34 @@ const envSubsets: Record<string, string[]> = {
 // -------------------------------------------------------------------
 
 // New type definition for environment history
-interface EnvEloHistoryRow {
+interface EnvTrueskillHistoryRow {
   model_id: number;
   model_name: string;
   interval_start: string;
   environment_name: string;
-  elo_value: number;
+  trueskill_value: number;
+  trueskill_sd_value: number;
 }
 
 interface ModelData {
   id: number
   model_name: string
   description?: string
-  elo: number
+  trueskill: number
   games_played: number
   win_rate: number
   wins: number
   draws: number
   losses: number
   avg_time: number
-  elo_history: {
+  trueskill_history: {
     interval_start: string
-    avg_elo: number
+    avg_trueskill: number
+    avg_sd: number
   }[]
   environment_performance: {
     name: string
-    elo: number
+    trueskill: number
     games: number
     win_rate: number
     avg_move_time: number
@@ -175,7 +177,7 @@ interface ModelData {
     environment: string
     game_start_time: string
     opponent_name: string
-    elo_change: number
+    trueskill_change: number
     outcome: string
     reason: string
   }[]
@@ -227,59 +229,59 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
         
         // Get color mapping from the window object (set by sortModelsByArea)
         const colorMapping = window.radarColorMapping || {
-          mainElo: RADAR_COLORS.main,
-          comparisonElo: RADAR_COLORS.comparison1,
-          comparisonElo2: RADAR_COLORS.comparison2,
-          comparisonElo3: RADAR_COLORS.comparison3
+          mainTrueskill: RADAR_COLORS.main,
+          comparisonTrueskill: RADAR_COLORS.comparison1,
+          comparisonTrueskill2: RADAR_COLORS.comparison2,
+          comparisonTrueskill3: RADAR_COLORS.comparison3
         };
         
         // Create models array with the data that's needed
         const modelList = [];
         
         // Add main model if it has data
-        if (data.mainElo > 0) {
+        if (data.mainTrueskill > 0) {
           modelList.push({
-            name: payload.find(p => p.dataKey === 'mainElo')?.name || 'Main Model',
-            color: colorMapping.mainElo,
-            elo: data.mainElo,
+            name: payload.find(p => p.dataKey === 'mainTrueskill')?.name || 'Main Model',
+            color: colorMapping.mainTrueskill,
+            trueskill: data.mainTrueskill,
             envs: data.mainEnvs || [],
-            dataKey: 'mainElo'
+            dataKey: 'mainTrueskill'
           });
         }
         
         // Add comparison models if they have data
-        if (data.comparisonElo > 0) {
+        if (data.comparisonTrueskill > 0) {
           modelList.push({
-            name: payload.find(p => p.dataKey === 'comparisonElo')?.name || 'Comparison 1',
-            color: colorMapping.comparisonElo,
-            elo: data.comparisonElo,
+            name: payload.find(p => p.dataKey === 'comparisonTrueskill')?.name || 'Comparison 1',
+            color: colorMapping.comparisonTrueskill,
+            trueskill: data.comparisonTrueskill,
             envs: data.comparisonEnvs || [],
-            dataKey: 'comparisonElo'
+            dataKey: 'comparisonTrueskill'
           });
         }
         
-        if (data.comparisonElo2 > 0) {
+        if (data.comparisonTrueskill2 > 0) {
           modelList.push({
-            name: payload.find(p => p.dataKey === 'comparisonElo2')?.name || 'Comparison 2',
-            color: colorMapping.comparisonElo2,
-            elo: data.comparisonElo2,
+            name: payload.find(p => p.dataKey === 'comparisonTrueskill2')?.name || 'Comparison 2',
+            color: colorMapping.comparisonTrueskill2,
+            trueskill: data.comparisonTrueskill2,
             envs: data.comparisonEnvs2 || [],
-            dataKey: 'comparisonElo2'
+            dataKey: 'comparisonTrueskill2'
           });
         }
         
-        if (data.comparisonElo3 > 0) {
+        if (data.comparisonTrueskill3 > 0) {
           modelList.push({
-            name: payload.find(p => p.dataKey === 'comparisonElo3')?.name || 'Comparison 3',
-            color: colorMapping.comparisonElo3,
-            elo: data.comparisonElo3,
+            name: payload.find(p => p.dataKey === 'comparisonTrueskill3')?.name || 'Comparison 3',
+            color: colorMapping.comparisonTrueskill3,
+            trueskill: data.comparisonTrueskill3,
             envs: data.comparisonEnvs3 || [],
-            dataKey: 'comparisonElo3'
+            dataKey: 'comparisonTrueskill3'
           });
         }
         
-        // Sort models by skill elo (highest first) for display
-        const models = modelList.sort((a, b) => b.elo - a.elo);
+        // Sort models by skill trueskill (highest first) for display
+        const models = modelList.sort((a, b) => b.trueskill - a.trueskill);
 
         root.render(
           <div 
@@ -296,7 +298,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
               </p>
             </div>
 
-            {/* Overall Elo Comparison */}
+            {/* Overall Trueskill Comparison */}
             <div className="flex justify-between border-t border-b border-muted-foreground py-2 min-h-[80px]">
               <div className="grid grid-cols-2 gap-4 w-full">
                 {models.map((model, idx) => (
@@ -309,7 +311,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
                     </div>
                     <div className={`font-bold ${isMobile ? "text-[12px]" : "text-lg"} whitespace-nowrap ${idx % 2 === 0 ? "text-left" : "text-right"}`}
                          style={{ color: model.color }}>
-                      {model.elo.toFixed(1)}
+                      {model.trueskill.toFixed(1)}
                     </div>
                   </div>
                 ))}
@@ -331,7 +333,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
                       modelName: model.name,
                       color: model.color,
                       dataKey: model.dataKey,
-                      elo: env?.elo || 0,
+                      trueskill: env?.trueskill || 0,
                       relativeWeight: env?.relativeWeight || 0,
                       hasData: !!env
                     };
@@ -343,11 +345,11 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
                   // Only show environments that at least one model has data for
                   if (modelsWithData.length === 0) return null;
                   
-                  // Find the model with highest elo for this environment
-                  const highestEloModel = [...modelsWithData].sort((a, b) => b.elo - a.elo)[0];
+                  // Find the model with highest trueskill for this environment
+                  const highestTrueskillModel = [...modelsWithData].sort((a, b) => b.trueskill - a.trueskill)[0];
                   
                   // Find the percentage for the main model (using payload[0] which should be the main model)
-                  const mainModelData = modelEnvData.find(m => m.dataKey === 'mainElo');
+                  const mainModelData = modelEnvData.find(m => m.dataKey === 'mainTrueskill');
                   const mainModelPercentage = mainModelData?.hasData 
                     ? `(${(mainModelData.relativeWeight * 100).toFixed(0)}%)` 
                     : '';
@@ -373,10 +375,10 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
                           return (
                             <div 
                               key={idx} 
-                              className={`text-right font-mono ${modelData.elo === highestEloModel.elo ? "underline" : ""}`}
+                              className={`text-right font-mono ${modelData.trueskill === highestTrueskillModel.trueskill ? "underline" : ""}`}
                               style={{ color: model.color }}
                             >
-                              {modelData.elo.toFixed(1)}
+                              {modelData.trueskill.toFixed(1)}
                             </div>
                           );
                         })}
@@ -421,8 +423,8 @@ function CustomEnvTooltip({ active, payload, isMobile, containerRef }: any) {
         } shadow-lg`}
       >
         <p className="font-bold m-0 text-white">{data.name}</p>
-        <p className="m-0" style={{ color: "#8884d8" }}> {/* Purple for Elo */}
-          Elo: {data.elo.toFixed(1)}
+        <p className="m-0" style={{ color: "#8884d8" }}> {/* Purple for Trueskill */}
+          Trueskill: {data.trueskill.toFixed(1)}
         </p>
         <p className="m-0" style={{ color: "#82ca9d" }}> {/* Green for Win */}
           Win: {(data.win_rate * 100).toFixed(1)}%
@@ -460,7 +462,7 @@ function CustomEnvTooltip({ active, payload, isMobile, containerRef }: any) {
 
 
 
-function CustomEloTooltip({ active, payload, label, isMobile, containerRef }: any) {
+function CustomTrueskillTooltip({ active, payload, label, isMobile, containerRef }: any) {
   if (active && payload && payload.length > 0) {
     const formattedTime = new Date(label).toLocaleString([], { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
     const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
@@ -476,9 +478,14 @@ function CustomEloTooltip({ active, payload, label, isMobile, containerRef }: an
         <p className="font-bold text-white mb-0.5">{formattedTime}</p>
         {sortedPayload.map((entry: any, index: number) => (
           <p key={index} style={{ color: entry.stroke }} className="m-0 leading-tight">
-            {Math.round(entry.value)}: {entry.name}
+            {/* Display both Trueskill value and SD */}
+            {entry.value.toFixed(1)} ± {entry.payload[entry.dataKey + '_sd'].toFixed(1) || 'N/A'}: {entry.name}
           </p>
         ))}
+        {/* Optional: Add explanation of Trueskill SD */}
+        <p className="text-[8px] text-muted-foreground mt-1">
+          ± indicates confidence (lower is more certain)
+        </p>
       </div>
     );
 
@@ -498,13 +505,13 @@ function CustomEloTooltip({ active, payload, label, isMobile, containerRef }: an
 // -------------------------------------------------------------------
 function buildSkillDistribution(environments: ModelData["environment_performance"]) {
   // For each allowed skill, we aggregate:
-  // - weightedElo: Sum(env. elo * coefficient)
+  // - weightedTrueskill: Sum(env. trueskill * coefficient)
   // - totalWeight: Sum(coefficients) for that skill.
   // We also record each environment's contribution.
-  type EnvContribution = { name: string; elo: number; weight: number }
-  const agg: Record<string, { weightedElo: number; totalWeight: number; envs: EnvContribution[] }> = {}
+  type EnvContribution = { name: string; trueskill: number; weight: number }
+  const agg: Record<string, { weightedTrueskill: number; totalWeight: number; envs: EnvContribution[] }> = {}
   SKILLS.forEach((skill) => {
-    agg[skill] = { weightedElo: 0, totalWeight: 0, envs: [] }
+    agg[skill] = { weightedTrueskill: 0, totalWeight: 0, envs: [] }
   })
 
   environments.forEach((env) => {
@@ -519,9 +526,9 @@ function buildSkillDistribution(environments: ModelData["environment_performance
         const normalizedSkill = skillValue
         if (SKILLS.includes(normalizedSkill)) {
           const weight = Number(rawWeight)
-          agg[normalizedSkill].weightedElo += env.elo * weight
+          agg[normalizedSkill].weightedTrueskill += env.trueskill * weight
           agg[normalizedSkill].totalWeight += weight
-          agg[normalizedSkill].envs.push({ name: env.name, elo: env.elo, weight })
+          agg[normalizedSkill].envs.push({ name: env.name, trueskill: env.trueskill, weight })
         }
       }
     }
@@ -529,30 +536,30 @@ function buildSkillDistribution(environments: ModelData["environment_performance
 
   // Now compute each environment's relative weight (per skill).
   return SKILLS.map((skill) => {
-    const { weightedElo, totalWeight, envs } = agg[skill]
+    const { weightedTrueskill, totalWeight, envs } = agg[skill]
     const envsWithRelative = envs.map((env) => ({
       name: env.name,
-      elo: env.elo,
+      trueskill: env.trueskill,
       weight: env.weight,
       relativeWeight: totalWeight > 0 ? env.weight / totalWeight : 0,
     }))
     return {
       skill,
-      elo: totalWeight > 0 ? weightedElo / totalWeight : 0,
+      trueskill: totalWeight > 0 ? weightedTrueskill / totalWeight : 0,
       totalWeight,
       envs: envsWithRelative,
     }
   })
 }
 
-const calculateDomain = (eloValues: number[]) => {
+const calculateDomain = (trueskillValues: number[]) => {
   // Filter out undefined/null/zero values to avoid computation errors
-  const validEloValues = eloValues.filter(value => value !== undefined && value !== null && value > 0);
+  const validTrueskillValues = trueskillValues.filter(value => value !== undefined && value !== null && value > 0);
 
-  if (validEloValues.length === 0) return [0, 100]; // Default if no valid data is available
+  if (validTrueskillValues.length === 0) return [0, 100]; // Default if no valid data is available
 
-  const minValue = Math.min(...validEloValues);
-  const maxValue = Math.max(...validEloValues);
+  const minValue = Math.min(...validTrueskillValues);
+  const maxValue = Math.max(...validTrueskillValues);
 
   // If all values are identical, prevent a collapsed range
   if (minValue === maxValue) {
@@ -560,22 +567,22 @@ const calculateDomain = (eloValues: number[]) => {
   }
 
   // Check if there's more than one model being compared
-  const hasMultipleModels = validEloValues.length > SKILLS.length;
+  const hasMultipleModels = validTrueskillValues.length > SKILLS.length;
 
   if (!hasMultipleModels) {
-    // Only one model: use 20% buffer around the mean Elo
-    const meanValue = validEloValues.reduce((sum, val) => sum + val, 0) / validEloValues.length;
+    // Only one model: use 20% buffer around the mean Trueskill
+    const meanValue = validTrueskillValues.reduce((sum, val) => sum + val, 0) / validTrueskillValues.length;
     const buffer = meanValue * 0.2; // 20% buffer
 
     return [Math.floor(meanValue - buffer), Math.ceil(meanValue + buffer)];
   }
 
   // Multiple models: Apply a reasonable buffer
-  const buffer = Math.max(5, (maxValue - minValue) * 0.1);
+  const buffer = Math.max(1, (maxValue - minValue) * 0.1);
   // You could replace this with a fixed range if preferred
-  // return [Math.floor(minValue - buffer), Math.ceil(maxValue + buffer)];
+  // return [Math.floor(minValue - 2 * buffer), Math.ceil(maxValue + buffer)];
   // Or use a predefined range like:
-  return [850, 1100];
+  return [0, Math.ceil(maxValue + buffer)];
 };
 
 
@@ -587,7 +594,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const isMobile = useIsMobile()
-  const eloTooltipContainerRef = useRef<HTMLDivElement>(null)
+  const trueskillTooltipContainerRef = useRef<HTMLDivElement>(null)
   const envTooltipContainerRef = useRef<HTMLDivElement>(null)
   const RadarTooltipContainerRef = useRef<HTMLDivElement>(null)
   const chartContainerRef = useRef(null);
@@ -610,7 +617,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     "TruthAndDeception",
     "UltimateTicTacToe"
   ]); // Or any two environments you prefer
-  const [envEloHistory, setEnvEloHistory] = useState<EnvEloHistoryRow[]>([]);
+  const [envTrueskillHistory, setEnvTrueskillHistory] = useState<EnvTrueskillHistoryRow[]>([]);
   const [isLoadingEnvHistory, setIsLoadingEnvHistory] = useState(true);
 
   // Custom checkbox component for multi-select
@@ -721,29 +728,30 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
 
   // Modify the chart data preparation
   const chartData = useMemo(() => {
-    if (!envEloHistory || envEloHistory.length === 0) return [];
-
+    if (!envTrueskillHistory || envTrueskillHistory.length === 0) return [];
+  
     const grouped: Record<string, any> = {};
-
+  
     // Group by date and environment
-    envEloHistory.forEach((row) => {
+    envTrueskillHistory.forEach((row) => {
       const dt = new Date(row.interval_start);
       dt.setMinutes(0, 0, 0); // Normalize to the hour
       const dateKey = dt.toISOString();
-
+  
       if (!grouped[dateKey]) {
         grouped[dateKey] = { date: dateKey };
       }
-
-      // Use environment_name as the data key
-      grouped[dateKey][row.environment_name] = row.elo_value;
+  
+      // Store both trueskill_value and trueskill_sd_value
+      grouped[dateKey][row.environment_name] = row.trueskill_value;
+      grouped[dateKey][`${row.environment_name}_sd`] = row.trueskill_sd_value; // Store SD with a suffix
     });
-
+  
     // Sort by date
     return Object.values(grouped).sort(
       (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
-  }, [envEloHistory]);
+  }, [envTrueskillHistory]);
 
   // Update radius based on container width - only for desktop
   useEffect(() => {
@@ -796,7 +804,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         
         if (envNames.length === 0) {
           console.log('No environment names to query');
-          setEnvEloHistory([]);
+          setEnvTrueskillHistory([]);
           setIsLoadingEnvHistory(false);
           return;
         }
@@ -820,7 +828,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     
         // Call the RPC function with explicit type casting for ID 0
         const { data, error } = await supabase.rpc(
-          "get_new_elo_history_last7days_by_env",
+          "get_new_trueskill_history_last7days_by_env",
           {
             selected_env_ids: envIds,
             selected_model_ids: [Number(model.id)] // Ensure it's treated as a number
@@ -841,7 +849,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
           firstFewRecords: data?.slice(0, 3)
         });
     
-        setEnvEloHistory(data || []);
+        setEnvTrueskillHistory(data || []);
       } catch (err) {
         console.error("Error in fetchData:", err);
       } finally {
@@ -876,7 +884,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         return;
       }
       
-      const { data, error } = await supabase.rpc("get_model_details_by_name_v2", {
+      const { data, error } = await supabase.rpc("get_model_details_by_name_v3", {
         model_name_param: modelNameToCompare,
       });
   
@@ -900,14 +908,14 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       const processedModel: ModelData = {
         model_name: rawModel.model_name,
         description: rawModel.description,
-        elo: rawModel.elo,
+        trueskill: rawModel.trueskill,
         games_played: rawModel.games_played,
         win_rate: rawModel.win_rate,
         wins: rawModel.wins,
         draws: rawModel.draws,
         losses: rawModel.losses,
         avg_time: rawModel.avg_time,
-        elo_history: rawModel.elo_history,
+        trueskill_history: rawModel.trueskill_history,
         environment_performance: dedupedEnvs,
         recent_games: rawModel.recent_games,
         id: rawModel.id,
@@ -926,7 +934,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       setError(null)
       setLoading(true)
       console.log("Fetching details for model:", modelName)
-      const { data, error } = await supabase.rpc("get_model_details_by_name_v2", {
+      const { data, error } = await supabase.rpc("get_model_details_by_name_v3", {
         model_name_param: modelName,
       })
 
@@ -953,14 +961,14 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       const processedModel: ModelData = {
         model_name: rawModel.model_name,
         description: rawModel.description,
-        elo: rawModel.elo,
+        trueskill: rawModel.trueskill,
         games_played: rawModel.games_played,
         win_rate: rawModel.win_rate,
         wins: rawModel.wins,
         draws: rawModel.draws,
         losses: rawModel.losses,
         avg_time: rawModel.avg_time,
-        elo_history: rawModel.elo_history,
+        trueskill_history: rawModel.trueskill_history,
         environment_performance: dedupedEnvs,
         recent_games: rawModel.recent_games,
         id: rawModel.id,
@@ -1009,10 +1017,10 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     )
   }
 
-  const averageEnvElo =
+  const averageEnvTrueskill =
     model.environment_performance.length > 0
-      ? model.environment_performance.reduce((sum, env) => sum + env.elo, 0) / model.environment_performance.length
-      : model.elo
+      ? model.environment_performance.reduce((sum, env) => sum + env.trueskill, 0) / model.environment_performance.length
+      : model.trueskill
 
   // Add dropdown component for model selection
   const ModelComparisonSelect = () => {
@@ -1176,29 +1184,29 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   // Modify the data structure to include both models' data
   const combinedSkillData = SKILLS.map(skill => {
     const mainModelSkill = buildSkillDistribution(model.environment_performance)
-      .find(s => s.skill === skill) || { elo: 0, envs: [] };
+      .find(s => s.skill === skill) || { trueskill: 0, envs: [] };
       
     const comparisonModelSkill = comparisonModel 
       ? buildSkillDistribution(comparisonModel.environment_performance)
-          .find(s => s.skill === skill) || { elo: 0, envs: [] }
-      : { elo: 0, envs: [] };
+          .find(s => s.skill === skill) || { trueskill: 0, envs: [] }
+      : { trueskill: 0, envs: [] };
       
     const comparisonModel2Skill = comparisonModel2 
       ? buildSkillDistribution(comparisonModel2.environment_performance)
-          .find(s => s.skill === skill) || { elo: 0, envs: [] }
-      : { elo: 0, envs: [] };
+          .find(s => s.skill === skill) || { trueskill: 0, envs: [] }
+      : { trueskill: 0, envs: [] };
       
     const comparisonModel3Skill = comparisonModel3 
       ? buildSkillDistribution(comparisonModel3.environment_performance)
-          .find(s => s.skill === skill) || { elo: 0, envs: [] }
-      : { elo: 0, envs: [] };
+          .find(s => s.skill === skill) || { trueskill: 0, envs: [] }
+      : { trueskill: 0, envs: [] };
   
     return {
       skill,
-      mainElo: mainModelSkill.elo,
-      comparisonElo: comparisonModelSkill.elo,
-      comparisonElo2: comparisonModel2Skill.elo,
-      comparisonElo3: comparisonModel3Skill.elo,
+      mainTrueskill: mainModelSkill.trueskill,
+      comparisonTrueskill: comparisonModelSkill.trueskill,
+      comparisonTrueskill2: comparisonModel2Skill.trueskill,
+      comparisonTrueskill3: comparisonModel3Skill.trueskill,
       // Keep the environment data for tooltips
       mainEnvs: mainModelSkill.envs,
       comparisonEnvs: comparisonModelSkill.envs,
@@ -1220,9 +1228,9 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     if (mainModel) {
       models.push({ 
         model: mainModel, 
-        area: calculateArea('mainElo'),
+        area: calculateArea('mainTrueskill'),
         name: mainModel.model_name,
-        dataKey: 'mainElo',
+        dataKey: 'mainTrueskill',
         color: RADAR_COLORS.main  // Keep original color
       });
     }
@@ -1230,9 +1238,9 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     if (compModel1) {
       models.push({ 
         model: compModel1, 
-        area: calculateArea('comparisonElo'),
+        area: calculateArea('comparisonTrueskill'),
         name: compModel1.model_name,
-        dataKey: 'comparisonElo',
+        dataKey: 'comparisonTrueskill',
         color: RADAR_COLORS.comparison1  // Keep original color
       });
     }
@@ -1240,9 +1248,9 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     if (compModel2) {
       models.push({ 
         model: compModel2, 
-        area: calculateArea('comparisonElo2'),
+        area: calculateArea('comparisonTrueskill2'),
         name: compModel2.model_name,
-        dataKey: 'comparisonElo2',
+        dataKey: 'comparisonTrueskill2',
         color: RADAR_COLORS.comparison2  // Keep original color
       });
     }
@@ -1250,9 +1258,9 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     if (compModel3) {
       models.push({ 
         model: compModel3, 
-        area: calculateArea('comparisonElo3'),
+        area: calculateArea('comparisonTrueskill3'),
         name: compModel3.model_name,
-        dataKey: 'comparisonElo3',
+        dataKey: 'comparisonTrueskill3',
         color: RADAR_COLORS.comparison3  // Keep original color
       });
     }
@@ -1263,12 +1271,12 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   };
 
   // Extract all possible model ELO values for domain calculation
-  const allEloValues = combinedSkillData.flatMap(item => [
-    item.mainElo, 
-    item.comparisonElo, 
-    item.comparisonElo2,
-    item.comparisonElo3
-  ].filter(elo => elo > 0));
+  const allTrueskillValues = combinedSkillData.flatMap(item => [
+    item.mainTrueskill, 
+    item.comparisonTrueskill, 
+    item.comparisonTrueskill2,
+    item.comparisonTrueskill3
+  ].filter(trueskill => trueskill > 0));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -1284,7 +1292,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         </Button>
       </div>
 
-      {/* Header Row: Model Name and Elo on the same line */}
+      {/* Header Row: Model Name and Trueskill on the same line */}
       <div className="flex items-start gap-4 mb-6">
         <div className="flex-1 min-w-0">
           <h1
@@ -1296,13 +1304,13 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         <div
           className={`flex-shrink-0 font-bold font-mono text-navbarForeground ${isMobile ? "text-3xl" : "text-5xl"}`}
         >
-          {Math.round(averageEnvElo)}
+          {averageEnvTrueskill.toFixed(1)}
         </div>
       </div>
 
       {/* <p className={`text-mutedForeground font-mono mb-8 ${isMobile ? "text-xs" : "text-lg"}`}>{model.description}</p> */}
 
-      {/* Top Row: Overall Statistics & Elo History */}
+      {/* Top Row: Overall Statistics & Trueskill History */}
       <div className={`${isMobile ? "grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" : "flex gap-6 mb-8 items-stretch"}`}>
         {/* Overall Statistics */}
         <Card className={`bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))] ${isMobile ? "" : "max-w-[300px]"}`}>
@@ -1343,11 +1351,11 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
           </CardContent>
         </Card>
 
-        {/* Elo History */}
+        {/* Trueskill History */}
         <Card className={`bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))] ${isMobile ? "" : "flex-grow"}`}>
           <CardHeader>
             <CardTitle className={`font-mono ${isMobile ? "text-lg" : "text-2xl"} font-semibold text-navbarForeground`}>
-              Elo History by Environment
+              Trueskill History by Environment
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1360,12 +1368,12 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
               </div>
               {isMobile && (
                 <div
-                  ref={eloTooltipContainerRef}
+                  ref={trueskillTooltipContainerRef}
                   className="absolute top-[130px] left-0 right-0 z-20 flex justify-center items-center h-[20px] bg-[hsl(var(--navbar))] bg-opacity-95 transition-all duration-200 p-1"
                 />
               )}
               <div className={isMobile ? "overflow-x-auto relative z-10" : ""}>
-                <div style={{ width: isMobile ? Math.max(400, model.elo_history.length * 1.5) : "100%", height: 450 }}>
+                <div style={{ width: isMobile ? Math.max(400, model.trueskill_history.length * 1.5) : "100%", height: 450 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                       data={chartData}
@@ -1400,8 +1408,8 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                       <YAxis
                         stroke="white"
                         domain={[
-                          (dataMin) => Math.floor(dataMin / 100) * 100 - 20,
-                          (dataMax) => Math.ceil(dataMax / 100) * 100 + 20,
+                          (dataMin) => Math.floor(dataMin) - 5,
+                          (dataMax) => Math.ceil(dataMax) + 5,
                         ]}
                         tick={{ fill: "white", fontSize: 12, fontFamily: "var(--font-mono)" }}
                         axisLine={{ stroke: "white" }}
@@ -1409,9 +1417,9 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                       />
                       <Tooltip
                         content={
-                          <CustomEloTooltip
+                          <CustomTrueskillTooltip
                             isMobile={isMobile}
-                            containerRef={isMobile ? eloTooltipContainerRef : null}
+                            containerRef={isMobile ? trueskillTooltipContainerRef : null}
                           />
                         }
                         position={isMobile ? { x: 0, y: 0 } : undefined} // Moves tooltip 50px higher in mobile
@@ -1526,7 +1534,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                         verticalAlign="top"
                         wrapperStyle={{ color: "white", fontFamily: "var(--font-mono)" }}
                       />
-                      <Bar yAxisId="left" dataKey="elo" fill="#8884d8" name="Elo" />
+                      <Bar yAxisId="left" dataKey="trueskill" fill="#8884d8" name="Trueskill" />
                       <Bar yAxisId="right" dataKey="win_rate" fill="#82ca9d" name="Win Rate" />
                     </BarChart>
                   </ResponsiveContainer>
@@ -1625,7 +1633,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                           }}
                         />
                         <PolarRadiusAxis
-                          domain={calculateDomain(allEloValues)}
+                          domain={calculateDomain(allTrueskillValues)}
                           axisLine={false}
                           tick={false}
                           angle={90}
@@ -1696,7 +1704,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                     <TableHead>Time</TableHead>
                     <TableHead>Environment</TableHead>
                     <TableHead>Opponent</TableHead>
-                    <TableHead className="text-right">Elo Change</TableHead>
+                    <TableHead className="text-right">Trueskill Change</TableHead>
                     <TableHead>Outcome</TableHead>
                     <TableHead>Reason</TableHead>
                   </TableRow>
@@ -1711,15 +1719,15 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                       <TableCell className="text-navbarForeground">{game.opponent_name}</TableCell>
                       <TableCell
                         className={`text-right ${
-                          game.elo_change > 0
+                          game.trueskill_change > 0
                             ? "text-green-500"
-                            : game.elo_change < 0
+                            : game.trueskill_change < 0
                               ? "text-red-500"
                               : "text-gray-500"
                         }`}
                       >
-                        {game.elo_change > 0 ? "+" : ""}
-                        {Math.round(game.elo_change)}
+                        {game.trueskill_change > 0 ? "+" : ""}
+                        {game.trueskill_change.toFixed(2)}
                       </TableCell>
                       <TableCell
                         className={
