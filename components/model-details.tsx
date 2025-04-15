@@ -100,27 +100,6 @@ const CHART_COLORS = [
   "#7c3aed", // violet-600
 ];
 
-
-// Environment subsets
-const envSubsets: Record<string, string[]> = {
-  'Chess': ['Chess-v0'],
-  'ConnectFour': ['ConnectFour-v0'],
-  'Debate': ['Debate-v0'],
-  'DontSayIt': ['DontSayIt-v0'],
-  'Battleship': ['Battleship-v0'],
-  'LiarsDice': ['LiarsDice-v0'],
-  'Mastermind': ['Mastermind-v0'],
-  'Negotiation': ['Negotiation-v0'],
-  'Poker': ['Poker-v0'],
-  'SpellingBee': ['SpellingBee-v0'],
-  'SpiteAndMalice': ['SpiteAndMalice-v0'],
-  'Stratego': ['Stratego-v0'],
-  'Tak': ['Tak-v0'],
-  'TruthAndDeception': ['TruthAndDeception-v0'],
-  'UltimateTicTacToe': ['UltimateTicTacToe-v0'],
-  'WordChains': ['WordChains-v0'],
-};
-
 // -------------------------------------------------------------------
 // 2. Type Definitions
 // -------------------------------------------------------------------
@@ -594,6 +573,11 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   const [model, setModel] = useState<ModelData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [envSubsets, setEnvSubsets] = useState<Record<string, string[]>>({})
+
+  const [hoveredEnvironment, setHoveredEnvironment] = useState<string | null>(null);
+
   const isMobile = useIsMobile()
   const trueskillTooltipContainerRef = useRef<HTMLDivElement>(null)
   const envTooltipContainerRef = useRef<HTMLDivElement>(null)
@@ -611,16 +595,11 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   const [availableModels, setAvailableModels] = useState<{model_name: string}[]>([]);
   // second,
   const [selectedEnvs, setSelectedEnvs] = useState<string[]>([
-    "Chess",
-    "DontSayIt",
-    "LiarsDice",
-    "Negotiation",
-    "Poker",
-    "SpellingBee",
-    "Stratego",
-    "Tak",
-    "TruthAndDeception",
-    "UltimateTicTacToe"
+    "SecretMafia-v0 (5 Players)",
+    "DontSayIt-v0 (2 Players)",
+    "Poker-v0 (2 Players)",
+    "Snake-v0 (2 Players)",
+    "TicTacToe-v0 (2 Players)",
   ]); // Or any two environments you prefer
   const [envTrueskillHistory, setEnvTrueskillHistory] = useState<EnvTrueskillHistoryRow[]>([]);
   const [isLoadingEnvHistory, setIsLoadingEnvHistory] = useState(true);
@@ -640,6 +619,35 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [dropdownOpen]);
+
+  const CustomLegendContent = (props: any) => {
+    const { payload } = props;
+    
+    return (
+      <ul className="flex flex-wrap justify-center items-center gap-3 px-2 py-1 m-0 text-xs">
+        {payload.map((entry: any, index: number) => (
+          <li 
+            key={`item-${index}`}
+            className="flex items-center cursor-pointer transition-opacity duration-200"
+            style={{ 
+              opacity: hoveredEnvironment === null || hoveredEnvironment === entry.value ? 1 : 0.4 
+            }}
+            onMouseEnter={() => setHoveredEnvironment(entry.value)}
+            onMouseLeave={() => setHoveredEnvironment(null)}
+          >
+            <span 
+              className="inline-block w-3 h-3 mr-1"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-navbarForeground font-mono">
+              {entry.value}
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
 
   // Custom checkbox component for multi-select
   const CheckboxItem = React.forwardRef<HTMLDivElement, { checked: boolean; children: React.ReactNode }>(
@@ -683,73 +691,14 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   );
   CheckboxItem.displayName = "CheckboxItem";
 
-  // Multi-select Environment component
-  const EnvironmentSelect = ({ selectedEnvs, setSelectedEnvs }: { 
-    selectedEnvs: string[], 
-    setSelectedEnvs: (envs: string[]) => void 
-  }) => {
-    const [open, setOpen] = useState(false);
-    const allEnvironments = Object.keys(envSubsets);
-
-    const handleSelect = (env: string) => {
-      if (selectedEnvs.includes(env)) {
-        setSelectedEnvs(selectedEnvs.filter(e => e !== env));
-      } else {
-        setSelectedEnvs([...selectedEnvs, env]);
-      }
-    };
-
-    return (
-      <div className="flex items-center gap-2 mb-4">
-        <div className="relative w-[280px]">
-          <button
-            onClick={() => setOpen(!open)}
-            className="w-full bg-background text-navbarForeground border-navbar font-mono px-3 py-2 rounded-md flex items-center justify-between"
-          >
-            <span className="truncate">
-              {selectedEnvs.length === 0
-                ? "Select environments"
-                : `${selectedEnvs.length} selected`}
-            </span>
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 15 15"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className={`transform transition-transform ${open ? 'rotate-180' : ''}`}
-            >
-              <path
-                d="M4 6L7.5 9L11 6"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-          
-          {open && (
-            <div className="absolute z-50 w-full mt-1 bg-background border border-navbar rounded-md shadow-lg max-h-60 overflow-auto">
-              {allEnvironments.map((env) => (
-                <CheckboxItem
-                  key={env}
-                  checked={selectedEnvs.includes(env)}
-                  onClick={() => handleSelect(env)}
-                >
-                  {env}
-                </CheckboxItem>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   // Modify the chart data preparation
   const chartData = useMemo(() => {
-    if (!envTrueskillHistory || envTrueskillHistory.length === 0) return [];
+    if (!envTrueskillHistory || envTrueskillHistory.length === 0) {
+      console.log("No environment trueskill history data available");
+      return [];
+    }
+  
+    console.log("Processing trueskill history data:", envTrueskillHistory.slice(0, 3));
   
     const grouped: Record<string, any> = {};
   
@@ -763,15 +712,32 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         grouped[dateKey] = { date: dateKey };
       }
   
+      // Make sure environment_name exists in the data
+      if (!row.environment_name) {
+        console.warn("Missing environment_name in data row:", row);
+        return; // Skip this row
+      }
+  
       // Store both trueskill_value and trueskill_sd_value
       grouped[dateKey][row.environment_name] = row.trueskill_value;
-      grouped[dateKey][`${row.environment_name}_sd`] = row.trueskill_sd_value; // Store SD with a suffix
+      grouped[dateKey][`${row.environment_name}_sd`] = row.trueskill_sd_value;
     });
   
-    // Sort by date
-    return Object.values(grouped).sort(
+    // Log the final grouped data structure
+    const result = Object.values(grouped).sort(
       (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
+    
+    console.log(`Final chart data: ${result.length} points`);
+    if (result.length > 0) {
+      console.log("Sample chart data point:", result[0]);
+      // Check what environment keys exist in the first data point
+      console.log("Environment keys in data:", 
+        Object.keys(result[0]).filter(k => k !== 'date' && !k.endsWith('_sd'))
+      );
+    }
+    
+    return result;
   }, [envTrueskillHistory]);
 
   // Update radius based on container width - only for desktop
@@ -799,12 +765,12 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   useEffect(() => {
     fetchModelDetails();
     fetchAvailableModels();
+    fetchEnvSubsets(); // Add this line
   }, []);
 
   // Separate effect for fetching environment history that depends on both model and selectedEnvs
   useEffect(() => {
     async function fetchData() {
-      // Change the check to explicitly look for null/undefined instead of falsy values
       if (model?.id === null || model?.id === undefined) {
         console.log('No model ID found:', model);
         return;
@@ -813,46 +779,28 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       setIsLoadingEnvHistory(true);
       
       try {
-        // Debug log the model details including ID
         console.log('Model details:', {
           modelName: model.model_name,
           modelId: model.id,
-          isIdZero: model.id === 0
         });
         
-        const envNames = selectedEnvs.flatMap(subset => envSubsets[subset] || []);
-        console.log('Environment names to query:', envNames);
+        // Get the environment IDs from the selected environment subsets
+        const envIds = selectedEnvs.flatMap(subset => envSubsets[subset] || []);
+        console.log('Environment IDs to query:', envIds);
         
-        if (envNames.length === 0) {
-          console.log('No environment names to query');
+        if (envIds.length === 0) {
+          console.log('No environment IDs to query');
           setEnvTrueskillHistory([]);
           setIsLoadingEnvHistory(false);
           return;
         }
     
-        // Query environments table
-        const { data: envData, error: envError } = await supabase
-          .from("environments")
-          .select("id, env_name")
-          .in("env_name", envNames);
-    
-        if (envError) {
-          console.error('Error querying environments:', envError);
-          throw envError;
-        }
-    
-        console.log('Environment query results:', envData);
-        
-        const envIds = (envData || []).map((env: any) => env.id);
-        console.log('Environment IDs for RPC:', envIds);
-        console.log('Model ID for RPC:', model.id);
-    
-        // Call the RPC function with explicit type casting for ID 0
+        // Important: Make sure to convert the string IDs to numbers if needed
         const { data, error } = await supabase.rpc(
           "get_new_trueskill_history_last7days_by_env",
           {
-            selected_env_ids: envIds,
-            selected_model_ids: [Number(model.id)] // Ensure it's treated as a number
+            selected_env_ids: envIds.map(id => parseInt(id, 10)), // Ensure proper number conversion
+            selected_model_ids: [Number(model.id)]
           }
         );
     
@@ -861,14 +809,8 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
           throw error;
         }
     
-        console.log('RPC Response:', {
-          modelId: model.id,
-          envIds,
-          responseData: data,
-          error,
-          dataLength: data?.length,
-          firstFewRecords: data?.slice(0, 3)
-        });
+        console.log('RPC Response data count:', data?.length);
+        console.log('First few records:', data?.slice(0, 3));
     
         setEnvTrueskillHistory(data || []);
       } catch (err) {
@@ -894,6 +836,44 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       setAvailableModels(data || []);
     } catch (err) {
       console.error("Error fetching available models:", err);
+    }
+  }
+
+  // Add this function after your other useEffect hooks
+  async function fetchEnvSubsets() {
+    try {
+      const { data, error } = await supabase.rpc('get_env_subsets');
+      
+      if (error) throw error;
+      
+      console.log("Raw environment subsets data:", data);
+      
+      // Filter only subsets with "Players" in the name
+      const filteredData = (data || []).filter(item => 
+        item.subset_type.includes('Players')
+      );
+      
+      console.log("Filtered environment subsets:", filteredData);
+      
+      // Transform the data into the format we need
+      const formattedSubsets: Record<string, string[]> = {};
+      filteredData.forEach(item => {
+        formattedSubsets[item.subset_type] = item.environment_ids;
+      });
+      
+      console.log("Formatted environment subsets:", formattedSubsets);
+      
+      setEnvSubsets(formattedSubsets);
+      
+      // If no environments are currently selected, select a few by default
+      if (selectedEnvs.length === 0 && Object.keys(formattedSubsets).length > 0) {
+        // Take the first 5 environments or all if less than 5
+        const initialEnvs = Object.keys(formattedSubsets).slice(0, 5);
+        setSelectedEnvs(initialEnvs);
+        console.log("Selected initial environments:", initialEnvs);
+      }
+    } catch (err) {
+      console.error("Error fetching environment subsets:", err);
     }
   }
 
@@ -1299,6 +1279,10 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     item.comparisonTrueskill3
   ].filter(trueskill => trueskill > 0));
 
+  const sortedEnvironmentPerformance = [...model.environment_performance].sort((a, b) => 
+    a.name.localeCompare(b.name)
+  );
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Back Button */}
@@ -1414,8 +1398,8 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                     
                     {dropdownOpen && (
                       <div className="absolute z-50 w-full mt-1 bg-background border border-navbar rounded-md shadow-lg max-h-60 overflow-auto">
-                        {/* Add Select All / Clear All options */}
-                        <div className="flex border-b border-navbar p-1 sticky top-0 bg-background">
+                        {/* Add sticky positioning to the Select All / Clear All container */}
+                        <div className="flex border-b border-navbar p-1 sticky top-0 bg-background z-10">
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1436,7 +1420,8 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                           </button>
                         </div>
                         
-                        {Object.keys(envSubsets).map((env) => (
+                        {/* Sort Object.keys(envSubsets) alphabetically */}
+                        {Object.keys(envSubsets).sort().map((env) => (
                           <div
                             key={env}
                             className={`relative flex items-center px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer ${
@@ -1545,31 +1530,38 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                         }
                         position={isMobile ? { x: 0, y: 0 } : undefined}
                       />
-                      {!isMobile && (
-                        <Legend
-                          align="center"
-                          verticalAlign="top"
-                          wrapperStyle={{ 
-                            color: "white", 
-                            fontFamily: "var(--font-mono)",
-                            fontSize: isMobile ? 10 : 12,
-                            marginTop: isMobile ? "-35px" : "-20px"
-                          }}
-                        />
-                      )}
-                      {/* Dynamically create lines for each selected environment */}
-                      {selectedEnvs.flatMap(subset => envSubsets[subset] || []).map((envName, index) => (
-                        <Line
-                          key={envName}
-                          type="monotone"
-                          dataKey={envName}
-                          name={envName}
-                          stroke={CHART_COLORS[index % CHART_COLORS.length]}
-                          strokeWidth={2}
-                          dot={false}
-                          activeDot={{ r: isMobile ? 6 : 8 }}
-                        />
-                      ))}
+                      
+                      {/* Replace the default Legend with the custom one */}
+                      <Legend 
+                        content={<CustomLegendContent />}
+                        verticalAlign="top"
+                        align="center"
+                        wrapperStyle={{ 
+                          color: "white", 
+                          fontFamily: "var(--font-mono)",
+                          fontSize: isMobile ? 10 : 12,
+                          marginTop: isMobile ? "-35px" : "-20px"
+                        }}
+                      />
+                      
+                      {/* Apply opacity to chart lines based on hover state */}
+                      {chartData.length > 0 && 
+                        Object.keys(chartData[0])
+                          .filter(key => key !== 'date' && !key.endsWith('_sd'))
+                          .map((key, index) => (
+                            <Line
+                              key={key}
+                              type="monotone"
+                              dataKey={key}
+                              name={key}
+                              stroke={CHART_COLORS[index % CHART_COLORS.length]}
+                              strokeWidth={hoveredEnvironment === null || hoveredEnvironment === key ? 3 : 1.5}
+                              opacity={hoveredEnvironment === null || hoveredEnvironment === key ? 1 : 0.4}
+                              dot={false}
+                              activeDot={{ r: isMobile ? 6 : 8 }}
+                            />
+                          ))
+                      }
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -1609,7 +1601,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                 >
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={model.environment_performance}
+                      data={sortedEnvironmentPerformance}
                       margin={{ top: 20, right: 30, left: 20, bottom: 90 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
