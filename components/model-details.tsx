@@ -574,7 +574,8 @@ const calculateDomain = (trueskillValues: number[]) => {
     const meanValue = validTrueskillValues.reduce((sum, val) => sum + val, 0) / validTrueskillValues.length;
     const buffer = meanValue * 0.2; // 20% buffer
 
-    return [Math.floor(meanValue - buffer), Math.ceil(meanValue + buffer)];
+    // return [Math.floor(meanValue - buffer), Math.ceil(meanValue + buffer)];
+    return [0, Math.ceil(meanValue + buffer)];
   }
 
   // Multiple models: Apply a reasonable buffer
@@ -599,6 +600,10 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   const RadarTooltipContainerRef = useRef<HTMLDivElement>(null)
   const chartContainerRef = useRef(null);
   const [chartRadius, setChartRadius] = useState(isMobile ? 90 : 150);
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   // First, add state for comparison model and available models
   const [comparisonModel, setComparisonModel] = useState<ModelData | null>(null);
   const [comparisonModel2, setComparisonModel2] = useState<ModelData | null>(null);
@@ -619,6 +624,22 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   ]); // Or any two environments you prefer
   const [envTrueskillHistory, setEnvTrueskillHistory] = useState<EnvTrueskillHistoryRow[]>([]);
   const [isLoadingEnvHistory, setIsLoadingEnvHistory] = useState(true);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+  
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownOpen]);
 
   // Custom checkbox component for multi-select
   const CheckboxItem = React.forwardRef<HTMLDivElement, { checked: boolean; children: React.ReactNode }>(
@@ -1361,24 +1382,124 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
           <CardContent>
             <div className="relative space-y-4">
               <div className="relative z-30">
-                <EnvironmentSelect
-                  selectedEnvs={selectedEnvs}
-                  setSelectedEnvs={setSelectedEnvs}
-                />
+                {/* Multi-select Environment component with persistent dropdown */}
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="relative w-[280px]" ref={dropdownRef}>
+                    <button
+                      onClick={() => setDropdownOpen(!dropdownOpen)}
+                      className="w-full bg-background text-navbarForeground border-navbar font-mono px-3 py-2 rounded-md flex items-center justify-between"
+                    >
+                      <span className="truncate">
+                        {selectedEnvs.length === 0
+                          ? "Select environments"
+                          : `${selectedEnvs.length} selected`}
+                      </span>
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 15 15"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={`transform transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+                      >
+                        <path
+                          d="M4 6L7.5 9L11 6"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    
+                    {dropdownOpen && (
+                      <div className="absolute z-50 w-full mt-1 bg-background border border-navbar rounded-md shadow-lg max-h-60 overflow-auto">
+                        {/* Add Select All / Clear All options */}
+                        <div className="flex border-b border-navbar p-1 sticky top-0 bg-background">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedEnvs([...Object.keys(envSubsets)]);
+                            }}
+                            className="flex-1 text-xs font-mono py-1 px-2 hover:bg-accent rounded mr-1"
+                          >
+                            Select All
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedEnvs([]);
+                            }}
+                            className="flex-1 text-xs font-mono py-1 px-2 hover:bg-accent rounded ml-1"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                        
+                        {Object.keys(envSubsets).map((env) => (
+                          <div
+                            key={env}
+                            className={`relative flex items-center px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer ${
+                              selectedEnvs.includes(env) ? 'bg-accent/50' : ''
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (selectedEnvs.includes(env)) {
+                                setSelectedEnvs(selectedEnvs.filter(e => e !== env));
+                              } else {
+                                setSelectedEnvs([...selectedEnvs, env]);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`h-4 w-4 border rounded flex items-center justify-center ${
+                                  selectedEnvs.includes(env) ? 'bg-primary border-primary' : 'border-input'
+                                }`}
+                              >
+                                {selectedEnvs.includes(env) && (
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 10 10"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="text-primary-foreground"
+                                  >
+                                    <path
+                                      d="M8.5 2.5L3.5 7.5L1.5 5.5"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className="font-mono">{env}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
+              
               {isMobile && (
                 <div
                   ref={trueskillTooltipContainerRef}
                   className="absolute top-[130px] left-0 right-0 z-20 flex justify-center items-center h-[20px] bg-[hsl(var(--navbar))] bg-opacity-95 transition-all duration-200 p-1"
                 />
               )}
+              
               <div className={isMobile ? "overflow-x-auto relative z-10" : ""}>
                 <div style={{ width: isMobile ? Math.max(400, model.trueskill_history.length * 1.5) : "100%", height: 450 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                       data={chartData}
                       margin={{
-                        top: isMobile ? 200 : 20,  // Moves chart lower in mobile
+                        top: isMobile ? 200 : 20,
                         right: 30,
                         left: 20,
                         bottom: 50,
@@ -1422,7 +1543,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                             containerRef={isMobile ? trueskillTooltipContainerRef : null}
                           />
                         }
-                        position={isMobile ? { x: 0, y: 0 } : undefined} // Moves tooltip 50px higher in mobile
+                        position={isMobile ? { x: 0, y: 0 } : undefined}
                       />
                       {!isMobile && (
                         <Legend
@@ -1432,7 +1553,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                             color: "white", 
                             fontFamily: "var(--font-mono)",
                             fontSize: isMobile ? 10 : 12,
-                            marginTop:isMobile ?  "-35px"  : "-20px"  // Add this to move it higher
+                            marginTop: isMobile ? "-35px" : "-20px"
                           }}
                         />
                       )}
@@ -1448,7 +1569,6 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                           dot={false}
                           activeDot={{ r: isMobile ? 6 : 8 }}
                         />
-
                       ))}
                     </LineChart>
                   </ResponsiveContainer>
