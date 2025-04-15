@@ -71,13 +71,14 @@ export default async function DocsPage({ params }: { params: { slug: string } })
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           {/* GIF Section */}
-          <div className="mb-8 rounded-lg overflow-hidden border border-border">
+          <div className="mb-8 rounded-lg overflow-hidden border border-border" style={{ aspectRatio: "16 / 9" }}>
             <FallbackImage
               src={`/gifs/${slug}.gif`}
               alt={`${game.name} environment demonstration`}
-              className="w-full h-auto"
+              className="w-full h-full object-cover"
             />
           </div>
+
 
           <article className="docs-content font-mono">
             <MDXRemote

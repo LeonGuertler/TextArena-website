@@ -28,13 +28,15 @@ export default function EnvironmentsPage() {
       <section className="mb-12">
         <h2 className="text-2xl font-semibold mb-4">All Games</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filterGames(allGames).map((game) => (
-            <GameCard
-              key={game.name} // Still assuming uniqueness
-              name={game.name}
-              href={`/environments/${game.name.toLowerCase()}`}
-              numPlayers={game.num_players} // Passing num_players as numPlayers
-            />
+          {filterGames(allGames)
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((game) => (
+              <GameCard
+                key={game.name} // Still assuming uniqueness
+                name={game.name}
+                href={`/environments/${game.name.toLowerCase()}`}
+                numPlayers={game.num_players} // Passing num_players as numPlayers
+              />
           ))}
         </div>
       </section>
