@@ -57,14 +57,14 @@ interface TrueskillHistoryRow {
 
 function CustomHistoryTooltip({ active, payload, label, isMobile, containerRef }: any) {
   if (active && payload && payload.length > 0) {
-    const formattedTime = new Date(label).toLocaleTimeString([], { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })
+    const formattedTime = new Date(label).toLocaleString([], { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
     
     // Filter payload to only include the main series (not the upper/lower bounds)
     const mainPayload = payload.filter((entry: any) => {
-      return !entry.dataKey.includes('_upper') && !entry.dataKey.includes('_lower');
+      return !entry.dataKey.includes('_upper') && !entry.dataKey.includes('_lower') && !entry.dataKey.includes('_sd');
     });
     
-    const sortedPayload = [...mainPayload].sort((a, b) => b.value - a.value)
+    const sortedPayload = [...mainPayload].sort((a, b) => b.value - a.value);
 
     const tooltipContent = (
       <div
@@ -75,34 +75,29 @@ function CustomHistoryTooltip({ active, payload, label, isMobile, containerRef }
         }`}
       >
         <p className="font-bold text-white mb-0.5">{formattedTime}</p>
-        {sortedPayload.map((entry: any, index: number) => {
-          // Find the corresponding upper and lower bounds
-          const upperEntry = payload.find((p: any) => p.dataKey === `${entry.dataKey}_upper`);
-          const lowerEntry = payload.find((p: any) => p.dataKey === `${entry.dataKey}_lower`);
-          
-          // Calculate the confidence interval (if bounds exist)
-          const confidenceText = (upperEntry && lowerEntry) 
-            ? ` (${lowerEntry.value.toFixed(1)}-${upperEntry.value.toFixed(1)})`
-            : '';
-            
-          return (
-            <p key={index} style={{ color: entry.stroke }} className="m-0 leading-tight">
-              {entry.value.toFixed(1)}{confidenceText}: {entry.name}
-            </p>
-          );
-        })}
+        {sortedPayload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.stroke }} className="m-0 leading-tight">
+            {/* Display both Trueskill value and SD */}
+            {entry.value.toFixed(1)} ± {entry.payload[entry.dataKey + '_sd'].toFixed(1) || 'N/A'}: {entry.name}
+          </p>
+        ))}
+        {/* Add explanation of Trueskill SD */}
+        <p className="text-[8px] text-muted-foreground mt-1">
+          ± indicates confidence (lower is more certain)
+        </p>
       </div>
-    )
-
+    );
+    
     // Only use portal for mobile
     if (isMobile && containerRef?.current) {
-      return ReactDOM.createPortal(tooltipContent, containerRef.current)
+      return ReactDOM.createPortal(tooltipContent, containerRef.current);
     }
 
-    return tooltipContent
+    return tooltipContent;
   }
-  return null
+  return null;
 }
+
 
 function TrueskillHistoryChart({
   data,
@@ -458,6 +453,9 @@ export function Leaderboard() {
       // Always update, ensuring the *last* value for the hour is used.
       grouped[dateKey][row.model_name] = row.trueskill_value
       
+      // Store the SD value separately for tooltip access
+      grouped[dateKey][`${row.model_name}_sd`] = row.trueskill_sd_value
+      
       // Add upper and lower bounds for confidence bands
       grouped[dateKey][`${row.model_name}_upper`] = row.trueskill_value + row.trueskill_sd_value
       grouped[dateKey][`${row.model_name}_lower`] = row.trueskill_value - row.trueskill_sd_value
@@ -472,16 +470,19 @@ export function Leaderboard() {
     const currentModelNames = new Set(paginatedModels.map((model) => model.model_name))
     currentModelNames.forEach((modelName) => {
       let lastValue: number | undefined = 25 // Initialize with a default
+      let lastSD: number | undefined = 8 // Default SD value
       let lastUpper: number | undefined = 25 + 8 // Default + default SD
       let lastLower: number | undefined = 25 - 8 // Default - default SD
       
       sortedData.forEach((row: any) => {
         if (row[modelName] === undefined) {
           row[modelName] = lastValue
+          row[`${modelName}_sd`] = lastSD
           row[`${modelName}_upper`] = lastUpper
           row[`${modelName}_lower`] = lastLower
         } else {
           lastValue = row[modelName]
+          lastSD = row[`${modelName}_sd`]
           lastUpper = row[`${modelName}_upper`]
           lastLower = row[`${modelName}_lower`]
         }
