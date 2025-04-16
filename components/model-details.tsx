@@ -150,6 +150,7 @@ interface ModelData {
     skill_4_weight?: number
     skill_5?: string
     skill_5_weight?: number
+    is_balancedsubset?: boolean
   }[]
   recent_games: {
     game_id: number
@@ -194,14 +195,23 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
       if (active && payload && payload.length > 0) {
         const data = payload[0].payload;
         
-        // Get all environments from all models
+        // Get all environments from all models, but filter to only those with is_balancedsubset=true
         const allEnvNames = new Set<string>();
         
-        // Collect environment names from each model
-        data.mainEnvs?.forEach(env => allEnvNames.add(env.name));
-        data.comparisonEnvs?.forEach(env => allEnvNames.add(env.name));
-        data.comparisonEnvs2?.forEach(env => allEnvNames.add(env.name));
-        data.comparisonEnvs3?.forEach(env => allEnvNames.add(env.name));
+        // Helper function to filter and add environments
+        const addFilteredEnvs = (envs) => {
+          if (!envs) return;
+          
+          // Only add environments where is_balancedsubset is true
+          envs.filter(env => env.is_balancedsubset === true)
+            .forEach(env => allEnvNames.add(env.name));
+        };
+        
+        // Collect environment names from each model (only balanced subsets)
+        addFilteredEnvs(data.mainEnvs);
+        addFilteredEnvs(data.comparisonEnvs);
+        addFilteredEnvs(data.comparisonEnvs2);
+        addFilteredEnvs(data.comparisonEnvs3);
         
         // Convert to array and sort alphabetically
         const allEnvironments = [...allEnvNames].sort();
@@ -223,7 +233,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
             name: payload.find(p => p.dataKey === 'mainTrueskill')?.name || 'Main Model',
             color: colorMapping.mainTrueskill,
             trueskill: data.mainTrueskill,
-            envs: data.mainEnvs || [],
+            envs: data.mainEnvs ? data.mainEnvs.filter(env => env.is_balancedsubset === true) : [],
             dataKey: 'mainTrueskill'
           });
         }
@@ -234,7 +244,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
             name: payload.find(p => p.dataKey === 'comparisonTrueskill')?.name || 'Comparison 1',
             color: colorMapping.comparisonTrueskill,
             trueskill: data.comparisonTrueskill,
-            envs: data.comparisonEnvs || [],
+            envs: data.comparisonEnvs ? data.comparisonEnvs.filter(env => env.is_balancedsubset === true) : [],
             dataKey: 'comparisonTrueskill'
           });
         }
@@ -244,7 +254,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
             name: payload.find(p => p.dataKey === 'comparisonTrueskill2')?.name || 'Comparison 2',
             color: colorMapping.comparisonTrueskill2,
             trueskill: data.comparisonTrueskill2,
-            envs: data.comparisonEnvs2 || [],
+            envs: data.comparisonEnvs2 ? data.comparisonEnvs2.filter(env => env.is_balancedsubset === true) : [],
             dataKey: 'comparisonTrueskill2'
           });
         }
@@ -254,7 +264,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
             name: payload.find(p => p.dataKey === 'comparisonTrueskill3')?.name || 'Comparison 3',
             color: colorMapping.comparisonTrueskill3,
             trueskill: data.comparisonTrueskill3,
-            envs: data.comparisonEnvs3 || [],
+            envs: data.comparisonEnvs3 ? data.comparisonEnvs3.filter(env => env.is_balancedsubset === true) : [],
             dataKey: 'comparisonTrueskill3'
           });
         }
@@ -297,10 +307,10 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
               </div>
             </div>
             
-            {/* Environments Section */}
+            {/* Environments Section - Only showing balanced subsets */}
             <div>
               <div className={`text-muted-foreground font-semibold mb-2 ${isMobile ? "text-[9px]" : "text-xs"}`}>
-                Environment Contributions
+                Environment Contributions (Balanced Subsets Only)
               </div>
               
               <div className={`space-y-2 ${isMobile ? "text-[8px]" : "text-[10px]"}`}>
@@ -483,17 +493,17 @@ function CustomTrueskillTooltip({ active, payload, label, isMobile, containerRef
 // 4. Build Skill Distribution (New Weighted Calculation Per Environment)
 // -------------------------------------------------------------------
 function buildSkillDistribution(environments: ModelData["environment_performance"]) {
-  // For each allowed skill, we aggregate:
-  // - weightedTrueskill: Sum(env. trueskill * coefficient)
-  // - totalWeight: Sum(coefficients) for that skill.
-  // We also record each environment's contribution.
-  type EnvContribution = { name: string; trueskill: number; weight: number }
+  // First, filter to only include environments with is_balancedsubset = true
+  const balancedEnvironments = environments.filter(env => env.is_balancedsubset === true);
+  
+  // Initialize aggregation structure
   const agg: Record<string, { weightedTrueskill: number; totalWeight: number; envs: EnvContribution[] }> = {}
   SKILLS.forEach((skill) => {
     agg[skill] = { weightedTrueskill: 0, totalWeight: 0, envs: [] }
   })
 
-  environments.forEach((env) => {
+  // Now process only the balanced environments
+  balancedEnvironments.forEach((env) => {
     // Loop through up to five possible skill fields.
     for (let i = 1; i <= 5; i++) {
       const skillKey = `skill_${i}` as keyof typeof env
@@ -501,19 +511,23 @@ function buildSkillDistribution(environments: ModelData["environment_performance
       const skillValue = env[skillKey] as string | undefined
       const rawWeight = env[weightKey]
       if (skillValue && rawWeight && Number(rawWeight) > 0) {
-        // Optionally normalize variant names here.
         const normalizedSkill = skillValue
         if (SKILLS.includes(normalizedSkill)) {
           const weight = Number(rawWeight)
           agg[normalizedSkill].weightedTrueskill += env.trueskill * weight
           agg[normalizedSkill].totalWeight += weight
-          agg[normalizedSkill].envs.push({ name: env.name, trueskill: env.trueskill, weight })
+          agg[normalizedSkill].envs.push({ 
+            name: env.name, 
+            trueskill: env.trueskill, 
+            weight, 
+            is_balancedsubset: env.is_balancedsubset
+          })
         }
       }
     }
   })
 
-  // Now compute each environment's relative weight (per skill).
+  // Compute each environment's relative weight and return final results
   return SKILLS.map((skill) => {
     const { weightedTrueskill, totalWeight, envs } = agg[skill]
     const envsWithRelative = envs.map((env) => ({
@@ -521,6 +535,7 @@ function buildSkillDistribution(environments: ModelData["environment_performance
       trueskill: env.trueskill,
       weight: env.weight,
       relativeWeight: totalWeight > 0 ? env.weight / totalWeight : 0,
+      is_balancedsubset: env.is_balancedsubset
     }))
     return {
       skill,
@@ -600,6 +615,13 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
     "Poker-v0 (2 Players)",
     "Snake-v0 (2 Players)",
     "TicTacToe-v0 (2 Players)",
+    "BlindAuction-v0 (5 Players)",
+    "Chess-v0 (2 Players)",
+    "PigDice-v0 (2 Players)",
+    "LiarsDice-v0 (2 Players)",
+    "IteratedRockPaperScissors-v0 (2 Players)",
+    "Snake-v0 (2 Players)",
+    "Othello-v0 (2 Players)",
   ]); // Or any two environments you prefer
   const [envTrueskillHistory, setEnvTrueskillHistory] = useState<EnvTrueskillHistoryRow[]>([]);
   const [isLoadingEnvHistory, setIsLoadingEnvHistory] = useState(true);
