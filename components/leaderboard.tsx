@@ -185,7 +185,9 @@ function TrueskillHistoryChart({
             fontSize: isMobile ? 10 : 12,
             fontFamily: "var(--font-mono)",
           }}
-          domain={["auto", "auto"]}
+          domain={[(dataMin) => dataMin - 1, (dataMax) => dataMax + 1]}
+          tickFormatter={(value) => Math.round(value)} // Round to whole numbers
+          allowDataOverflow={true}
         />
         <Tooltip
           content={<CustomHistoryTooltip isMobile={isMobile} containerRef={tooltipContainerRef} />}
@@ -305,6 +307,44 @@ export function Leaderboard() {
   const [error, setError] = useState<string | null>(null)
   const [hoveredModel, setHoveredModel] = useState<string | null>(null)
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('7D');
+
+  const arrangeEnvironmentSubsets = (subsets: string[]) => {
+    // Define priority items in the exact order you want them to appear
+    const priorityOrder = [
+      "Balanced Subset",
+      "Chess-v0 (2 Players)",
+      "DontSayIt-v0 (2 Players)",
+      "IteratedRockPaperScissors-v0 (2 Players)",
+      "Othello-v0 (2 Players)",
+      "PigDice-v0 (2 Players)",
+      "TicTacToe-v0 (2 Players)",
+      "BlindAuction-v0 (5 Players)",
+      "LiarsDice-v0 (5 Players)",
+      "Negotiation-v0 (5 Players)",
+      "Poker-v0 (5 Players)",
+      "SecretMafia-v0 (5 Players)",
+      "Snake-v0-standard (4 Players)",
+    ];
+    
+    // Create a new array for the result
+    const result: string[] = [];
+    
+    // First add all priority items that exist in the subsets (in priority order)
+    priorityOrder.forEach(item => {
+      if (subsets.includes(item)) {
+        result.push(item);
+      }
+    });
+    
+    // Then add all remaining items in their original order
+    subsets.forEach(item => {
+      if (!priorityOrder.includes(item)) {
+        result.push(item);
+      }
+    });
+    
+    return result;
+  };
 
   useEffect(() => {
     async function fetchEnvSubsets() {
@@ -536,12 +576,11 @@ export function Leaderboard() {
                   <SelectValue placeholder="Select game environment" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.keys(envSubsets).map((subset) => (
+                  {arrangeEnvironmentSubsets(Object.keys(envSubsets)).map((subset) => (
                     <SelectItem key={subset} value={subset} className="font-mono">
                       {subset}
                     </SelectItem>
                   ))}
-                  {/* <SelectItem value="All" className="font-mono">All</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>
@@ -610,12 +649,11 @@ export function Leaderboard() {
                   <SelectValue placeholder="Select game environment" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.keys(envSubsets).map((subset) => (
+                  {arrangeEnvironmentSubsets(Object.keys(envSubsets)).map((subset) => (
                     <SelectItem key={subset} value={subset} className="font-mono">
                       {subset}
                     </SelectItem>
                   ))}
-                  {/* <SelectItem value="All" className="font-mono">All</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>
