@@ -6,7 +6,8 @@ interface LeaderboardCardProps {
   model: {
     model_id: number
     model_name: string
-    elo: number
+    trueskill: number
+    trueskill_sd: number
     games_played: number
     win_rate: number
     wins: number
@@ -34,8 +35,8 @@ export function LeaderboardCard({ rank, model }: LeaderboardCardProps) {
 
         <div className="grid grid-cols-2 gap-2 sm:gap-4 font-mono">
           <div>
-            <div className="text-xs text-muted-foreground">Elo Rating</div>
-            <div className="text-sm text-navbarForeground">{Math.round(model.elo)}</div>
+            <div className="text-xs text-muted-foreground">Trueskill Rating</div>
+            <div className="text-sm text-navbarForeground">{model.trueskill.toFixed(1)} ± {model.trueskill_sd.toFixed(1)}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Games Played</div>
