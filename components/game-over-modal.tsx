@@ -24,6 +24,7 @@ interface GameOverModalProps {
     opponent_elo: number;
     change_in_elo: number;
     reason: string;
+    opponents_with_ids?: string; // New optional field
   };
   onClose: () => void;
   onReturnToQueue: () => void;
@@ -35,6 +36,7 @@ interface GameOverModalProps {
 interface OpponentData {
   name: string;
   elo: number;
+  playerId?: number; // Added player ID
 }
 
 export function GameOverModal({
@@ -52,21 +54,40 @@ export function GameOverModal({
   // Parse opponent data from strings when component mounts
   useEffect(() => {
     if (gameResult.opponent_name && gameResult.opponent_elo) {
-      // Split strings by comma
-      const names = gameResult.opponent_name.split(', ');
-      const elos = String(gameResult.opponent_elo).split(', ').map(e => parseFloat(e));
-      
-      // Create array of opponent data objects
-      const opponentList: OpponentData[] = [];
-      for (let i = 0; i < Math.min(names.length, elos.length); i++) {
-        opponentList.push({
-          name: names[i],
-          elo: elos[i]
-        });
+      // Check if we have the new format with player IDs
+      if (gameResult.opponents_with_ids) {
+        // Parse the player ID:name format
+        const opponentsWithIds = gameResult.opponents_with_ids.split(', ');
+        const elos = String(gameResult.opponent_elo).split(', ').map(e => parseFloat(e));
+        
+        // Create array of opponent data objects with player IDs
+        const opponentList: OpponentData[] = [];
+        for (let i = 0; i < Math.min(opponentsWithIds.length, elos.length); i++) {
+          const [playerId, name] = opponentsWithIds[i].split(':');
+          opponentList.push({
+            name: name,
+            elo: elos[i],
+            playerId: parseInt(playerId)
+          });
+        }
+        setOpponents(opponentList);
+      } else {
+        // Fall back to the original format without player IDs
+        const names = gameResult.opponent_name.split(', ');
+        const elos = String(gameResult.opponent_elo).split(', ').map(e => parseFloat(e));
+        
+        // Create array of opponent data objects
+        const opponentList: OpponentData[] = [];
+        for (let i = 0; i < Math.min(names.length, elos.length); i++) {
+          opponentList.push({
+            name: names[i],
+            elo: elos[i]
+          });
+        }
+        setOpponents(opponentList);
       }
-      setOpponents(opponentList);
     }
-  }, [gameResult.opponent_name, gameResult.opponent_elo]);
+  }, [gameResult.opponent_name, gameResult.opponent_elo, gameResult.opponents_with_ids]);
 
   const handleMinimize = () => {
     setIsMinimized(true);
@@ -342,7 +363,12 @@ export function GameOverModal({
                 {opponents.length > 0 ? (
                   opponents.map((opp, index) => (
                     <div key={index} className="flex justify-between items-center py-1">
-                      <span className="font-medium text-white">{truncateName(opp.name)}</span>
+                      <div className="flex items-center">
+                        <span className="font-medium text-white">{truncateName(opp.name)}</span>
+                        {opp.playerId !== undefined && (
+                          <span className="ml-2 text-xs text-muted-foreground">(Player {opp.playerId})</span>
+                        )}
+                      </div>
                       <span className="text-muted-foreground">{opp.elo.toFixed(1)}</span>
                     </div>
                   ))

@@ -76,7 +76,7 @@ function formatQueueTime(seconds: number): string {
 }
 
 export default function PlayPage() {
-  const DEFAULT_SELECTED_ENVIRONMENTS = [0, 3, 6, 8, 9, 10, 12, 13, 14, 15]
+  const DEFAULT_SELECTED_ENVIRONMENTS = [0, 3, 35, 51, 52, 63, 66, 67, 68, 70, 75, 81]
 
   // Environment & queue states
   const [envOptions, setEnvOptions] = useState<EnvOption[]>([])
@@ -655,7 +655,9 @@ export default function PlayPage() {
           opponent_elo: msg.opponents_ts,
           change_in_elo: msg.trueskill_change,
           outcome: msg.outcome,
-          reason: msg.reason || "Unknown"
+          reason: msg.reason || "Unknown",
+          // Add the new field for opponents with IDs
+          opponents_with_ids: msg.opponents_with_ids || ""
         })
         
         // Mark that the match is over
