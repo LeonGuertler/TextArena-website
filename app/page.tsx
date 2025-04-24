@@ -27,6 +27,7 @@ type EnvOption = {
   description: string
   active: boolean
   num_players: number
+  avg_duration_seconds?: number // Add this field
 }
 
 type Message = {
@@ -433,20 +434,48 @@ export default function PlayPage() {
 
   // Fetch environment options
   useEffect(() => {
+    // First fetch the environments
     supabase
-    .from("environments")
-    .select("id, env_name, description, active, num_players")
-    .then(({ data, error }) => {
-      if (error) {
-        console.error("Error fetching environments:", error)
-      } else if (data) {
-        setEnvOptions(data)
-        const defaultEnvIds = data
-          .filter((e) => DEFAULT_SELECTED_ENVIRONMENTS.includes(parseInt(e.id)))
-          .map((e) => parseInt(e.id))
-        setSelectedGames(defaultEnvIds)
-      }
-    })
+      .from("environments")
+      .select("id, env_name, description, active, num_players")
+      .then(({ data: environmentsData, error: environmentsError }) => {
+        if (environmentsError) {
+          console.error("Error fetching environments:", environmentsError)
+          return
+        }
+        
+        // Then fetch the average durations
+        supabase
+          .from("avg_duration_per_environment")
+          .select("environment_id, avg_duration_seconds")
+          .then(({ data: durationsData, error: durationsError }) => {
+            if (durationsError) {
+              console.error("Error fetching average durations:", durationsError)
+              // Still continue with the environments data we have
+              setEnvOptions(environmentsData)
+              const defaultEnvIds = environmentsData
+                .filter((e) => DEFAULT_SELECTED_ENVIRONMENTS.includes(parseInt(e.id)))
+                .map((e) => parseInt(e.id))
+              setSelectedGames(defaultEnvIds)
+              return
+            }
+            
+            // Merge the durations with the environments data
+            const enrichedData = environmentsData.map(env => {
+              const durationInfo = durationsData.find(d => d.environment_id === env.id)
+              return {
+                ...env,
+                avg_duration_seconds: durationInfo?.avg_duration_seconds || undefined
+              }
+            })
+            
+            setEnvOptions(enrichedData)
+            const defaultEnvIds = enrichedData
+              .filter((e) => DEFAULT_SELECTED_ENVIRONMENTS.includes(parseInt(e.id)))
+              .map((e) => parseInt(e.id))
+            setSelectedGames(defaultEnvIds)
+          })
+      })
   }, [])
 
   // Check matchmaking status periodically
@@ -1099,6 +1128,7 @@ export default function PlayPage() {
                 options={envOptions}
                 selectedGames={selectedGames}
                 onSelectedGamesChange={setSelectedGames}
+                customSortOrder={DEFAULT_SELECTED_ENVIRONMENTS}
               />
             }
             onQueueClick={handleQueueClick}
