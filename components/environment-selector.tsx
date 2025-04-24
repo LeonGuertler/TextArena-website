@@ -146,7 +146,7 @@ export function EnvironmentSelector({
                           <span
                             className={cn(
                               "inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[9px]",
-                              "bg-blue-900 text-white"
+                              "bg-slate-700 text-white"
                             )}
                           >
                             <Clock3 className="h-[10px] w-[10px] mr-0.5 opacity-80" strokeWidth={1} /> {formatDuration(option.avg_duration_seconds)}
