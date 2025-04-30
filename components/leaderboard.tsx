@@ -10,8 +10,9 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { supabase } from "@/lib/supabase"
 import { LeaderboardCard } from "@/components/leaderboard-card"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Filter, Info } from "lucide-react"
+import { Filter, Info, BadgeCheck, MoonStar } from "lucide-react"
 import ReactDOM from "react-dom"
+import { Badge } from "@/components/ui/badge";
 
 const CHART_COLORS = [
   "#06b6d4",
@@ -45,6 +46,7 @@ interface ModelData {
   draws: number
   losses: number
   avg_time: number
+  is_active: boolean
 }
 
 interface TrueskillHistoryRow {
@@ -307,6 +309,12 @@ export function Leaderboard() {
   const [error, setError] = useState<string | null>(null)
   const [hoveredModel, setHoveredModel] = useState<string | null>(null)
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('7D');
+  const [showInactive, setShowInactive] = useState<boolean>(() => {
+    const savedInactiveFilter = typeof window !== 'undefined' 
+      ? localStorage.getItem('showInactiveModels') 
+      : null;
+    return savedInactiveFilter === 'true';
+  });
 
   const arrangeEnvironmentSubsets = (subsets: string[]) => {
     // Define priority items in the exact order you want them to appear
@@ -370,12 +378,86 @@ export function Leaderboard() {
 
   const itemsPerPage = 10
 
-  const filteredModels = useMemo(() => {
-    if (selectedStandardFilter === "All") return models;
-    return models.filter(model => 
-      selectedStandardFilter === "Standard" ? model.is_standard : !model.is_standard
+  const InactiveCheckbox = ({ id, isDesktop = true }: { id: string; isDesktop?: boolean }) => {
+    // Use useEffect and useState to handle client-side rendering of the checkmark
+    const [isMounted, setIsMounted] = useState(false);
+    
+    useEffect(() => {
+      setIsMounted(true);
+    }, []);
+    
+    return (
+      <div className={`flex items-center gap-2 ${isDesktop ? 'justify-end mb-4' : 'w-full mb-3'}`}>
+        <div className="flex items-center gap-2">
+          <div className="relative inline-block">
+            <input
+              type="checkbox"
+              id={id}
+              checked={showInactive}
+              onChange={(e) => {
+                setShowInactive(e.target.checked);
+                setCurrentPage(1);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('showInactiveModels', e.target.checked.toString());
+                }
+              }}
+              className="sr-only" // Hide default checkbox but keep it accessible
+            />
+            <label
+              htmlFor={id}
+              className={`flex items-center justify-center w-5 h-5 rounded border border-white cursor-pointer transition-colors ${
+                showInactive 
+                ? 'bg-gray-600 border-white' 
+                : 'bg-[hsl(var(--navbar))] border-white hover:border-navbarForeground'
+              }`}
+            >
+              {/* Only render the SVG on the client side after mounting */}
+              {isMounted && showInactive && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
+            </label>
+          </div>
+          <label htmlFor={id} className="text-navbarForeground text-sm font-mono font-medium cursor-pointer">
+            Show inactive models
+          </label>
+        </div>
+        <div className="relative group">
+          <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+          <div
+            className={`absolute hidden group-hover:block bg-background p-2 rounded-lg border border-navbar shadow-lg z-20
+              ${isDesktop 
+                ? 'right-0 top-full mt-1 w-64'  // Desktop: right aligned, wider
+                : 'left-0 top-full mt-1 w-44 max-w-[11rem]'  // Mobile: left aligned, narrower
+              }`}
+          >
+            <p className="text-[11px] text-muted-foreground font-mono leading-snug">
+              Include models that have not played at least 5 games in the last 14 days.
+            </p>
+          </div>
+        </div>
+      </div>
     );
-  }, [models, selectedStandardFilter]);
+  };
+
+  const filteredModels = useMemo(() => {
+    let filtered = models;
+    
+    // Apply the standard/non-standard filter
+    if (selectedStandardFilter !== "All") {
+      filtered = filtered.filter(model => 
+        selectedStandardFilter === "Standard" ? model.is_standard : !model.is_standard
+      );
+    }
+    
+    // Apply the active/inactive filter
+    if (!showInactive) {
+      filtered = filtered.filter(model => model.is_active);
+    }
+    
+    return filtered;
+  }, [models, selectedStandardFilter, showInactive]);
   
   const paginatedModels = useMemo(() => {
     return filteredModels.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -694,6 +776,19 @@ export function Leaderboard() {
           </div>
         )}
       </CardHeader>
+
+      {!isMobile ? (
+        // Desktop view checkbox - above the table
+        <div className="px-6 mt-2 mb-4">
+          <InactiveCheckbox id="inactive-filter-desktop" />
+        </div>
+      ) : (
+        // Mobile view checkbox - above the cards
+        <div className="px-4 mt-2 mb-3">
+          <InactiveCheckbox id="inactive-filter-mobile" isDesktop={false} />
+        </div>
+      )}
+      
       <CardContent className="p-2 sm:p-3">
         <div className="space-y-8">
           {!isMobile ? (
@@ -753,12 +848,34 @@ export function Leaderboard() {
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </TableCell>
                       <TableCell>
-                        <Link
-                          href={`/leaderboard/${encodeURIComponent(model.model_name)}`}
-                          className="text-navbarForeground hover:underline"
-                        >
-                          {model.model_name}
-                        </Link>
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            href={`/leaderboard/${encodeURIComponent(model.model_name)}`}
+                            className="text-navbarForeground hover:underline"
+                          >
+                            {model.model_name}
+                          </Link>
+                          
+                          {/* Icons in a row next to the model name */}
+                          <div className="flex items-center gap-1">
+                            {model.is_standard && (
+                              <div className="relative group">
+                                <BadgeCheck size={16} className="text-blue-400" />
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
+                                  <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Standard model</p>
+                                </div>
+                              </div>
+                            )}
+                            {!model.is_active && (
+                              <div className="relative group">
+                                <MoonStar size={16} className="text-gray-400" />
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
+                                  <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Inactive model</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right font-semibold text-navbarForeground">
                         {model.trueskill.toFixed(1)} ± {model.trueskill_sd.toFixed(1)}

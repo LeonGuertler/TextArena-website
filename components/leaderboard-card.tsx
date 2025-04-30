@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
+import { BadgeCheck, MoonStar } from "lucide-react"
 
 interface LeaderboardCardProps {
   rank: number
@@ -14,6 +15,8 @@ interface LeaderboardCardProps {
     draws: number
     losses: number
     avg_time: number
+    is_standard: boolean
+    is_active: boolean
   }
 }
 
@@ -21,16 +24,45 @@ export function LeaderboardCard({ rank, model }: LeaderboardCardProps) {
   return (
     <Card className="w-full bg-[hsl(var(--navbar))] border border-[hsl(var(--border))] overflow-hidden">
       <CardContent className="p-3 sm:p-4">
-        <div className="flex items-start mb-4">
-          <div className="flex-1 min-w-0">
-            <Link
-              href={`/leaderboard/${encodeURIComponent(model.model_name)}`}
-              className="text-lg font-semibold text-navbarForeground hover:underline font-mono line-clamp-2 break-all"
-            >
-              {model.model_name}
-            </Link>
+        <div className="flex justify-between items-start mb-4">
+          {/* Left side */}
+          <div className="flex-1 min-w-0 mr-2">
+            {/* Use a positioned container */}
+            <div className="relative">
+              {/* Model name with right padding to make room for badges */}
+              <Link
+                href={`/leaderboard/${encodeURIComponent(model.model_name)}`}
+                className={`text-lg font-semibold text-navbarForeground hover:underline font-mono inline-block ${(model.is_standard || !model.is_active) ? 'pr-10' : ''}`}
+              >
+                {model.model_name}
+              </Link>
+              
+              {/* Absolutely positioned badges that will always appear after the model name */}
+              {(model.is_standard || !model.is_active) && (
+                <div className="absolute top-1 right-0 flex items-center">
+                  {model.is_standard && (
+                    <div className="relative group mr-1">
+                      <BadgeCheck size={20} className="text-blue-400" />
+                      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
+                        <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Standard model</p>
+                      </div>
+                    </div>
+                  )}
+                  {!model.is_active && (
+                    <div className="relative group">
+                      <MoonStar size={20} className="text-gray-400" />
+                      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
+                        <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Inactive model</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="text-2xl font-bold text-navbarForeground font-mono ml-2 flex-shrink-0">#{rank}</div>
+          
+          {/* Right side */}
+          <div className="text-2xl font-bold text-navbarForeground font-mono flex-shrink-0">#{rank}</div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 sm:gap-4 font-mono">
@@ -61,4 +93,3 @@ export function LeaderboardCard({ rank, model }: LeaderboardCardProps) {
     </Card>
   )
 }
-
