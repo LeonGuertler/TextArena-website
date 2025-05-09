@@ -7,6 +7,8 @@ interface LeaderboardCardProps {
   model: {
     model_id: number
     model_name: string
+    human_id: number
+    human_name: string
     trueskill: number
     trueskill_sd: number
     games_played: number
@@ -18,9 +20,10 @@ interface LeaderboardCardProps {
     is_standard: boolean
     is_active: boolean
   }
+  selectedSubset: string // Add this line
 }
 
-export function LeaderboardCard({ rank, model }: LeaderboardCardProps) {
+export function LeaderboardCard({ rank, model, selectedSubset }: LeaderboardCardProps) {
   return (
     <Card className="w-full bg-[hsl(var(--navbar))] border border-[hsl(var(--border))] overflow-hidden">
       <CardContent className="p-3 sm:p-4">
@@ -31,7 +34,7 @@ export function LeaderboardCard({ rank, model }: LeaderboardCardProps) {
             <div className="relative">
               {/* Model name with right padding to make room for badges */}
               <Link
-                href={`/leaderboard/${encodeURIComponent(model.model_name)}`}
+                href={`/leaderboard/${encodeURIComponent(model.model_name)}/${model.model_id}/${model.human_id}/${encodeURIComponent(selectedSubset)}`}
                 className={`text-lg font-semibold text-navbarForeground hover:underline font-mono inline-block ${(model.is_standard || !model.is_active) ? 'pr-10' : ''}`}
               >
                 {model.model_name}
@@ -58,6 +61,10 @@ export function LeaderboardCard({ rank, model }: LeaderboardCardProps) {
                   )}
                 </div>
               )}
+            </div>
+            {/* Add human name below model name */}
+            <div className="text-sm text-navbarForeground mt-1">
+              {model.human_name}
             </div>
           </div>
           
@@ -87,6 +94,10 @@ export function LeaderboardCard({ rank, model }: LeaderboardCardProps) {
               <span className="text-muted-foreground">/</span>
               <span className="text-red-400">{model.losses}</span>
             </div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Avg. Time</div>
+            <div className="text-sm text-navbarForeground">{model.avg_time.toFixed(1)}s</div>
           </div>
         </div>
       </CardContent>
