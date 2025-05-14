@@ -117,6 +117,7 @@ interface EnvTrueskillHistoryRow {
 interface ModelData {
   id: number
   model_name: string
+  human_name?: string // Add this field
   description?: string
   trueskill: number
   games_played: number
@@ -125,6 +126,7 @@ interface ModelData {
   draws: number
   losses: number
   avg_time: number
+  human_id?: number
   trueskill_history: {
     interval_start: string
     avg_trueskill: number
@@ -139,7 +141,6 @@ interface ModelData {
     wins: number
     draws: number
     losses: number
-    // New: up to 5 skill fields and their corresponding weights.
     skill_1?: string
     skill_1_weight?: number
     skill_2?: string
@@ -164,7 +165,17 @@ interface ModelData {
 }
 
 interface ModelDetailsProps {
-  modelName: string
+  modelName: string;
+  modelId: string | number;
+  humanId: string | number;
+  subset: string; // Add this line
+}
+
+interface AvailableModel {
+  model_name: string;
+  model_id: number;
+  human_id: number;
+  is_human: boolean;
 }
 
 // -------------------------------------------------------------------
@@ -227,10 +238,12 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
         // Create models array with the data that's needed
         const modelList = [];
         
+        // For each model, get the name from the payload which should now include the correct human name if applicable
         // Add main model if it has data
         if (data.mainTrueskill > 0) {
-          modelList.push({
-            name: payload.find(p => p.dataKey === 'mainTrueskill')?.name || 'Main Model',
+          const mainModelPayload = payload.find(p => p.dataKey === 'mainTrueskill');
+          modelList.push({ 
+            name: mainModelPayload?.name || 'Main Model',
             color: colorMapping.mainTrueskill,
             trueskill: data.mainTrueskill,
             envs: data.mainEnvs ? data.mainEnvs.filter(env => env.is_balancedsubset === true) : [],
@@ -240,8 +253,9 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
         
         // Add comparison models if they have data
         if (data.comparisonTrueskill > 0) {
-          modelList.push({
-            name: payload.find(p => p.dataKey === 'comparisonTrueskill')?.name || 'Comparison 1',
+          const comp1Payload = payload.find(p => p.dataKey === 'comparisonTrueskill');
+          modelList.push({ 
+            name: comp1Payload?.name || 'Comparison 1',
             color: colorMapping.comparisonTrueskill,
             trueskill: data.comparisonTrueskill,
             envs: data.comparisonEnvs ? data.comparisonEnvs.filter(env => env.is_balancedsubset === true) : [],
@@ -250,8 +264,9 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
         }
         
         if (data.comparisonTrueskill2 > 0) {
-          modelList.push({
-            name: payload.find(p => p.dataKey === 'comparisonTrueskill2')?.name || 'Comparison 2',
+          const comp2Payload = payload.find(p => p.dataKey === 'comparisonTrueskill2');
+          modelList.push({ 
+            name: comp2Payload?.name || 'Comparison 2',
             color: colorMapping.comparisonTrueskill2,
             trueskill: data.comparisonTrueskill2,
             envs: data.comparisonEnvs2 ? data.comparisonEnvs2.filter(env => env.is_balancedsubset === true) : [],
@@ -260,8 +275,9 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
         }
         
         if (data.comparisonTrueskill3 > 0) {
-          modelList.push({
-            name: payload.find(p => p.dataKey === 'comparisonTrueskill3')?.name || 'Comparison 3',
+          const comp3Payload = payload.find(p => p.dataKey === 'comparisonTrueskill3');
+          modelList.push({ 
+            name: comp3Payload?.name || 'Comparison 3',
             color: colorMapping.comparisonTrueskill3,
             trueskill: data.comparisonTrueskill3,
             envs: data.comparisonEnvs3 ? data.comparisonEnvs3.filter(env => env.is_balancedsubset === true) : [],
@@ -272,6 +288,7 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }: any) {
         // Sort models by skill trueskill (highest first) for display
         const models = modelList.sort((a, b) => b.trueskill - a.trueskill);
 
+        // The rest of the component remains unchanged as it uses the names from the sorted models array
         root.render(
           <div 
             className={`font-mono ${isMobile ? "p-0 text-[10px]" : "p-2 text-sm"} space-y-4`}
@@ -583,7 +600,7 @@ const calculateDomain = (trueskillValues: number[]) => {
 
 
 
-export function ModelDetails({ modelName }: ModelDetailsProps) {
+export function ModelDetails({ modelName, modelId, humanId, subset }: ModelDetailsProps) {
   const router = useRouter()
   const [model, setModel] = useState<ModelData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -607,7 +624,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   const [comparisonModel, setComparisonModel] = useState<ModelData | null>(null);
   const [comparisonModel2, setComparisonModel2] = useState<ModelData | null>(null);
   const [comparisonModel3, setComparisonModel3] = useState<ModelData | null>(null);
-  const [availableModels, setAvailableModels] = useState<{model_name: string}[]>([]);
+  const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
   // second,
   const [selectedEnvs, setSelectedEnvs] = useState<string[]>([
     "SecretMafia-v0 (5 Players)",
@@ -787,53 +804,43 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   useEffect(() => {
     fetchModelDetails();
     fetchAvailableModels();
-    fetchEnvSubsets(); // Add this line
-  }, []);
+    fetchEnvSubsets();
+  }, [modelId, humanId]); // Add dependencies
 
   // Separate effect for fetching environment history that depends on both model and selectedEnvs
   useEffect(() => {
     async function fetchData() {
-      if (model?.id === null || model?.id === undefined) {
-        console.log('No model ID found:', model);
+      if (
+        model?.id == null ||
+        Object.keys(envSubsets).length === 0
+      ) {
+        console.log('Model or envSubsets not ready:', model, envSubsets);
         return;
       }
-      
+  
       setIsLoadingEnvHistory(true);
-      
+  
       try {
-        console.log('Model details:', {
-          modelName: model.model_name,
-          modelId: model.id,
-        });
-        
-        // Get the environment IDs from the selected environment subsets
         const envIds = selectedEnvs.flatMap(subset => envSubsets[subset] || []);
         console.log('Environment IDs to query:', envIds);
-        
+  
         if (envIds.length === 0) {
-          console.log('No environment IDs to query');
           setEnvTrueskillHistory([]);
           setIsLoadingEnvHistory(false);
           return;
         }
-    
-        // Important: Make sure to convert the string IDs to numbers if needed
+  
         const { data, error } = await supabase.rpc(
-          "get_new_trueskill_history_last7days_by_env",
+          "get_new_trueskill_humans_models_history_last7days_by_env",
           {
-            selected_env_ids: envIds.map(id => parseInt(id, 10)), // Ensure proper number conversion
-            selected_model_ids: [Number(model.id)]
+            selected_env_ids: envIds.map(id => parseInt(id, 10)),
+            selected_model_ids: [Number(model.id)],
+            selected_human_ids: [Number(humanId)],
           }
         );
-    
-        if (error) {
-          console.error('RPC error:', error);
-          throw error;
-        }
-    
-        console.log('RPC Response data count:', data?.length);
-        console.log('First few records:', data?.slice(0, 3));
-    
+  
+        if (error) throw error;
+  
         setEnvTrueskillHistory(data || []);
       } catch (err) {
         console.error("Error in fetchData:", err);
@@ -841,21 +848,67 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         setIsLoadingEnvHistory(false);
       }
     }
-
+  
     fetchData();
-  }, [model?.id, selectedEnvs]); // Depend on both model ID and selected environments
+  }, [model?.id, selectedEnvs, humanId, envSubsets]); // <--- add envSubsets here
+  
 
   // Add function to fetch available models
   async function fetchAvailableModels() {
     try {
-      const { data, error } = await supabase
+      console.log("Fetching available models with subset:", subset);
+      
+      // First, fetch AI models
+      const { data: aiModels, error: aiError } = await supabase
         .from('models')
-        .select('model_name')
+        .select('model_name, id')
         .or('is_standard.eq.true,model_name.eq.Humanity')
+        .neq('model_name', 'Humanity')  // Added this line to exclude Humanity
         .order('model_name');
       
-      if (error) throw error;
-      setAvailableModels(data || []);
+      if (aiError) throw aiError;
+      
+      // Prepare AI models with human_id = 0
+      const aiModelsList = (aiModels || []).map(model => ({
+        model_name: model.model_name,
+        model_id: model.id,
+        human_id: 0,
+        is_human: false
+      }));
+      
+      // Then, fetch human models using the RPC function
+      const { data: humanModels, error: humanError } = await supabase.rpc(
+        "get_leaderboard_from_mv_trueskill_humans_models",
+        { skill_subset: subset || "Balanced Subset" }
+      );
+      
+      if (humanError) throw humanError;
+      
+      // Filter and format human models
+      const humanModelsList = (humanModels || [])
+        .filter(model => model.model_id === 0) // Only include humans (model_id = 0)
+        .map(model => ({
+          model_name: model.model_name, // Already formatted with rank in the RPC
+          model_id: 0,
+          human_id: model.human_id,
+          is_human: true
+        }));
+      
+      // Combine the lists, placing Humanity models at the top
+      const combinedModels = [...humanModelsList, ...aiModelsList];
+      
+      // Sort the final list to ensure Humanity models appear first
+      const sortedModels = combinedModels.sort((a, b) => {
+        // First, prioritize human models
+        if (a.is_human && !b.is_human) return -1;
+        if (!a.is_human && b.is_human) return 1;
+        
+        // Then sort alphabetically within each group
+        return a.model_name.localeCompare(b.model_name);
+      });
+      
+      console.log("Available models:", sortedModels);
+      setAvailableModels(sortedModels);
     } catch (err) {
       console.error("Error fetching available models:", err);
     }
@@ -900,23 +953,33 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
   }
 
   // Add function to fetch comparison model
-  async function fetchComparisonModel(modelNameToCompare: string, setModelFunction: (model: ModelData | null) => void) {
+  async function fetchComparisonModel(modelId: number, humanId: number, setModelFunction: (model: ModelData | null) => void) {
     try {
-      if (modelNameToCompare === "none") {
+      if (modelId === 0 && humanId === 0) {
         setModelFunction(null);
         return;
       }
       
-      const { data, error } = await supabase.rpc("get_model_details_by_name_v3", {
-        model_name_param: modelNameToCompare,
+      console.log(`Fetching comparison model with modelId: ${modelId}, humanId: ${humanId}`);
+      
+      // For humans (model_id = 0), we're passing the human_id directly
+      // For models, we're passing model_id and human_id = 0
+      const { data, error: detailsError } = await supabase.rpc("get_model_details_by_id_v4", {
+        model_id_param: modelId,
+        human_id_param: humanId
       });
-  
-      if (error) throw error;
+      
+      if (detailsError) {
+        console.error("Error fetching model details:", detailsError);
+        throw detailsError;
+      }
+      
       if (!data || data.length === 0) {
+        console.log("No model details found");
         setModelFunction(null);
         return;
       }
-  
+      
       // Process the data similarly to the main model
       const uniqueEnvs: Record<string, any> = {};
       (data[0].environment_performance || []).forEach((env: any) => {
@@ -926,7 +989,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         }
       });
       const dedupedEnvs = Object.values(uniqueEnvs);
-  
+      
       const rawModel = data[0];
       const processedModel: ModelData = {
         model_name: rawModel.model_name,
@@ -942,8 +1005,10 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         environment_performance: dedupedEnvs,
         recent_games: rawModel.recent_games,
         id: rawModel.id,
+        human_id: rawModel.human_id, // Store the human_id in the model data
+        human_name: rawModel.human_name
       };
-  
+      
       setModelFunction(processedModel);
     } catch (err) {
       console.error("Error fetching comparison model:", err);
@@ -954,35 +1019,38 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
 
   async function fetchModelDetails() {
     try {
-      setError(null)
-      setLoading(true)
-      console.log("Fetching details for model:", modelName)
-      const { data, error } = await supabase.rpc("get_model_details_by_name_v3", {
-        model_name_param: modelName,
-      })
-
+      setError(null);
+      setLoading(true);
+      console.log("Fetching details for model:", modelName, "with ID:", modelId, "and human ID:", humanId);
+      
+      const { data, error } = await supabase.rpc("get_model_details_by_id_v4", {
+        model_id_param: Number(modelId),
+        human_id_param: Number(humanId)
+      });
+  
       if (error) {
-        console.error("Database error:", error)
-        throw error
+        console.error("Database error:", error);
+        throw error;
       }
       if (!data || data.length === 0) {
-        setModel(null)
-        return
+        setModel(null);
+        return;
       }
-
+  
       // Process the data as before
-      const uniqueEnvs: Record<string, any> = {}
-      ;(data[0].environment_performance || []).forEach((env: any) => {
-        const key = env.name || env.env_name || "Unknown"
+      const uniqueEnvs: Record<string, any> = {};
+      (data[0].environment_performance || []).forEach((env: any) => {
+        const key = env.name || env.env_name || "Unknown";
         if (!uniqueEnvs[key] || env.games > uniqueEnvs[key].games) {
-          uniqueEnvs[key] = env
+          uniqueEnvs[key] = env;
         }
-      })
-      const dedupedEnvs = Object.values(uniqueEnvs)
-
-      const rawModel = data[0]
+      });
+      const dedupedEnvs = Object.values(uniqueEnvs);
+  
+      const rawModel = data[0];
       const processedModel: ModelData = {
         model_name: rawModel.model_name,
+        human_name: rawModel.human_name, // Include human_name
         description: rawModel.description,
         trueskill: rawModel.trueskill,
         games_played: rawModel.games_played,
@@ -995,14 +1063,15 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
         environment_performance: dedupedEnvs,
         recent_games: rawModel.recent_games,
         id: rawModel.id,
-      }
-
-      setModel(processedModel)
+        human_id: rawModel.human_id, // Make sure human_id is included
+      };
+  
+      setModel(processedModel);
     } catch (err) {
-      console.error("Error fetching model:", err)
-      setError("Could not load model details.")
+      console.error("Error fetching model:", err);
+      setError("Could not load model details.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -1047,56 +1116,61 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
 
   // Add dropdown component for model selection
   const ModelComparisonSelect = () => {
-    // Ensure availableModels is sorted alphabetically
-    const sortedModels = [...availableModels].sort((a, b) =>
-      a.model_name.localeCompare(b.model_name)
-    );
-    
-    // Separate "Humanity" and the rest
-    const humanityModel = sortedModels.find(m => m.model_name === "Humanity");
-    const otherModels = sortedModels.filter(
-      m => m.model_name !== "Humanity" && m.model_name !== model?.model_name
-    );
-    
-    // Check if the current model is "Humanity"
-    const isCurrentModelHumanity = model?.model_name === "Humanity";
+    // First, ensure we have the models sorted appropriately (humans at the top)
+    const sortedModels = [...availableModels].sort((a, b) => {
+      // Humans first
+      if (a.is_human && !b.is_human) return -1;
+      if (!a.is_human && b.is_human) return 1;
+      
+      // Then sort alphabetically within each group
+      return a.model_name.localeCompare(b.model_name);
+    });
     
     // Create a filtered list for each dropdown that excludes already selected models
-    const getFilteredModels = (excludeModels: string[]) => {
-      const filtered = sortedModels.filter(
-        m => m.model_name !== model?.model_name && !excludeModels.includes(m.model_name)
-      );
+    const getFilteredModels = (excludeModels: any[]) => {
+      // Extract unique identifiers for excluded models
+      const excludedIds = excludeModels.map(m => 
+        `${m?.model_id}-${m?.human_id}`
+      ).filter(Boolean);
       
-      // Always include Humanity unless it's the main model
-      const filteredHumanity = !isCurrentModelHumanity && !excludeModels.includes("Humanity") 
-        ? humanityModel 
-        : null;
-        
-      const filteredOthers = filtered.filter(
-        m => m.model_name !== "Humanity"
-      );
+      // Current model identifier
+      const currentModelId = `${model?.id}-${humanId}`;
       
-      return { filteredHumanity, filteredOthers };
+      // Filter out current model and already selected models
+      return sortedModels.filter(m => {
+        const modelIdentifier = `${m.model_id}-${m.human_id}`;
+        return modelIdentifier !== currentModelId && !excludedIds.includes(modelIdentifier);
+      });
     };
-    
-    // Get currently selected model names for filtering
-    const selectedModels = [
-      comparisonModel?.model_name, 
-      comparisonModel2?.model_name, 
-      comparisonModel3?.model_name
-    ].filter(Boolean) as string[];
     
     // Get filtered lists for each dropdown
     const dropdown1Models = getFilteredModels([]);
-    const dropdown2Models = getFilteredModels([comparisonModel?.model_name].filter(Boolean) as string[]);
-    const dropdown3Models = getFilteredModels([
-      comparisonModel?.model_name, 
-      comparisonModel2?.model_name
-    ].filter(Boolean) as string[]);
+    const dropdown2Models = getFilteredModels([comparisonModel]);
+    const dropdown3Models = getFilteredModels([comparisonModel, comparisonModel2]);
   
     return (
-      <div className={`${isMobile ? 'mb-24 space-y-2' : ''}`}>
-        <div className="flex items-center gap-2 mb-4">
+      <div className="space-y-4">
+        {/* Updated information notice with refined styling */}
+        <div className="bg-[#1a2e35] border border-[#2a3f4a] rounded-md p-3">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8899aa]">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+              </svg>
+            </div>
+            <div className="text-sm font-mono text-white">
+              <p className="text-xs leading-relaxed">
+                Model comparisons are based on the <span className="font-bold text-[#06b6d4]">{subset || "Balanced Subset"}</span> context. 
+                Human players (appearing as "Humanity") reflect rankings specific to this subset. 
+                Different subset selections may yield different relative performance metrics.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
           <Scale className="h-4 w-4 text-navbarForeground" />
           <span className="text-navbarForeground font-mono">Compare with up to 3 models</span>
         </div>
@@ -1108,14 +1182,20 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
             <div className="w-4 h-4 rounded-full" style={{ backgroundColor: RADAR_COLORS.comparison1 }}></div>
             <Select
               onValueChange={(value) => {
-                fetchComparisonModel(value, setComparisonModel);
-                // Reset dependent models if this one is set to none
                 if (value === "none") {
+                  setComparisonModel(null);
                   setComparisonModel2(null);
                   setComparisonModel3(null);
+                  return;
                 }
+                
+                // Parse the value to get model_id and human_id
+                const [modelId, humanId] = value.split('-').map(Number);
+                
+                // Fetch the comparison model with the selected IDs
+                fetchComparisonModel(modelId, humanId, setComparisonModel);
               }}
-              value={comparisonModel?.model_name || "none"}
+              value={comparisonModel ? `${comparisonModel.id}-${comparisonModel.human_id || 0}` : "none"}
             >
               <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-background text-navbarForeground border-navbar font-mono text-sm`}>
                 <SelectValue placeholder="First model..." />
@@ -1123,12 +1203,12 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
               <SelectContent>
                 <SelectItem value="none" className="font-mono">None</SelectItem>
                 
-                {dropdown1Models.filteredHumanity && (
-                  <SelectItem value="Humanity" className="font-mono">Humanity</SelectItem>
-                )}
-                
-                {dropdown1Models.filteredOthers.map(m => (
-                  <SelectItem key={m.model_name} value={m.model_name} className="font-mono">
+                {dropdown1Models.map(m => (
+                  <SelectItem 
+                    key={`${m.model_id}-${m.human_id}`} 
+                    value={`${m.model_id}-${m.human_id}`} 
+                    className="font-mono"
+                  >
                     {m.model_name}
                   </SelectItem>
                 ))}
@@ -1142,13 +1222,19 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
               <div className="w-4 h-4 rounded-full" style={{ backgroundColor: RADAR_COLORS.comparison2 }}></div>
               <Select
                 onValueChange={(value) => {
-                  fetchComparisonModel(value, setComparisonModel2);
-                  // Reset dependent model if this one is set to none
                   if (value === "none") {
+                    setComparisonModel2(null);
                     setComparisonModel3(null);
+                    return;
                   }
+                  
+                  // Parse the value to get model_id and human_id
+                  const [modelId, humanId] = value.split('-').map(Number);
+                  
+                  // Fetch the comparison model with the selected IDs
+                  fetchComparisonModel(modelId, humanId, setComparisonModel2);
                 }}
-                value={comparisonModel2?.model_name || "none"}
+                value={comparisonModel2 ? `${comparisonModel2.id}-${comparisonModel2.human_id || 0}` : "none"}
               >
                 <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-background text-navbarForeground border-navbar font-mono text-sm`}>
                   <SelectValue placeholder="Second model..." />
@@ -1156,12 +1242,12 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                 <SelectContent>
                   <SelectItem value="none" className="font-mono">None</SelectItem>
                   
-                  {dropdown2Models.filteredHumanity && (
-                    <SelectItem value="Humanity" className="font-mono">Humanity</SelectItem>
-                  )}
-                  
-                  {dropdown2Models.filteredOthers.map(m => (
-                    <SelectItem key={m.model_name} value={m.model_name} className="font-mono">
+                  {dropdown2Models.map(m => (
+                    <SelectItem 
+                      key={`${m.model_id}-${m.human_id}`} 
+                      value={`${m.model_id}-${m.human_id}`} 
+                      className="font-mono"
+                    >
                       {m.model_name}
                     </SelectItem>
                   ))}
@@ -1176,9 +1262,18 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
               <div className="w-4 h-4 rounded-full" style={{ backgroundColor: RADAR_COLORS.comparison3 }}></div>
               <Select
                 onValueChange={(value) => {
-                  fetchComparisonModel(value, setComparisonModel3);
+                  if (value === "none") {
+                    setComparisonModel3(null);
+                    return;
+                  }
+                  
+                  // Parse the value to get model_id and human_id
+                  const [modelId, humanId] = value.split('-').map(Number);
+                  
+                  // Fetch the comparison model with the selected IDs
+                  fetchComparisonModel(modelId, humanId, setComparisonModel3);
                 }}
-                value={comparisonModel3?.model_name || "none"}
+                value={comparisonModel3 ? `${comparisonModel3.id}-${comparisonModel3.human_id || 0}` : "none"}
               >
                 <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-background text-navbarForeground border-navbar font-mono text-sm`}>
                   <SelectValue placeholder="Third model..." />
@@ -1186,12 +1281,12 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                 <SelectContent>
                   <SelectItem value="none" className="font-mono">None</SelectItem>
                   
-                  {dropdown3Models.filteredHumanity && (
-                    <SelectItem value="Humanity" className="font-mono">Humanity</SelectItem>
-                  )}
-                  
-                  {dropdown3Models.filteredOthers.map(m => (
-                    <SelectItem key={m.model_name} value={m.model_name} className="font-mono">
+                  {dropdown3Models.map(m => (
+                    <SelectItem 
+                      key={`${m.model_id}-${m.human_id}`} 
+                      value={`${m.model_id}-${m.human_id}`} 
+                      className="font-mono"
+                    >
                       {m.model_name}
                     </SelectItem>
                   ))}
@@ -1245,6 +1340,37 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       return skillData.reduce((sum, item) => sum + (item[dataKey] || 0), 0);
     };
   
+    // Find the available model from dropdown selection by model_id and human_id
+    const findAvailableModel = (model) => {
+      if (!model || !availableModels) return null;
+      
+      // For human models (model_id = 0), find the matching entry in availableModels
+      if (model.id === 0) {
+        return availableModels.find(m => 
+          m.is_human && m.human_id === model.human_id
+        );
+      }
+      
+      // For AI models, find by model_id
+      return availableModels.find(m => 
+        !m.is_human && m.model_id === model.id
+      );
+    };
+  
+    // Helper function to get the display name based on model info
+    const getDisplayName = (model) => {
+      // For humans, try to get the dropdown selection name first
+      if (model.id === 0) {
+        const availableModel = findAvailableModel(model);
+        if (availableModel && availableModel.model_name) {
+          return availableModel.model_name; // Use the dropdown selection name (e.g., "Humanity 1st")
+        }
+      }
+      
+      // Fallback to model_name if no dropdown selection is found
+      return model.model_name;
+    };
+  
     // Create array of models with their areas
     const models = [];
     
@@ -1252,9 +1378,9 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       models.push({ 
         model: mainModel, 
         area: calculateArea('mainTrueskill'),
-        name: mainModel.model_name,
+        name: getDisplayName(mainModel),
         dataKey: 'mainTrueskill',
-        color: RADAR_COLORS.main  // Keep original color
+        color: RADAR_COLORS.main
       });
     }
     
@@ -1262,9 +1388,9 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       models.push({ 
         model: compModel1, 
         area: calculateArea('comparisonTrueskill'),
-        name: compModel1.model_name,
+        name: getDisplayName(compModel1),
         dataKey: 'comparisonTrueskill',
-        color: RADAR_COLORS.comparison1  // Keep original color
+        color: RADAR_COLORS.comparison1
       });
     }
     
@@ -1272,9 +1398,9 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       models.push({ 
         model: compModel2, 
         area: calculateArea('comparisonTrueskill2'),
-        name: compModel2.model_name,
+        name: getDisplayName(compModel2),
         dataKey: 'comparisonTrueskill2',
-        color: RADAR_COLORS.comparison2  // Keep original color
+        color: RADAR_COLORS.comparison2
       });
     }
     
@@ -1282,14 +1408,13 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
       models.push({ 
         model: compModel3, 
         area: calculateArea('comparisonTrueskill3'),
-        name: compModel3.model_name,
+        name: getDisplayName(compModel3),
         dataKey: 'comparisonTrueskill3',
-        color: RADAR_COLORS.comparison3  // Keep original color
+        color: RADAR_COLORS.comparison3
       });
     }
     
     // Sort by area - DESCENDING order so largest areas come first (rendered first, on bottom)
-    // This only affects the rendering order, not the assigned colors
     return models.sort((a, b) => b.area - a.area);
   };
 
@@ -1325,7 +1450,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
           <h1
             className={`font-bold font-mono text-navbarForeground line-clamp-2 leading-tight ${isMobile ? "text-xl" : "text-4xl"}`}
           >
-            {model.model_name}
+            {model.id === 0 && model.human_name ? model.human_name : model.model_name}
           </h1>
         </div>
         <div
@@ -1692,68 +1817,51 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
           </CardHeader>
 
           <CardContent>
-            <div className="relative">
-              {/* Model Selection UI */}
-              <div className={`relative z-20 ${isMobile ? 'mb-24' : ''}`}>
-                <ModelComparisonSelect />
-              </div>
-              
-              {/* Mobile Tooltip Container - Adjust positioning to avoid overlap */}
-              {isMobile && (
+            {/* For mobile devices, we'll use a completely different layout structure */}
+            {isMobile ? (
+              <div className="flex flex-col space-y-6">
+                {/* Model Selection UI - in its own contained section */}
+                <div className="relative z-30">
+                  <ModelComparisonSelect />
+                </div>
+                
+                {/* Tooltip container - positioned as a separate section, not absolute */}
                 <div
                   ref={RadarTooltipContainerRef}
-                  className="absolute top-[180px] left-0 right-0 z-10 flex justify-center items-start h-[200px] bg-[hsl(var(--navbar))] bg-opacity-95 transition-all duration-200 py-2 px-4 overflow-y-auto pointer-events-auto border border-[hsl(var(--border))] rounded-lg"
+                  className="bg-[hsl(var(--navbar))] bg-opacity-95 py-2 px-4 h-[200px] overflow-y-auto pointer-events-auto border border-[hsl(var(--border))] rounded-lg z-20"
                 ></div>
-              )}
-
-              {/* Add a divider between selection and chart on desktop */}
-              {!isMobile && (
-                <div className="border-t border-[hsl(var(--border))] my-4"></div>
-              )}
-              
-              <div className={`flex ${isMobile ? "block" : "gap-4"}`}>
-                {/* Tooltip Container for Desktop */}
-                {!isMobile && (
-                  <div 
-                    ref={RadarTooltipContainerRef}
-                    className="w-1/2 h-[400px] bg-[hsl(var(--navbar))] border border-[hsl(var(--border))] rounded-lg p-2 overflow-y-auto"
-                  ></div>
-                )}
                 
-                {/* Radar Chart Container */}
+                {/* Radar Chart Container - as a separate section below tooltip */}
                 <div 
                   ref={chartContainerRef}
-                  className={isMobile ? "overflow-x-auto" : "flex-1"}
-                  style={{ minHeight: '400px' }} 
+                  className="overflow-x-auto pt-4"
                 >
                   <div 
                     style={{ 
-                      width: isMobile ? "350px" : "100%",
-                      height: 450, 
-                      paddingTop: isMobile ? "200px" : 0, // Increased padding for mobile to make room for tooltip
+                      width: "350px",
+                      height: 450,
                       margin: "0 auto",
-                      minWidth: isMobile ? "300px" : "auto" 
+                      minWidth: "300px"
                     }}
                   >
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart 
                         data={combinedSkillData}
-                        margin={{ top: 20, right: 30, left: 30, bottom: isMobile ? 40 : 20 }}
-                        outerRadius={isMobile ? 90 : chartRadius}
+                        margin={{ top: 20, right: 30, left: 30, bottom: 40 }}
+                        outerRadius={90}
                       >
-                        {/* Chart components remain the same */}
                         <PolarGrid stroke="white" radialLines={true} />
                         <PolarAngleAxis
                           dataKey="skill"
                           tick={{ 
                             fill: "white", 
-                            fontSize: isMobile ? 8 : 10,
+                            fontSize: 8,
                             fontFamily: "var(--font-mono)",
                             dy: 6,
                             width: 60,
                             lineHeight: "1.2em"
                           }}
-                          radius={isMobile ? 90 : chartRadius}
+                          radius={90}
                           tickFormatter={(value) => {
                             const breakPoints = {
                               "Uncertainty Estimation": "Uncertainty\nEstimation",
@@ -1794,7 +1902,7 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                             className="cursor-pointer"
                             radiusScale={0.75}
                             activeDot={{
-                              r: isMobile ? 4 : 6,
+                              r: 4,
                               stroke: "white",
                               strokeWidth: 2,
                               fill: modelData.color,
@@ -1808,8 +1916,8 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                           wrapperStyle={{ 
                             color: "white", 
                             fontFamily: "var(--font-mono)",
-                            fontSize: isMobile ? 9 : 11,
-                            marginTop: isMobile ? "-80px" : "-20px"
+                            fontSize: 9,
+                            marginTop: "-40px" // Adjusted for mobile flow layout
                           }}
                         />
                       </RadarChart>
@@ -1817,7 +1925,120 @@ export function ModelDetails({ modelName }: ModelDetailsProps) {
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              /* Desktop layout remains the same */
+              <div className="relative">
+                {/* Model Selection UI */}
+                <div className="relative z-20">
+                  <ModelComparisonSelect />
+                </div>
+                
+                {/* Add a divider between selection and chart */}
+                <div className="border-t border-[hsl(var(--border))] my-4"></div>
+                
+                <div className="flex gap-4">
+                  {/* Tooltip Container for Desktop */}
+                  <div 
+                    ref={RadarTooltipContainerRef}
+                    className="w-1/2 h-[400px] bg-[hsl(var(--navbar))] border border-[hsl(var(--border))] rounded-lg p-2 overflow-y-auto"
+                  ></div>
+                  
+                  {/* Radar Chart Container */}
+                  <div 
+                    ref={chartContainerRef}
+                    className="flex-1"
+                    style={{ minHeight: '400px' }} 
+                  >
+                    <div 
+                      style={{ 
+                        width: "100%",
+                        height: 450,
+                        margin: "0 auto"
+                      }}
+                    >
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart 
+                          data={combinedSkillData}
+                          margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
+                          outerRadius={chartRadius}
+                        >
+                          <PolarGrid stroke="white" radialLines={true} />
+                          <PolarAngleAxis
+                            dataKey="skill"
+                            tick={{ 
+                              fill: "white", 
+                              fontSize: 10,
+                              fontFamily: "var(--font-mono)",
+                              dy: 6,
+                              width: 60,
+                              lineHeight: "1.2em"
+                            }}
+                            radius={chartRadius}
+                            tickFormatter={(value) => {
+                              const breakPoints = {
+                                "Uncertainty Estimation": "Uncertainty\nEstimation",
+                                "Logical Reasoning": "Logical\nReasoning",
+                                "Memory Recall": "Memory\nRecall",
+                                "Pattern Recognition": "Pattern\nRecognition",
+                                "Spatial Thinking": "Spatial\nThinking",
+                                "Strategic Planning": "Strategic\nPlanning"
+                              };
+                              return breakPoints[value] || value;
+                            }}
+                          />
+                          <PolarRadiusAxis
+                            domain={calculateDomain(allTrueskillValues)}
+                            axisLine={false}
+                            tick={false}
+                            angle={90}
+                          />
+                          <Tooltip
+                            content={
+                              <CustomRadarTooltip
+                                isMobile={isMobile}
+                                containerRef={RadarTooltipContainerRef}
+                              />
+                            }
+                            trigger="click"
+                          />
+
+                          {/* Dynamic rendering of sorted radar charts */}
+                          {sortModelsByArea(model, comparisonModel, comparisonModel2, comparisonModel3, combinedSkillData).map((modelData, index) => (
+                            <Radar
+                              key={index}
+                              name={modelData.name}
+                              dataKey={modelData.dataKey}
+                              stroke={modelData.color}
+                              fill={modelData.color}
+                              fillOpacity={0.6}
+                              className="cursor-pointer"
+                              radiusScale={0.75}
+                              activeDot={{
+                                r: 6,
+                                stroke: "white",
+                                strokeWidth: 2,
+                                fill: modelData.color,
+                              }}
+                            />
+                          ))}
+                          
+                          <Legend 
+                            align="center"
+                            verticalAlign="top"
+                            wrapperStyle={{ 
+                              color: "white", 
+                              fontFamily: "var(--font-mono)",
+                              fontSize: 11,
+                              marginTop: "-20px"
+                            }}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

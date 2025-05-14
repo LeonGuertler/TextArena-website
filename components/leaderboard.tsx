@@ -37,6 +37,8 @@ type TimeRange = '48H' | '7D' | '30D';
 interface ModelData {
   model_id: number
   model_name: string
+  human_id: number
+  human_name: string
   is_standard: boolean
   trueskill: number
   trueskill_sd: number
@@ -52,10 +54,16 @@ interface ModelData {
 interface TrueskillHistoryRow {
   model_id: number
   model_name: string
+  human_id: number
+  human_name: string
   interval_start: string 
   trueskill_value: number
   trueskill_sd_value: number
 }
+
+// Create a composite ID key for model and human combinations
+// This will be used throughout the component for unique identification
+const createCompositeId = (modelId: number, humanId: number) => `${modelId}-${humanId}`;
 
 function CustomHistoryTooltip({ active, payload, label, isMobile, containerRef }: any) {
   if (active && payload && payload.length > 0) {
@@ -103,14 +111,16 @@ function CustomHistoryTooltip({ active, payload, label, isMobile, containerRef }
 
 function TrueskillHistoryChart({
   data,
-  modelNames,
-  hoveredModel,
+  modelDetails,
+  hoveredCompositeId,
   isMobile,
+  models, // Add this new prop
 }: {
   data: any[]
-  modelNames: string[]
-  hoveredModel: string | null
+  modelDetails: { modelId: number, humanId: number }[]
+  hoveredCompositeId: string | null
   isMobile: boolean
+  models: { model_id: number, human_id: number, model_name: string }[] // Add this new type
 }) {
   const [selectedPoint, setSelectedPoint] = useState<{ date: string; values: any[] } | null>(null)
   const tooltipContainerRef = useRef<HTMLDivElement>(null)
@@ -152,6 +162,9 @@ function TrueskillHistoryChart({
     return `${date}, ${time}`
   }
 
+  // Helper function to generate a key from model ID and human ID
+  const modelIdToKey = (modelId: number, humanId: number) => `model_${modelId}_human_${humanId}`
+
   const chartContent = (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart
@@ -160,7 +173,7 @@ function TrueskillHistoryChart({
           top: 20,
           right: isMobile ? 40 : 20,
           left: 20,
-          bottom: isMobile ? 60 : 40, // Increased bottom margin to accommodate longer labels
+          bottom: isMobile ? 60 : 40,
         }}
         onClick={handleClick}
       >
@@ -175,10 +188,10 @@ function TrueskillHistoryChart({
             textAnchor: "end",
             fontSize: isMobile ? 10 : 12,
             fontFamily: "var(--font-mono)",
-            dy: 8 // Adjust vertical position of ticks
+            dy: 8
           }}
-          height={isMobile ? 80 : 50} // Increased height to prevent label overlap
-          interval={isMobile ? 2 : "preserveStartEnd"} // Show fewer ticks on mobile
+          height={isMobile ? 80 : 50}
+          interval={isMobile ? 2 : "preserveStartEnd"}
         />
         <YAxis
           stroke="white"
@@ -188,7 +201,7 @@ function TrueskillHistoryChart({
             fontFamily: "var(--font-mono)",
           }}
           domain={[(dataMin) => dataMin - 1, (dataMax) => dataMax + 1]}
-          tickFormatter={(value) => Math.round(value)} // Round to whole numbers
+          tickFormatter={(value) => Math.round(value)}
           allowDataOverflow={true}
         />
         <Tooltip
@@ -198,72 +211,93 @@ function TrueskillHistoryChart({
         />
         
         {/* Always render ReferenceAreas but control visibility with opacity */}
-        {data.length > 0 && modelNames.map((name, idx) => 
-          data.map((point, pointIdx) => {
+        {data.length > 0 && modelDetails.map((detail, idx) => {
+          const key = modelIdToKey(detail.modelId, detail.humanId);
+          const compositeId = createCompositeId(detail.modelId, detail.humanId);
+          
+          return data.map((point, pointIdx) => {
             // Skip if we don't have both upper and lower values
-            if (!point[`${name}_upper`] || !point[`${name}_lower`]) return null;
+            if (!point[`${key}_upper`] || !point[`${key}_lower`]) return null;
             
             // Always render but control visibility with opacity
             return (
               <ReferenceArea
-                key={`${name}_band_${pointIdx}`}
+                key={`${key}_band_${pointIdx}`}
                 x1={point.date}
                 x2={point.date}
-                y1={point[`${name}_lower`]}
-                y2={point[`${name}_upper`]}
+                y1={point[`${key}_lower`]}
+                y2={point[`${key}_upper`]}
                 fill={CHART_COLORS[idx % CHART_COLORS.length]}
-                fillOpacity={hoveredModel === name ? 0.2 : 0}
+                fillOpacity={hoveredCompositeId === compositeId ? 0.2 : 0}
                 stroke="none"
               />
             );
-          })
-        )}
+          });
+        })}
         
         {/* Always render confidence bands but control visibility with opacity */}
-        {modelNames.map((name, idx) => (
-          <Line
-            key={`${name}_lower`}
-            type="monotone"
-            dataKey={`${name}_lower`}
-            stroke={CHART_COLORS[idx % CHART_COLORS.length]}
-            strokeWidth={1.5}
-            strokeDasharray="3 3"
-            dot={false}
-            connectNulls={true}
-            activeDot={false}
-            opacity={hoveredModel === name ? 0.7 : 0}
-          />
-        ))}
+        {modelDetails.map((detail, idx) => {
+          const key = modelIdToKey(detail.modelId, detail.humanId);
+          const compositeId = createCompositeId(detail.modelId, detail.humanId);
+          
+          return (
+            <Line
+              key={`${key}_lower`}
+              type="monotone"
+              dataKey={`${key}_lower`}
+              stroke={CHART_COLORS[idx % CHART_COLORS.length]}
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+              dot={false}
+              connectNulls={true}
+              activeDot={false}
+              opacity={hoveredCompositeId === compositeId ? 0.7 : 0}
+            />
+          );
+        })}
         
-        {modelNames.map((name, idx) => (
-          <Line
-            key={`${name}_upper`}
-            type="monotone"
-            dataKey={`${name}_upper`}
-            stroke={CHART_COLORS[idx % CHART_COLORS.length]}
-            strokeWidth={1.5}
-            strokeDasharray="3 3"
-            dot={false}
-            connectNulls={true}
-            activeDot={false}
-            opacity={hoveredModel === name ? 0.7 : 0}
-          />
-        ))}
+        {modelDetails.map((detail, idx) => {
+          const key = modelIdToKey(detail.modelId, detail.humanId);
+          const compositeId = createCompositeId(detail.modelId, detail.humanId);
+          
+          return (
+            <Line
+              key={`${key}_upper`}
+              type="monotone"
+              dataKey={`${key}_upper`}
+              stroke={CHART_COLORS[idx % CHART_COLORS.length]}
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+              dot={false}
+              connectNulls={true}
+              activeDot={false}
+              opacity={hoveredCompositeId === compositeId ? 0.7 : 0}
+            />
+          );
+        })}
         
         {/* Render the main trueskill lines on top */}
-        {modelNames.map((name, idx) => (
-          <Line
-            key={name}
-            type="monotone"
-            dataKey={name}
-            name={name}
-            stroke={hoveredModel === name ? "#ffffff" : CHART_COLORS[idx % CHART_COLORS.length]}
-            strokeWidth={hoveredModel === name ? 4 : 2}
-            dot={false}
-            activeDot={{ r: isMobile ? 6 : 8 }}
-            opacity={hoveredModel ? (hoveredModel === name ? 1 : 0.15) : 1}
-          />
-        ))}
+        {modelDetails.map((detail, idx) => {
+          const key = modelIdToKey(detail.modelId, detail.humanId);
+          const compositeId = createCompositeId(detail.modelId, detail.humanId);
+          
+          // Find model name for this ID to display in tooltip
+          const modelName = models.find(m => m.model_id === detail.modelId && m.human_id === detail.humanId)?.model_name || "Unknown Model";
+          
+          return (
+            <Line
+              key={key}
+              type="monotone"
+              dataKey={key}
+              name={modelName} // Use the model name for display in tooltip
+              stroke={hoveredCompositeId === compositeId ? "#ffffff" : CHART_COLORS[idx % CHART_COLORS.length]}
+              strokeWidth={hoveredCompositeId === compositeId ? 4 : 2}
+              dot={false}
+              activeDot={{ r: isMobile ? 6 : 8 }}
+              opacity={hoveredCompositeId ? (hoveredCompositeId === compositeId ? 1 : 0.15) : 1}
+            />
+          );
+        })}
       </LineChart>
     </ResponsiveContainer>
   )
@@ -307,7 +341,7 @@ export function Leaderboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingHistory, setIsLoadingHistory] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [hoveredModel, setHoveredModel] = useState<string | null>(null)
+  const [hoveredCompositeId, setHoveredCompositeId] = useState<string | null>(null)
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('7D');
   const [showInactive, setShowInactive] = useState<boolean>(() => {
     const savedInactiveFilter = typeof window !== 'undefined' 
@@ -473,7 +507,7 @@ export function Leaderboard() {
   
       try {
         const { data: modelData, error: modelError } = await supabase.rpc(
-          "get_leaderboard_from_mv_trueskill",
+          "get_leaderboard_from_mv_trueskill_humans_models", // Updated function name
           { skill_subset: selectedSubset }
         );
         if (modelError) throw modelError;
@@ -509,6 +543,7 @@ export function Leaderboard() {
   
         if (paginatedModelsLocal.length > 0) {
           const selectedModelIds = paginatedModelsLocal.map((m) => m.model_id);
+          const selectedHumanIds = paginatedModelsLocal.map((m) => m.human_id); // Added for human IDs
           let subsetEnvIds: number[] | null = null;
   
           if (selectedSubset !== "All") {
@@ -517,9 +552,9 @@ export function Leaderboard() {
           }
   
           const functionNameMap = {
-            '48H': { groups: 'get_trueskill_history_last48hrs_by_groups', env: 'get_trueskill_history_last48hrs_by_env' },
-            '7D': { groups: 'get_trueskill_history_last7days_by_groups', env: 'get_trueskill_history_last7days_by_env' },
-            '30D': { groups: 'get_trueskill_history_last30days_by_groups', env: 'get_trueskill_history_last30days_by_env' }
+            '48H': { groups: 'get_trueskill_humans_models_history_last48hrs_by_groups', env: 'get_trueskill_humans_models_history_last48hrs_by_env' },
+            '7D': { groups: 'get_trueskill_humans_models_history_last7days_by_groups', env: 'get_trueskill_humans_models_history_last7days_by_env' },
+            '30D': { groups: 'get_trueskill_humans_models_history_last30days_by_groups', env: 'get_trueskill_humans_models_history_last30days_by_env' }
           };
   
           let historyData, historyError;
@@ -527,14 +562,22 @@ export function Leaderboard() {
           if (groupBasedSubsets.has(selectedSubset)) {
             const { data, error } = await supabase.rpc(
               functionNameMap[selectedTimeRange].groups,
-              { selected_model_ids: selectedModelIds, selected_subset: selectedSubset }
+              { 
+                selected_model_ids: selectedModelIds, 
+                selected_human_ids: selectedHumanIds, // Added human IDs parameter
+                selected_subset: selectedSubset 
+              }
             );
             historyData = data;
             historyError = error;
           } else {
             const { data, error } = await supabase.rpc(
               functionNameMap[selectedTimeRange].env,
-              { selected_env_ids: subsetEnvIds, selected_model_ids: selectedModelIds }
+              { 
+                selected_env_ids: subsetEnvIds, 
+                selected_model_ids: selectedModelIds,
+                selected_human_ids: selectedHumanIds // Added human IDs parameter
+              }
             );
             historyData = data;
             historyError = error;
@@ -542,6 +585,26 @@ export function Leaderboard() {
   
           if (historyError) throw historyError;
           setTrueskillHistory(historyData || []);
+
+          // Add this to your fetchTrueskillHistory function after the history data is received
+          if (historyData) {
+            const dates = historyData.map((row: any) => new Date(row.interval_start));
+            const minDate = dates.length ? new Date(Math.min(...dates.map(d => d.getTime()))) : null;
+            const maxDate = dates.length ? new Date(Math.max(...dates.map(d => d.getTime()))) : null;
+            
+            console.log("Trueskill History Data Stats:", {
+              totalRows: historyData.length,
+              uniqueModels: new Set(historyData.map((row: any) => row.model_id)).size,
+              uniqueHumans: new Set(historyData.map((row: any) => row.human_id)).size,
+              dateRange: {
+                minDate: minDate ? minDate.toISOString() : 'N/A',
+                maxDate: maxDate ? maxDate.toISOString() : 'N/A',
+                currentTime: new Date().toISOString()
+              },
+              selectedTimeRange: selectedTimeRange,
+              firstFewRows: historyData.slice(0, 3) // Show first 3 rows for inspection
+            });
+          }
         } else {
           setTrueskillHistory([]);
         }
@@ -556,13 +619,13 @@ export function Leaderboard() {
   }, [selectedTimeRange, currentPage, selectedSubset, filteredModels, envSubsets]); // Add envSubsets
 
 
-  // Prepare chart data. This is now much simpler.
+  // Prepare chart data with composite IDs
   const chartData = useMemo(() => {
     if (!trueskillHistory || trueskillHistory.length === 0) return []
   
     const grouped: Record<string, any> = {}
   
-    // Group by date and model.
+    // Group by date and model ID + human ID
     trueskillHistory.forEach((row) => {
       const dt = new Date(row.interval_start)
       dt.setMinutes(0, 0, 0) // Normalize to the hour.
@@ -572,41 +635,48 @@ export function Leaderboard() {
         grouped[dateKey] = { date: dateKey }
       }
   
-      // Always update, ensuring the *last* value for the hour is used.
-      grouped[dateKey][row.model_name] = row.trueskill_value
+      const modelKey = `model_${row.model_id}_human_${row.human_id}`
+      
+      // Always update, ensuring the *last* value for the hour is used
+      grouped[dateKey][modelKey] = row.trueskill_value
+      
+      // Store the name for display in tooltips
+      grouped[dateKey][`${modelKey}_name`] = row.model_name 
       
       // Store the SD value separately for tooltip access
-      grouped[dateKey][`${row.model_name}_sd`] = row.trueskill_sd_value
+      grouped[dateKey][`${modelKey}_sd`] = row.trueskill_sd_value
       
       // Add upper and lower bounds for confidence bands
-      grouped[dateKey][`${row.model_name}_upper`] = row.trueskill_value + row.trueskill_sd_value
-      grouped[dateKey][`${row.model_name}_lower`] = row.trueskill_value - row.trueskill_sd_value
+      grouped[dateKey][`${modelKey}_upper`] = row.trueskill_value + row.trueskill_sd_value
+      grouped[dateKey][`${modelKey}_lower`] = row.trueskill_value - row.trueskill_sd_value
     })
   
-    // Sort by date.
+    // Sort by date
     const sortedData = Object.values(grouped).sort(
       (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     )
   
-    // Fill in missing data for *all* models on the current page.
-    const currentModelNames = new Set(paginatedModels.map((model) => model.model_name))
-    currentModelNames.forEach((modelName) => {
+    // Fill in missing data for *all* models on the current page
+    paginatedModels.forEach((model) => {
+      const modelKey = `model_${model.model_id}_human_${model.human_id}`
+      
       let lastValue: number | undefined = 25 // Initialize with a default
       let lastSD: number | undefined = 8 // Default SD value
       let lastUpper: number | undefined = 25 + 8 // Default + default SD
       let lastLower: number | undefined = 25 - 8 // Default - default SD
       
       sortedData.forEach((row: any) => {
-        if (row[modelName] === undefined) {
-          row[modelName] = lastValue
-          row[`${modelName}_sd`] = lastSD
-          row[`${modelName}_upper`] = lastUpper
-          row[`${modelName}_lower`] = lastLower
+        if (row[modelKey] === undefined) {
+          row[modelKey] = lastValue
+          row[`${modelKey}_name`] = model.model_name // Keep name consistent
+          row[`${modelKey}_sd`] = lastSD
+          row[`${modelKey}_upper`] = lastUpper
+          row[`${modelKey}_lower`] = lastLower
         } else {
-          lastValue = row[modelName]
-          lastSD = row[`${modelName}_sd`]
-          lastUpper = row[`${modelName}_upper`]
-          lastLower = row[`${modelName}_lower`]
+          lastValue = row[modelKey]
+          lastSD = row[`${modelKey}_sd`]
+          lastUpper = row[`${modelKey}_upper`]
+          lastLower = row[`${modelKey}_lower`]
         }
       })
     })
@@ -614,9 +684,13 @@ export function Leaderboard() {
     return sortedData
   }, [trueskillHistory, paginatedModels])
 
-  const chartModelNames = useMemo(() => {
+  // Create model details array with both model ID and human ID
+  const chartModelDetails = useMemo(() => {
     if (!paginatedModels) return []
-    return paginatedModels.map((model) => model.model_name)
+    return paginatedModels.map((model) => ({
+      modelId: model.model_id,
+      humanId: model.human_id
+    }))
   }, [paginatedModels])
 
   const isMobile = useIsMobile()
@@ -798,6 +872,7 @@ export function Leaderboard() {
                 <TableRow>
                   <TableHead className="w-[60px] text-navbarForeground">Rank</TableHead>
                   <TableHead className="text-navbarForeground">Model</TableHead>
+                  <TableHead className="text-navbarForeground">Human</TableHead>
                   <TableHead className="text-right text-navbarForeground">Trueskill</TableHead>
                   <TableHead className="text-right text-navbarForeground">Games</TableHead>
                   <TableHead className="text-right text-navbarForeground">Win Rate</TableHead>
@@ -808,13 +883,13 @@ export function Leaderboard() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-navbarForeground">
+                    <TableCell colSpan={8} className="text-center text-navbarForeground">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : error ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-red-500">
+                    <TableCell colSpan={8} className="text-center text-red-500">
                       {error}
                       <Button
                         onClick={() => {
@@ -828,7 +903,7 @@ export function Leaderboard() {
                   </TableRow>
                 ) : models.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-navbarForeground">
+                    <TableCell colSpan={8} className="text-center py-8 text-navbarForeground">
                       <div className="flex flex-col items-center gap-2">
                         <Info className="h-8 w-8 text-muted-foreground" />
                         <p className="font-medium">No models have played this environment, or all environments in this group, at least once.</p>
@@ -837,63 +912,69 @@ export function Leaderboard() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedModels.map((model, index) => (
-                    <TableRow
-                      key={model.model_id}
-                      onMouseEnter={() => setHoveredModel(model.model_name)}
-                      onMouseLeave={() => setHoveredModel(null)}
-                      className="border-b border-[hsl(var(--border))] hover:bg-[hsl(var(--background))] hover:bg-opacity-5 transition-colors duration-200"
-                    >
-                      <TableCell className="font-medium text-navbarForeground">
-                        {(currentPage - 1) * itemsPerPage + index + 1}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <Link
-                            href={`/leaderboard/${encodeURIComponent(model.model_name)}`}
-                            className="text-navbarForeground hover:underline"
-                          >
-                            {model.model_name}
-                          </Link>
-                          
-                          {/* Icons in a row next to the model name */}
-                          <div className="flex items-center gap-1">
-                            {model.is_standard && (
-                              <div className="relative group">
-                                <BadgeCheck size={16} className="text-blue-400" />
-                                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
-                                  <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Standard model</p>
+                  paginatedModels.map((model, index) => {
+                    const compositeId = createCompositeId(model.model_id, model.human_id);
+                    return (
+                      <TableRow
+                        key={compositeId}
+                        onMouseEnter={() => setHoveredCompositeId(compositeId)}
+                        onMouseLeave={() => setHoveredCompositeId(null)}
+                        className="border-b border-[hsl(var(--border))] hover:bg-[hsl(var(--background))] hover:bg-opacity-5 transition-colors duration-200"
+                      >
+                        <TableCell className="font-medium text-navbarForeground">
+                          {(currentPage - 1) * itemsPerPage + index + 1}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={`/leaderboard/${encodeURIComponent(model.model_name)}/${model.model_id}/${model.human_id}/${encodeURIComponent(selectedSubset)}`}
+                              className="text-navbarForeground hover:underline"
+                            >
+                              {model.model_name}
+                            </Link>
+                            
+                            {/* Icons in a row next to the model name */}
+                            <div className="flex items-center gap-1">
+                              {model.is_standard && (
+                                <div className="relative group">
+                                  <BadgeCheck size={16} className="text-blue-400" />
+                                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
+                                    <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Standard model</p>
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                            {!model.is_active && (
-                              <div className="relative group">
-                                <MoonStar size={16} className="text-gray-400" />
-                                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
-                                  <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Inactive model</p>
+                              )}
+                              {!model.is_active && (
+                                <div className="relative group">
+                                  <MoonStar size={16} className="text-gray-400" />
+                                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
+                                    <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Inactive model</p>
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-navbarForeground">
-                        {model.trueskill.toFixed(1)} ± {model.trueskill_sd.toFixed(1)}
-                      </TableCell>
-                      <TableCell className="text-right text-navbarForeground">
-                        {model.games_played.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-navbarForeground">
-                        {(model.win_rate * 100).toFixed(1)}%
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-green-400">{model.wins}</span>/
-                        <span className="text-gray-400">{model.draws}</span>/
-                        <span className="text-red-400">{model.losses}</span>
-                      </TableCell>
-                      <TableCell className="text-right text-navbarForeground">{model.avg_time.toFixed(1)}s</TableCell>
-                    </TableRow>
-                  ))
+                        </TableCell>
+                        <TableCell className="text-navbarForeground">
+                          {model.human_name}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-navbarForeground">
+                          {model.trueskill.toFixed(1)} ± {model.trueskill_sd.toFixed(1)}
+                        </TableCell>
+                        <TableCell className="text-right text-navbarForeground">
+                          {model.games_played.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right text-navbarForeground">
+                          {(model.win_rate * 100).toFixed(1)}%
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="text-green-400">{model.wins}</span>/
+                          <span className="text-gray-400">{model.draws}</span>/
+                          <span className="text-red-400">{model.losses}</span>
+                        </TableCell>
+                        <TableCell className="text-right text-navbarForeground">{model.avg_time.toFixed(1)}s</TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -925,9 +1006,10 @@ export function Leaderboard() {
               ) : (
                 paginatedModels.map((model, index) => (
                   <LeaderboardCard
-                    key={model.model_id}
+                    key={`${model.model_id}-${model.human_id}`}
                     rank={(currentPage - 1) * itemsPerPage + index + 1}
                     model={model}
+                    selectedSubset={selectedSubset}
                   />
                 ))
               )}
@@ -1029,9 +1111,10 @@ export function Leaderboard() {
                 ) : (
                   <TrueskillHistoryChart
                     data={chartData}
-                    modelNames={chartModelNames}
-                    hoveredModel={hoveredModel}
+                    modelDetails={chartModelDetails}
+                    hoveredCompositeId={hoveredCompositeId}
                     isMobile={isMobile}
+                    models={paginatedModels} // Pass the models data here
                   />
                 )}
               </div>
@@ -1042,4 +1125,3 @@ export function Leaderboard() {
     </Card>
   )
 }
-
