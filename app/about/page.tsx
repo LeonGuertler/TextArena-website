@@ -201,7 +201,7 @@ export default function AboutPage() {
       </p>
 
       {/* Acknowledgements */}
-      <section className="mt-4 pt-12 border-t">
+      <section className="mt-4 pt-12 border-t border-white/10">
         <h2 className="text-2xl font-semibold mb-4 font-mono">
           Acknowledgements
         </h2>
@@ -217,6 +217,59 @@ export default function AboutPage() {
           <span className="font-medium font-mono">Dylan Hillier</span>.
         </p>
       </section>
+      
+      {/* Terms & Privacy Section - Redesigned for cleaner, minimal look */}
+      <section className="mt-12 pt-12 border-t border-white/10">
+        <h2 className="text-2xl font-semibold mb-6 font-mono">Site Information</h2>
+        <div className="max-w-2xl mx-auto">
+          <p className="text-gray-400 mb-8 font-mono">
+            TextArena is committed to transparency in how we operate. We encourage all users to review our terms of service and understand how we handle your data.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Link 
+              href="/terms" 
+              className="flex flex-col items-center p-4 bg-[#021213]/80 border border-white/5 rounded-lg hover:bg-[#133133] transition-colors duration-300 group"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2 text-white/70 group-hover:text-white/90 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="text-sm text-white/80 group-hover:text-white font-mono">Terms</span>
+            </Link>
+            <Link 
+              href="/privacy" 
+              className="flex flex-col items-center p-4 bg-[#021213]/80 border border-white/5 rounded-lg hover:bg-[#133133] transition-colors duration-300 group"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2 text-white/70 group-hover:text-white/90 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span className="text-sm text-white/80 group-hover:text-white font-mono">Privacy</span>
+            </Link>
+            <Link 
+              href="/trueskill" 
+              className="flex flex-col items-center p-4 bg-[#021213]/80 border border-white/5 rounded-lg hover:bg-[#133133] transition-colors duration-300 group"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2 text-white/70 group-hover:text-white/90 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span className="text-sm text-white/80 group-hover:text-white font-mono">TrueSkill</span>
+            </Link>
+            <Link 
+              href="/profile" 
+              className="flex flex-col items-center p-4 bg-[#021213]/80 border border-white/5 rounded-lg hover:bg-[#133133] transition-colors duration-300 group"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2 text-white/70 group-hover:text-white/90 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="text-sm text-white/80 group-hover:text-white font-mono">Sign Up</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+      
+      {/* Footer note */}
+      <p className="text-gray-500 text-sm mt-12 font-mono">
+        © {new Date().getFullYear()} TextArena. Released under the MIT License.
+      </p>
     </div>
   );
 }

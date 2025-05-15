@@ -77,7 +77,7 @@ export default function RootLayout({
           <div className="flex h-screen">
             <Sidebar />
             <ResponsiveMain>
-              <ConstructionBanner />
+              {/* <ConstructionBanner /> */}
               {children}
             </ResponsiveMain>
           </div>

@@ -14,7 +14,6 @@ interface HumanStatsType {
   total_draws: number;
   total_losses: number;
   win_rate: number | null;
-  net_trueskill_change: number | null;
 }
 
 interface EnvironmentStats {
@@ -24,6 +23,7 @@ interface EnvironmentStats {
   win_rate: number;
   net_trueskill: number;
   percentile: number;
+  is_best: boolean;
 }
 
 interface HumanStatsProps {
@@ -35,56 +35,10 @@ function safeToFixed(num: number | null | undefined, fractionDigits = 1): string
   return typeof num === "number" ? num.toFixed(fractionDigits) : "N/A";
 }
 
-async function fetchHumanNumericId(token: string): Promise<number | null> {
-  const { data, error } = await supabase
-    .from("humans")
-    .select("id")
-    .eq("cookie_id", token)
-    .single();
-
-  if (error) {
-    console.error("Error fetching numeric ID from token:", error);
-    return null;
-  }
-  if (!data) {
-    console.error("No human found for token:", token);
-    return null;
-  }
-  return data.id as number;
-}
-
-async function fetchNetTrueskillChange(numericHumanId: number): Promise<number> {
-  try {
-    const { data, error } = await supabase
-      .from("player_games")
-      .select("trueskill_change")
-      .eq("human_id", numericHumanId);
-
-    if (error) {
-      console.error("Error fetching net trueskill change:", error);
-      return 0;
-    }
-
-    if (!data || data.length === 0) {
-      return 0;
-    }
-
-    const total = data.reduce((acc: number, row: any) => {
-      return acc + (row.trueskill_change ?? 0);
-    }, 0);
-
-    return total;
-  } catch (err) {
-    console.error("Error in fetchNetTrueskillChange:", err);
-    return 0;
-  }
-}
-
 export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
   const { token, isInitialized } = useAuth();
   const [stats, setStats] = useState<HumanStatsType | null>(null);
   const [envStats, setEnvStats] = useState<EnvironmentStats[]>([]);
-  const [overallPercentile, setOverallPercentile] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -103,14 +57,6 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
       const { data: envData, error: envError } = await supabase.rpc("get_human_env_stats", { human_cookie_id: String(token) });
       if (envError) throw envError;
 
-      const { data: percentileData, error: percentileError } = await supabase.rpc("get_overall_performance_percentile", { human_cookie_id: String(token) });
-      
-      const numericID = await fetchHumanNumericId(String(token));
-      let netTrueskill = 0;
-      if (numericID) {
-        netTrueskill = await fetchNetTrueskillChange(numericID);
-      }
-
       if (!overallData || !overallData[0]) {
         throw new Error('No stats data available');
       }
@@ -125,15 +71,11 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
         total_wins: wins,
         total_draws: draws,
         total_losses: losses,
-        win_rate: completedGames > 0 ? (wins / completedGames) * 100 : 0,
-        net_trueskill_change: netTrueskill
+        win_rate: completedGames > 0 ? (wins / completedGames) * 100 : 0
       };
 
       setStats(overallStats);
       setEnvStats(envData || []);
-      if (percentileData && percentileData.length > 0) {
-        setOverallPercentile(percentileData[0].overall_percentile);
-      }
     } catch (err) {
       console.error("Error fetching stats:", err);
       setError(err instanceof Error ? err.message : "Failed to load stats");
@@ -151,57 +93,49 @@ export function HumanStats({ isMinimized, setIsMinimized }: HumanStatsProps) {
     return null;
   }
 
-  const bestEnvs = [...envStats]
-    .sort((a, b) => b.net_trueskill - a.net_trueskill)
-    .slice(0, 3);
-
-  const challengingEnvs = [...envStats]
-    .sort((a, b) => a.net_trueskill - b.net_trueskill)
-    .slice(0, 3)
-    .reverse();
-
   const handleShare = () => {
     if (!stats) return;
-
+  
+    const bestEnvs = [...envStats]
+      .filter(env => env.is_best === true)
+      .sort((a, b) => parseFloat(b.net_trueskill.toString()) - parseFloat(a.net_trueskill.toString()))
+      .slice(0, 3);
+  
+    const challengingEnvs = [...envStats]
+      .filter(env => env.is_best === false)
+      .sort((a, b) => parseFloat(a.net_trueskill.toString()) - parseFloat(b.net_trueskill.toString()))
+      .slice(0, 3)
+      .reverse();
+  
     const bestEnvsText = bestEnvs.length
       ? bestEnvs
           .map(
             (env, idx) =>
-              `${idx + 1}. ${env.env_name}: WR ${safeToFixed(env.win_rate)}%, P ${safeToFixed(
-                env.percentile
-              )}%`
+              `${idx + 1}. ${env.env_name}: WR ${safeToFixed(parseFloat(env.win_rate.toString()))}%`
           )
           .join("\n")
       : "N/A";
-
+  
     const challengingEnvsText = challengingEnvs.length
       ? challengingEnvs
           .map(
             (env, idx) =>
-              `${idx + 1}. ${env.env_name}: WR ${safeToFixed(env.win_rate)}%, P ${safeToFixed(
-                env.percentile
-              )}%`
+              `${idx + 1}. ${env.env_name}: WR ${safeToFixed(parseFloat(env.win_rate.toString()))}%`
           )
           .join("\n")
       : "N/A";
-
+  
     const tweetText = `My TextArena Stats:
---------------------
-🎮 Games: ${stats.total_games}
-✅ Win Rate: ${safeToFixed(stats.win_rate)}%
-📈 Net Trueskill: ${
-      stats.net_trueskill_change !== null && stats.net_trueskill_change !== undefined
-        ? `${stats.net_trueskill_change >= 0 ? "+" : ""}${safeToFixed(stats.net_trueskill_change)}`
-        : "N/A"
-    }
-🏆 Overall Percentile: ${safeToFixed(overallPercentile)}%
-
-🚀 Best Environments (Highest to Lowest):
-${bestEnvsText}
-
-⚠️ Challenging Environments (Highest to Lowest):
-${challengingEnvsText}`;
-
+  --------------------
+  🎮 Games: ${stats.total_games}
+  ✅ Win Rate: ${safeToFixed(stats.win_rate)}%
+  
+  🚀 Best Environments (Highest to Lowest):
+  ${bestEnvsText}
+  
+  ⚠️ Challenging Environments (Highest to Lowest):
+  ${challengingEnvsText}`;
+  
     const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
       tweetText
     )}`;
@@ -280,35 +214,6 @@ ${challengingEnvsText}`;
                   {safeToFixed(stats.win_rate)}%
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
-                  Net Trueskill Change
-                </span>
-                <span
-                  className={`${
-                    stats.net_trueskill_change !== null &&
-                    stats.net_trueskill_change !== undefined &&
-                    stats.net_trueskill_change >= 0
-                      ? "text-green-500"
-                      : "text-red-500"
-                  } ${isMobile ? "text-xs" : "text-sm"}`}
-                >
-                  {stats.net_trueskill_change !== null && stats.net_trueskill_change !== undefined
-                    ? `${stats.net_trueskill_change >= 0 ? "+" : ""}${safeToFixed(stats.net_trueskill_change)}`
-                    : "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
-                  Overall Percentile (P)
-                </span>
-                <span className={isMobile ? "text-xs" : "text-sm"}>
-                  {overallPercentile !== null && overallPercentile !== undefined
-                    ? safeToFixed(overallPercentile)
-                    : "N/A"}
-                  %
-                </span>
-              </div>
             </div>
 
             {envStats.length > 0 && (
@@ -317,51 +222,58 @@ ${challengingEnvsText}`;
                   <h4 className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
                     Best Environments
                   </h4>
-                  {bestEnvs.map((env, idx) => (
-                    <div
-                      key={env.environment_id}
-                      className={`flex justify-between items-center ${isMobile ? "text-[10px]" : "text-xs"}`}
-                    >
-                      <span>{`${idx + 1}. ${env.env_name}`}</span>
-                      <span className="flex gap-2">
-                        <span>WR: {safeToFixed(env.win_rate)}%</span>
-                        <span
-                          className={
-                            (env.net_trueskill ?? 0) >= 0 ? "text-green-500" : "text-red-500"
-                          }
-                        >
-                          Net Trueskill: {(env.net_trueskill ?? 0) >= 0 ? "+" : ""}
-                          {safeToFixed(env.net_trueskill ?? 0)}
-                        </span>
-                        <span>P: {safeToFixed(env.percentile)}%</span>
-                      </span>
-                    </div>
-                  ))}
+                  {envStats
+                    .filter(env => env.is_best === true)
+                    .sort((a, b) => parseFloat(b.net_trueskill.toString()) - parseFloat(a.net_trueskill.toString()))
+                    .slice(0, 3)
+                    .map((env, idx) => (
+                      <div
+                        key={env.environment_id}
+                        className={`flex justify-between items-center ${isMobile ? "text-[10px]" : "text-xs"}`}
+                      >
+                        <span>{`${idx + 1}. ${env.env_name}`}</span>
+                        <div className="flex flex-col items-end">
+                          <span>WR: {safeToFixed(parseFloat(env.win_rate.toString()))}%</span>
+                          <div className="flex gap-2">
+                            <span className="text-white">
+                              TS: {safeToFixed(parseFloat(env.net_trueskill.toString()))}
+                            </span>
+                            <span className="text-white">
+                              PCT: {safeToFixed(parseFloat(env.percentile.toString()))}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                 </div>
                 <div className="space-y-2">
                   <h4 className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
                     Challenging Environments
                   </h4>
-                  {challengingEnvs.map((env, idx) => (
-                    <div
-                      key={env.environment_id}
-                      className={`flex justify-between items-center ${isMobile ? "text-[10px]" : "text-xs"}`}
-                    >
-                      <span>{`${idx + 1}. ${env.env_name}`}</span>
-                      <span className="flex gap-2">
-                        <span>WR: {safeToFixed(env.win_rate)}%</span>
-                        <span
-                          className={
-                            (env.net_trueskill ?? 0) >= 0 ? "text-green-500" : "text-red-500"
-                          }
-                        >
-                          Net Trueskill: {(env.net_trueskill ?? 0) >= 0 ? "+" : ""}
-                          {safeToFixed(env.net_trueskill ?? 0)}
-                        </span>
-                        <span>P: {safeToFixed(env.percentile)}%</span>
-                      </span>
-                    </div>
-                  ))}
+                  {envStats
+                    .filter(env => env.is_best === false)
+                    .sort((a, b) => parseFloat(a.net_trueskill.toString()) - parseFloat(b.net_trueskill.toString()))
+                    .slice(0, 3)
+                    .reverse()
+                    .map((env, idx) => (
+                      <div
+                        key={env.environment_id}
+                        className={`flex justify-between items-center ${isMobile ? "text-[10px]" : "text-xs"}`}
+                      >
+                        <span>{`${idx + 1}. ${env.env_name}`}</span>
+                        <div className="flex flex-col items-end">
+                          <span>WR: {safeToFixed(parseFloat(env.win_rate.toString()))}%</span>
+                          <div className="flex gap-2">
+                            <span className="text-white">
+                              TS: {safeToFixed(parseFloat(env.net_trueskill.toString()))}
+                            </span>
+                            <span className="text-white">
+                              PCT: {safeToFixed(parseFloat(env.percentile.toString()))}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               </div>
             )}

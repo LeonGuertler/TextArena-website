@@ -10,14 +10,15 @@ import { Badge } from "@/components/ui/badge"
 import {
   Play, Eye, Trophy, Globe, BookOpen, Users,
   MessageSquare, ChevronLeft, ChevronRight,
-  Github, Twitter, Timer, Columns
+  Github, Twitter, Timer, Columns, CircleUserRound
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Menu items and sections from your original code
 const topMenuItems = [
   { name: "Play", icon: Play, href: "/" },
-  { name: "Watch", icon: Eye, href: "/watch" },
+  { name: "Profile", icon: CircleUserRound, href: "/profile", isNew: true },
+  // { name: "Watch", icon: Eye, href: "/watch" },
   { name: "Leaderboard", icon: Trophy, href: "/leaderboard" },
   { name: "Environments", icon: Globe, href: "/environments" },
 ]
@@ -97,14 +98,27 @@ const NavItem = ({ item, isCollapsed, setIsMainCollapsed, isMobile }) => {
                 isCollapsed ? "justify-center" : "justify-start"
               )}
             >
-              <item.icon className={cn(
-                "transition-transform duration-200 group-hover:scale-110",
-                isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3"
-              )} />
+              <span className="relative inline-block">
+                <item.icon
+                  className={cn(
+                    "transition-transform duration-200 group-hover:scale-110",
+                    isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3"
+                  )}
+                />
+                {item.isNew && isCollapsed && (
+                  <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#3B82F6] border-[2px] border-[#021213]" />
+                )}
+              </span>
+
               {!isCollapsed && (
                 <>
-                  <span className="transition-colors duration-200 group-hover:text-white">
+                  <span className="flex items-center gap-1 transition-colors duration-200 group-hover:text-white">
                     {item.name}
+                    {item.isNew && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-[#E0ECFF] text-[#2563EB] rounded-full font-medium tracking-wide">
+                        NEW
+                      </span>
+                    )}
                   </span>
                   <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/50 w-0 group-hover:w-full transition-all duration-500 ease-in-out" />
                 </>
