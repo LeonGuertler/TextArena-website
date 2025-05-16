@@ -96,24 +96,35 @@ export default function AboutPage() {
         <p className="text-lg text-gray-400 mb-4 font-mono">
           Don't focus on us, focus on getting Humanity to No. 1!
         </p>
+        <p className="text-lg text-gray-400 mb-4 font-mono">
+          TextArena is a research project — not a company.
+        </p>
       </section>
 
       {/* Sponsors Section */}
       <section className="mb-12">
         <h2 className="text-2xl font-semibold mb-4 font-mono">Our Sponsors</h2>
         <p className="mb-4 text-gray-400 font-mono">
-          We actually are very grateful for the amazing support TextArena received from the community and the sponsors!
+          We’re incredibly grateful for the support TextArena has received from the community and our sponsors!
         </p>
         <p className="mb-6 text-gray-400 font-mono">
-          If you're interested in supporting TextArena, please don't hesitate
-          to reach out {" "}
+          If you’re interested in supporting TextArena, feel free to reach out to:
+          <br />
           <Link
             href="mailto:guertlerlo@cfar.a-star.edu.sg"
             className="text-primary hover:underline font-mono"
           >
             guertlerlo@cfar.a-star.edu.sg
           </Link>
+          <br />
+          <Link
+            href="mailto:chengxy@cfar.a-star.edu.sg"
+            className="text-primary hover:underline font-mono"
+          >
+            chengxy@i2r.a-star.edu.sg
+          </Link>
         </p>
+
         <div className="flex flex-wrap justify-center gap-8 mb-8">
           {sponsors.map((sponsor) => (
             <div

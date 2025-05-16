@@ -1171,7 +1171,7 @@ export default function PlayPage() {
       <div className="absolute top-4 right-4 z-50">
         <div className="flex items-center bg-black/30 backdrop-blur-md p-2 rounded-lg">
           {/* Stats Toggle */}
-          <div className="flex items-center px-3">
+          {/* <div className="flex items-center px-3">
             <button
               onClick={() => setStatsVisible((prev) => !prev)}
               className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
@@ -1183,10 +1183,10 @@ export default function PlayPage() {
                 <ChevronDown className="h-4 w-4" />
               )}
             </button>
-          </div>
+          </div> */}
 
           {/* Mute/Unmute */}
-          <div className="flex items-center px-3 border-x border-gray-700">
+          <div className="flex items-center px-3">
             <button
               onClick={() => setIsMuted((prev) => !prev)}
               className="text-muted-foreground hover:text-foreground transition-colors"
@@ -1200,7 +1200,7 @@ export default function PlayPage() {
           </div>
 
           {/* WebSocket Status */}
-          <div className="flex items-center px-3">
+          {/* <div className="flex items-center px-3">
             {!isMobile ? (
               <span className="text-sm text-muted-foreground whitespace-nowrap">
                 WebSocket: {wsStatus}
@@ -1213,7 +1213,7 @@ export default function PlayPage() {
                 )}
               />
             )}
-          </div>
+          </div> */}
         </div>
       </div>
 

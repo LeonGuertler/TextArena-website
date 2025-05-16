@@ -116,11 +116,11 @@ const AnnouncementBox = ({
     return (
       <div className={`relative mx-auto w-full ${isMobile ? 'max-w-[90%]' : 'max-w-md'} ${isInQueue ? 'mb-6 mt-2' : 'mb-2 mt-4'} animate-fadeIn z-50 flex justify-center`}>
         <div 
-          className={`flex items-center gap-1.5 bg-[#E0ECFF] text-[#2563EB] ${isMobile ? 'px-2 py-0.5' : 'px-2.5 py-1'} rounded-full shadow-md cursor-pointer hover:opacity-90 transition-all duration-300 transform hover:scale-105 animate-pulse-subtle max-w-min border border-[#2563EB]/20`}
+          className="flex items-center gap-1.5 bg-[#E0ECFF] text-[#2563EB] px-2.5 py-1 rounded-full shadow-md cursor-pointer hover:opacity-90 transition-all duration-300 transform hover:scale-105 animate-pulse-subtle max-w-min border border-[#2563EB]/20"
           onClick={handleExpand}
         >
-          <Bell className={`${isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'}`} />
-          <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium whitespace-nowrap`}>{announcementCount}</span>
+          <Bell className={'h-3.5 w-3.5'} />
+          <span className={'text-xs font-medium whitespace-nowrap'}>{announcementCount}</span>
         </div>
       </div>
     );
@@ -130,8 +130,8 @@ const AnnouncementBox = ({
   return (
     <div className={`relative ${isInQueue ? 'mb-6 mt-2' : 'mb-2 mt-4'} mx-auto w-full ${isMobile ? 'max-w-[90%]' : 'max-w-md'} 
       ${isTransitioning ? 'animate-fadeOut' : expandTransition ? 'animate-expandIn' : 'animate-fadeIn'}`}>
-      <div className="bg-white rounded-lg p-0.5 shadow-lg border border-[#2563EB]/20">
-        <div className={`bg-white rounded-md ${isMobile ? 'p-3' : 'p-4'}`}>
+      <div className="bg-black/30 backdrop-blur-md rounded-lg p-0.5 shadow-lg border border-gray-700/50">
+        <div className={`bg-black/30 backdrop-blur-md rounded-md ${isMobile ? 'p-3' : 'p-4'}`}>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -149,7 +149,7 @@ const AnnouncementBox = ({
             </div>
             
             <div className="flex-1">
-              <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium flex items-center text-[#0F172A]`}>
+              <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium flex items-center text-foreground`}>
                 {currentAnnouncement.title}
                 {currentAnnouncement.isNew && (
                   <span className={`ml-2 ${isMobile ? 'text-[8px] px-1 py-0.5' : 'text-[10px] px-1.5 py-0.5'} bg-[#E0ECFF] text-[#2563EB] rounded-full font-medium tracking-wide border border-[#2563EB]/40`}>
@@ -158,7 +158,7 @@ const AnnouncementBox = ({
                 )}
               </h3>
               
-              <p className={`mt-1 ${isMobile ? 'text-[10px]' : 'text-xs'} text-[#64748B]`}>
+              <p className={`mt-1 ${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
                 {currentAnnouncement.description}
               </p>
               
