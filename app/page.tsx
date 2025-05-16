@@ -19,6 +19,7 @@ import {
   Signal
 } from "lucide-react"
 import { useIsMobile } from "@/hooks/use-mobile";
+import AnnouncementBox from "@/components/AnnouncementBox";
 
 // ===== Types =====
 type EnvOption = {
@@ -1105,6 +1106,33 @@ export default function PlayPage() {
       {/* Queue Overlay */}
       {!isInMatch && !gameConnected && !connectionLost && !isGameResultMinimized && serverStats.allowConnection && (
         <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
+          {/* Add the AnnouncementBox here, above the AnimatedQueueDisplay - always visible */}
+          {/* Position the announcement differently based on queue state */}
+          <div className={`absolute ${isInQueue ? 'top-12' : 'top-16'} left-1/2 transform -translate-x-1/2 w-full max-w-md z-30`}>
+            <AnnouncementBox 
+              isInQueue={isInQueue}
+              announcements={[
+                {
+                  id: 'new-profile',
+                  title: 'Your Competitive Dashboard Is Here',
+                  description: 'Track your game history, skills, and percentile rank across environments. See how you stack up — and export stats or share your best performances!',
+                  linkText: 'View Profile',
+                  linkUrl: '/profile',
+                  isNew: true
+                }//,
+                // {
+                //   id: 'online-competition',
+                //   title: 'TextArena’s First Monthly Competition',
+                //   description: 'Prepare for our upcoming online hackathon! Compete, climb the leaderboard, and showcase your LLM or strategy game skills.',
+                //   // linkText: 'Register Now',
+                //   // linkUrl: '/hackathon',
+                //   // isNew: true,
+                //   // expiresAt: new Date('2025-06-15')
+                // }                
+              ]}
+            />
+          </div>
+          
           <AnimatedQueueDisplay
             isInQueue={isInQueue}
             isMatchFound={isMatchFound}
