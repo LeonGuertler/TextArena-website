@@ -8,21 +8,30 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox"; // Add this import
-import { CircleUserRound, LogOut, Loader2, RefreshCw, Share2, Scale } from "lucide-react";
+import { CircleUserRound, LogOut, Loader2, RefreshCw, Share2, Scale, Gamepad2, Download } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+// Add this with the other imports at the top
 import {
   ResponsiveContainer,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
   Radar,
   PolarRadiusAxis,
-  Tooltip,
-  Legend
 } from "recharts";
 import { createRoot } from "react-dom/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import html2canvas from 'html2canvas'; // Import html2canvas for screenshot functionality
 
 // Constants for the skill radar chart (imported from model-details.tsx)
 const RADAR_COLORS = {
@@ -296,6 +305,117 @@ function CustomRadarTooltip({ active, payload, isMobile, containerRef }) {
   return null;
 }
 
+function CustomEnvTooltip({ active, payload, isMobile, containerRef }) {
+  const rootRef = useRef(null);
+
+  // For mobile: manage tooltip rendering lifecycle with useEffect
+  useEffect(() => {
+    if (isMobile && containerRef?.current && active && payload && payload.length > 0) {
+      const data = payload[0].payload;
+      
+      // Make the container visible when tooltip is active
+      containerRef.current.style.height = "auto";
+      containerRef.current.style.opacity = "1";
+      containerRef.current.style.padding = "8px";
+      containerRef.current.style.backgroundColor = "rgba(2, 18, 19, 0.95)";
+      containerRef.current.style.border = "1px solid rgba(255, 255, 255, 0.1)";
+      containerRef.current.style.borderRadius = "4px";
+      containerRef.current.style.marginTop = "10px";
+      containerRef.current.style.width = "auto";
+      containerRef.current.style.maxWidth = "180px"; // Limit maximum width
+      containerRef.current.style.display = "inline-block";
+      containerRef.current.style.position = "absolute";
+      containerRef.current.style.left = "50%";
+      containerRef.current.style.transform = "translateX(-50%)";
+      
+      const content = (
+        <div
+          className={`rounded text-white font-mono ${
+            isMobile ? "text-[10px]" : "text-sm"
+          }`}
+        >
+          <p className="font-bold m-0 text-white break-words">{data.name}</p>
+          <p className="m-0" style={{ color: "#8884d8" }}> {/* Purple for Trueskill */}
+            Trueskill: {data.trueskill.toFixed(1)}
+          </p>
+          <p className="m-0" style={{ color: "#82ca9d" }}> {/* Green for Win */}
+            Win: {(data.win_rate * 100).toFixed(1)}%
+          </p>
+          <p className="m-0 text-gray-400">
+            W/D/L: <span className="text-green-400">{data.wins}</span>
+            <span className="text-white">/</span>
+            <span className="text-white">{data.draws}</span>
+            <span className="text-white">/</span>
+            <span className="text-red-400">{data.losses}</span>
+          </p>
+          <p className="m-0 text-gray-400">
+            Games: <span className="text-white">{data.games}</span>
+          </p>
+        </div>
+      );
+
+      // Create root if it doesn't exist
+      if (!rootRef.current) {
+        rootRef.current = createRoot(containerRef.current);
+      }
+      
+      // Render content
+      rootRef.current.render(content);
+      
+      // Cleanup
+      return () => {
+        if (rootRef.current) {
+          // Hide the container when tooltip is inactive
+          if (containerRef.current) {
+            containerRef.current.style.height = "0";
+            containerRef.current.style.opacity = "0";
+            containerRef.current.style.padding = "0";
+            containerRef.current.style.border = "none";
+          }
+        }
+      };
+    }
+  }, [active, payload, isMobile, containerRef]);
+
+  // For desktop or when not active
+  if (!isMobile && active && payload && payload.length > 0) {
+    const data = payload[0].payload;
+    return (
+      <div
+        className={`bg-[#021213] rounded text-white font-mono ${
+          isMobile ? "p-1 text-[10px]" : "p-2 text-sm"
+        } shadow-lg border border-white/10`}
+        style={{ maxWidth: "180px" }}
+      >
+        <p className="font-bold m-0 text-white break-words">{data.name}</p>
+        <p className="m-0" style={{ color: "#8884d8" }}> {/* Purple for Trueskill */}
+          Trueskill: {data.trueskill.toFixed(1)}
+        </p>
+        <p className="m-0" style={{ color: "#82ca9d" }}> {/* Green for Win */}
+          Win: {(data.win_rate * 100).toFixed(1)}%
+        </p>
+        <p className="m-0 text-gray-400">
+          W/D/L: <span className="text-green-400">{data.wins}</span>
+          <span className="text-white">/</span>
+          <span className="text-white">{data.draws}</span>
+          <span className="text-white">/</span>
+          <span className="text-red-400">{data.losses}</span>
+        </p>
+        <p className="m-0 text-gray-400">
+          Games: <span className="text-white">{data.games}</span>
+        </p>
+        <p className="m-0 text-gray-400">
+          Avg Time: <span className="text-white">
+            {data.avg_move_time ? data.avg_move_time.toFixed(1) + "s" : "N/A"}
+          </span>
+        </p>
+      </div>
+    );
+  }
+  
+  return null;
+}
+
 // Helper functions
 function safeToFixed(num, fractionDigits = 1) {
   return typeof num === "number" ? num.toFixed(fractionDigits) : "N/A";
@@ -439,14 +559,23 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   
   // Stats state
+  const statsRef = useRef(null);
   const [stats, setStats] = useState(null);
   const [envStats, setEnvStats] = useState([]);
   const [overallPercentile, setOverallPercentile] = useState(null);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // State for Performance by Environment
+  const envPerformanceRef = useRef(null);
+  const [hoveredEnvironment, setHoveredEnvironment] = useState(null);
+  const envTooltipContainerRef = useRef(null);
+  const [envSortMethod, setEnvSortMethod] = useState("trueskill-desc");
+
   
   // New state for skill distribution
+  const skillDistributionRef = useRef(null);
   const [numericHumanId, setNumericHumanId] = useState(null);
   const [environmentPerformance, setEnvironmentPerformance] = useState([]);
   const [isSkillDistributionLoading, setIsSkillDistributionLoading] = useState(true);
@@ -490,6 +619,44 @@ export default function ProfilePage() {
       return () => window.removeEventListener('resize', updateRadius);
     }
   }, [isMobile, isAuthenticated]);
+
+  // export a section as PNG
+  const exportAsPng = async (ref, filename) => {
+    if (!ref.current) return;
+    
+    try {
+      // Show loading state
+      setIsRefreshing(true);
+      
+      // Wait a moment to ensure UI updates before capture
+      setTimeout(async () => {
+        try {
+          // Create canvas from the DOM node
+          const canvas = await html2canvas(ref.current, {
+            backgroundColor: "#051215", // Match the dark background
+            scale: 2, // Higher quality
+            logging: false,
+            allowTaint: true,
+            useCORS: true
+          });
+          
+          // Convert to PNG and download
+          const image = canvas.toDataURL("image/png", 1.0);
+          const link = document.createElement("a");
+          link.download = `${filename}.png`;
+          link.href = image;
+          link.click();
+        } catch (err) {
+          console.error("Error exporting image:", err);
+        } finally {
+          setIsRefreshing(false);
+        }
+      }, 100);
+    } catch (err) {
+      console.error("Error in exportAsPng:", err);
+      setIsRefreshing(false);
+    }
+  };
   
   // Stats fetching
   const fetchStats = async () => {
@@ -879,6 +1046,46 @@ export default function ProfilePage() {
               <p className={`mb-4 font-mono ${isMobile ? "text-xs" : ""}`}>
                 Below you can view your game statistics and performance details.
               </p>
+
+              <div className={`mb-6 font-mono ${isMobile ? "text-xs" : "text-sm"}`}>
+                <div className="relative bg-gradient-to-r from-indigo-900/30 to-purple-900/30 rounded-lg border border-indigo-500/30 p-4 pb-3">
+                  <div className="absolute -top-3 left-4 bg-[#021213] px-3 py-1 text-indigo-400 font-bold border border-indigo-500/50 rounded-md">
+                    Game Stats Guide
+                  </div>
+                  
+                  <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="mt-1 flex-shrink-0 h-7 w-7 rounded-full bg-indigo-500/30 flex items-center justify-center text-indigo-300 font-bold text-xs">
+                        TS
+                      </div>
+                      <div>
+                        <span className="text-indigo-300 font-bold">Trueskill</span>
+                        <p className="text-white/80">Your skill level in the game. Higher values indicate better performance.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <div className="mt-1 flex-shrink-0 h-7 w-7 rounded-full bg-green-500/30 flex items-center justify-center text-green-300 font-bold text-xs">
+                        WR
+                      </div>
+                      <div>
+                        <span className="text-green-300 font-bold">Win Rate</span>
+                        <p className="text-white/80">Percentage of games won. Higher percentages show better results.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <div className="mt-1 flex-shrink-0 h-7 w-10 rounded-full bg-amber-500/30 flex items-center justify-center text-amber-300 font-bold text-xs">
+                        PCT
+                      </div>
+                      <div>
+                        <span className="text-amber-300 font-bold">Percentile</span>
+                        <p className="text-white/80">Your rank compared to other human players. Higher values mean better standing.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               
               {/* Stats Display */}
               <div className={`${isMobile ? "p-4" : "p-6"} border border-white/10 rounded-md bg-white/5`}>
@@ -900,7 +1107,7 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                 ) : stats ? (
-                  <div className="space-y-4">
+                  <div className="space-y-4" ref={statsRef}>
                     <div className="flex justify-between items-center">
                       <h3 className={`${isMobile ? "text-base" : "text-lg"} font-medium font-mono`}>Your Game Statistics</h3>
                       <div className="flex items-center gap-2">
@@ -920,6 +1127,16 @@ export default function ProfilePage() {
                           className="h-8 w-8 p-0"
                         >
                           <Share2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => exportAsPng(statsRef, "textrena-stats")}
+                          disabled={isRefreshing}
+                          className="h-8 w-8 p-0"
+                          title="Export as PNG"
+                        >
+                          <Download className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -1042,14 +1259,228 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Environment Performance */}
+          {stats && environmentPerformance.length > 0 && (
+            <Card className={`bg-[#021213]/50 border-white/10 text-white ${isMobile ? "mx-auto w-full" : ""} mt-6`}>
+              <CardHeader>
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2">
+                    <Gamepad2 className={`${isMobile ? "h-5 w-5" : "h-6 w-6"} text-white/70`} />
+                    <CardTitle className={`font-mono ${isMobile ? "text-base" : ""}`}>Performance by Environment</CardTitle>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => exportAsPng(envPerformanceRef, "textrena-environments")}
+                    disabled={isRefreshing}
+                    className="h-8 w-8 p-0"
+                    title="Export as PNG"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
+                <CardDescription className={`text-white/70 font-mono ${isMobile ? "text-xs" : ""}`}>
+                  This chart shows your performance metrics across different game environments.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative" ref={envPerformanceRef}>
+                  {isMobile && (
+                    <div
+                      ref={envTooltipContainerRef}
+                      className="absolute top-0 left-0 right-0 z-10 flex justify-center items-center h-0 opacity-0 transition-all duration-200 overflow-hidden"
+                      style={{ width: 'auto', margin: '0 auto' }}
+                    ></div>
+                  )}
+                  
+                  {/* Environment sorting dropdown */}
+                  <div className="mb-4 flex flex-wrap gap-2 justify-end">
+                    <Select
+                      value={envSortMethod}
+                      onValueChange={setEnvSortMethod}
+                    >
+                      <SelectTrigger className="w-[180px] bg-background text-white/90 border-white/20 font-mono text-xs">
+                        <SelectValue placeholder="Sort by..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="alphabetical" className="font-mono">Alphabetical</SelectItem>
+                        <SelectItem value="trueskill-desc" className="font-mono">Highest Trueskill</SelectItem>
+                        <SelectItem value="trueskill-asc" className="font-mono">Lowest Trueskill</SelectItem>
+                        <SelectItem value="winrate-desc" className="font-mono">Best Win Rate</SelectItem>
+                        <SelectItem value="winrate-asc" className="font-mono">Worst Win Rate</SelectItem>
+                        <SelectItem value="games" className="font-mono">Most Games</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Sorted environments using the envSortMethod state */}
+                  {(() => {
+                    // Get filtered environments with games played
+                    const filteredEnvs = environmentPerformance.filter(env => env.games > 0);
+                    
+                    // Get sorted environments based on the selected sort method
+                    const sortedEnvironments = (() => {
+                      switch(envSortMethod) {
+                        case "trueskill-desc":
+                          return [...filteredEnvs].sort((a, b) => b.trueskill - a.trueskill);
+                        case "trueskill-asc":
+                          return [...filteredEnvs].sort((a, b) => a.trueskill - b.trueskill);
+                        case "winrate-desc":
+                          return [...filteredEnvs].sort((a, b) => b.win_rate - a.win_rate);
+                        case "winrate-asc":
+                          return [...filteredEnvs].sort((a, b) => a.win_rate - b.win_rate);
+                        case "games":
+                          return [...filteredEnvs].sort((a, b) => b.games - a.games);
+                        case "alphabetical":
+                        default:
+                          return [...filteredEnvs].sort((a, b) => a.name.localeCompare(b.name));
+                      }
+                    })();
+                    
+                    // Get sort method description for the info text
+                    const sortMethodText = (() => {
+                      switch(envSortMethod) {
+                        case "trueskill-desc": return "highest Trueskill";
+                        case "trueskill-asc": return "lowest Trueskill";
+                        case "winrate-desc": return "highest Win Rate";
+                        case "winrate-asc": return "lowest Win Rate";
+                        case "games": return "most games";
+                        case "alphabetical": return "alphabetical order";
+                        default: return "highest Trueskill";
+                      }
+                    })();
+                    
+                    return (
+                      <>
+                        <div className={isMobile ? "overflow-x-auto" : ""}>
+                          <div
+                            style={{
+                              width: isMobile ? Math.min(sortedEnvironments.length * 50, 1200) : "100%", 
+                              height: 400,
+                            }}
+                          >
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart
+                                data={sortedEnvironments.slice(0, 20)} // Show top 15 for better readability
+                                margin={{ top: 20, right: 30, left: 20, bottom: 90 }}
+                                barGap={isMobile ? 2 : 4} // Small gap between bars on mobile
+                                barCategoryGap={isMobile ? "20%" : "20%"} // More space between bar groups on mobile
+                              >
+                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} vertical={false} />
+                                <XAxis
+                                  dataKey="name"
+                                  tick={{
+                                    angle: -45,
+                                    textAnchor: "end",
+                                    fill: "white",
+                                    fontSize: isMobile ? 10 : 12,
+                                    fontFamily: "var(--font-mono)",
+                                  }}
+                                  axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                                  tickLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                                  interval={0}
+                                />
+                                <YAxis
+                                  yAxisId="left"
+                                  orientation="left"
+                                  stroke="white"
+                                  tick={{ fill: "white", fontSize: 12, fontFamily: "var(--font-mono)" }}
+                                  axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                                  tickLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                                  tickCount={8}
+                                />
+                                <YAxis
+                                  yAxisId="right"
+                                  orientation="right"
+                                  stroke="white"
+                                  tick={{ fill: "white", fontSize: 12, fontFamily: "var(--font-mono)" }}
+                                  axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                                  tickLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
+                                  domain={[0, 1]} // Fixed domain from 0 to 1 (0% to 100%)
+                                  tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+                                  tickCount={5} // Reduced tick count for cleaner look
+                                />
+                                <Tooltip
+                                  content={
+                                    <CustomEnvTooltip
+                                      isMobile={isMobile}
+                                      containerRef={isMobile ? envTooltipContainerRef : null}
+                                    />
+                                  }
+                                  position={isMobile ? { x: 0, y: 0 } : undefined}
+                                  cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                                />
+                                <Legend
+                                  align="center"
+                                  verticalAlign="top"
+                                  wrapperStyle={{ 
+                                    color: "white", 
+                                    fontFamily: "var(--font-mono)",
+                                    marginTop: "-10px",
+                                    padding: "0 0 10px 0"
+                                  }}
+                                  iconType="circle"
+                                  iconSize={8}
+                                />
+                                <Bar 
+                                  yAxisId="left" 
+                                  dataKey="trueskill" 
+                                  name="Trueskill" 
+                                  fill="#8884d8"
+                                  radius={[4, 4, 0, 0]}
+                                  barSize={isMobile ? 20 : 30} 
+                                />
+                                <Bar 
+                                  yAxisId="right" 
+                                  dataKey="win_rate" 
+                                  name="Win Rate" 
+                                  fill="#82ca9d"
+                                  radius={[4, 4, 0, 0]}
+                                  barSize={isMobile ? 20 : 30}
+                                />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                        
+                        {filteredEnvs.length > 15 && (
+                          <div className="mt-4 text-center text-white/70 text-xs font-mono">
+                            Showing top 15 environments by {sortMethodText}.
+                            You have data for {filteredEnvs.length} environments in total.
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                  
+                  {isMobile && (
+                    <div className="text-xs text-white/70 font-mono mt-2 text-right">Scroll to see more →</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           {/* Skill Distribution Radar Chart */}
           {stats && environmentPerformance.length > 0 && (
             <Card className={`bg-[#021213]/50 border-white/10 text-white ${isMobile ? "mx-auto w-full" : ""}`}>
               <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Scale className={`${isMobile ? "h-5 w-5" : "h-6 w-6"} text-white/70`} />
-                  <CardTitle className={`font-mono ${isMobile ? "text-base" : ""}`}>Your Skill Distribution</CardTitle>
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2">
+                    <Scale className={`${isMobile ? "h-5 w-5" : "h-6 w-6"} text-white/70`} />
+                    <CardTitle className={`font-mono ${isMobile ? "text-base" : ""}`}>Skill Distribution</CardTitle>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => exportAsPng(skillDistributionRef, "textrena-skills")}
+                    disabled={isRefreshing}
+                    className="h-8 w-8 p-0"
+                    title="Export as PNG"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
                 </div>
                 <CardDescription className={`text-white/70 font-mono ${isMobile ? "text-xs" : ""}`}>
                   This chart shows your skills across different strategic dimensions based on your game performance.
@@ -1062,7 +1493,7 @@ export default function ProfilePage() {
                     <p className="text-white/70 font-mono">Loading your skill distribution...</p>
                   </div>
                 ) : (
-                  <div className="relative">
+                  <div className="relative" ref={skillDistributionRef}>
                     {/* For mobile devices, we'll use a completely different layout structure */}
                     {isMobile ? (
                       <div className="flex flex-col space-y-6">
