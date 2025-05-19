@@ -49,6 +49,11 @@ const setCookie = (name: string, value: string, days: number): void => {
   document.cookie = `${name}=${value}; ${expires}; path=/`;
 };
 
+// Helper to delete cookie
+const deleteCookie = (name: string): void => {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -324,28 +329,78 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  // UPDATED: Modified logout function to reuse the last anonymous token if available
+  // UPDATED: Modified logout function to properly clean up auth state
   const logout = async () => {
     try {
-      // Clear authentication and user data first
+      console.log("Executing logout process...");
+      
+      // First call the logout endpoint to invalidate the session on the server
+      try {
+        const logoutResponse = await fetch("https://matchmaking.textarena.ai/logout", {
+          method: "POST",
+          credentials: "include",
+          headers: createHeaders(true)
+        });
+        
+        console.log("Logout response:", logoutResponse.status);
+      } catch (logoutError) {
+        console.error("Error calling logout endpoint:", logoutError);
+        // Continue with client-side logout even if server request fails
+      }
+      
+      // Clear authentication state
       setIsAuthenticated(false);
       setCurrentUser(null);
+      
+      // Clear stored user info
       localStorage.removeItem("user_info");
       
       // UPDATED: Check if we have a previous anonymous token to restore
       if (lastAnonymousToken) {
         console.log("Restoring previous anonymous token:", lastAnonymousToken);
         
-        // Restore the previous anonymous token
+        // Explicitly delete the authentication cookie first
+        deleteCookie("user_id");
+        
+        // Then wait a moment before setting the new anonymous token cookie
+        // This helps ensure we don't have race conditions with cookie setting
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Now restore the previous anonymous token
         setToken(lastAnonymousToken);
         localStorage.setItem("user_id", lastAnonymousToken);
         setCookie("user_id", lastAnonymousToken, 365);
+        
+        // Explicitly reinitialize with the anonymous token
+        // This helps ensure the server recognizes the new token
+        try {
+          const initResponse = await fetch("https://matchmaking.textarena.ai/init", {
+            method: "GET",
+            credentials: "include",
+            headers: {
+              "X-User-Token": lastAnonymousToken
+            }
+          });
+          
+          if (initResponse.ok) {
+            console.log("Successfully reinitialized with anonymous token");
+          }
+        } catch (initError) {
+          console.error("Error reinitializing with anonymous token:", initError);
+        }
         
         return { success: true };
       } else {
         // If we don't have a previous anonymous token, request a new one
         console.log("No previous anonymous token found, requesting a new one");
         
+        // First explicitly delete the authentication cookie 
+        deleteCookie("user_id");
+        
+        // Then wait a moment before making the init request
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Now request a new anonymous token
         const initResponse = await fetch("https://matchmaking.textarena.ai/init", {
           credentials: "include",
         });
@@ -417,6 +472,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     })
       .then((res) => res.json())
       .then((data: { token: string, isAuthenticated?: boolean, user?: any }) => {
+        console.log("Init response:", data);
+        
         // If we got a token and it's different from what we had
         if (data.token && (!storedToken || data.token !== storedToken)) {
           console.log("Received new token from server:", data.token);
@@ -439,6 +496,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         // Set authentication status if available from server
         if (data.isAuthenticated !== undefined) {
+          console.log("Setting authentication state:", data.isAuthenticated);
           setIsAuthenticated(data.isAuthenticated);
           
           // If authenticated and we have user data from server, update current user
@@ -455,6 +513,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             } catch (err) {
               console.error("Could not save user info to localStorage:", err);
             }
+          } else if (!data.isAuthenticated) {
+            // If not authenticated, ensure user data is cleared
+            setCurrentUser(null);
+            localStorage.removeItem("user_info");
           }
         }
         

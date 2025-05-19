@@ -227,6 +227,9 @@ export default function PlayPage() {
     if (matchmakingWsRef.current) {
       matchmakingWsRef.current.close()
     }
+
+    // Log the token being used for matchmaking
+    console.log("Connecting to matchmaking with token:", token)
     
     // Set up new connection to matchmaking server
     const matchmakingWs = new WebSocket(`${MATCHMAKING_WS_URI}?user_id=${token}`)
