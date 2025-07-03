@@ -77,6 +77,29 @@ function formatQueueTime(seconds: number): string {
   return `${minutes}min ${remainingSeconds}s`
 }
 
+function parseObservationTuples(observation: any): [any, string][] {
+  // Check if observation is already in the old format (backward compatibility)
+  if (Array.isArray(observation) && observation.length > 0) {
+    // Check if first element looks like old format [senderId, text]
+    if (observation[0] && observation[0].length === 2 && typeof observation[0][1] === 'string') {
+      // Old format: [[senderId, text], ...]
+      return observation;
+    }
+    
+    // New format: [[sender_id, message, obs_type_value], ...]
+    if (observation[0] && observation[0].length === 3) {
+      return observation.map(([senderId, message, obsType]) => {
+        // Convert back to the format expected by appendObservation
+        return [senderId, message];
+      });
+    }
+  }
+  
+  // Fallback for unexpected formats
+  console.warn("Unexpected observation format:", observation);
+  return [];
+}
+
 export default function PlayPage() {
   const DEFAULT_SELECTED_ENVIRONMENTS = [0, 3, 35, 51, 52, 75, 81]
 
@@ -663,7 +686,10 @@ export default function PlayPage() {
           setGameResult(null); // Clear any previous game results
           setIsGameResultMinimized(false);
           setShowGameSelection(false); // Ensure game selection is hidden
-          startMyTurn(msg.observation, msg.player_id);
+          
+          // CHANGE THIS LINE - Parse the observation format
+          const parsedObservation = parseObservationTuples(msg.observation);
+          startMyTurn(parsedObservation, msg.player_id);
           
           // If we have environment ID, get the player count
           if (environmentId !== null) {
@@ -673,7 +699,9 @@ export default function PlayPage() {
             }
           }
         } else if (playerIdRef.current !== null) {
-          startMyTurn(msg.observation, playerIdRef.current);
+          // CHANGE THIS LINE TOO
+          const parsedObservation = parseObservationTuples(msg.observation);
+          startMyTurn(parsedObservation, playerIdRef.current);
         }
         break;
   
