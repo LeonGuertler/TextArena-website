@@ -127,5 +127,5 @@ As promised, here are the links to all three codebases. They are not necessarily
 - The TextArena Matchmaking server: TODO
 - The TextAren Serverless code: TODO
 
-Also by all means, if you are keen please feel free to contribute to any of these four.
+Also by all means, if you are keen please feel free to contribute to any of these four. 
 
