@@ -10,7 +10,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { supabase } from "@/lib/supabase"
 import { LeaderboardCard } from "@/components/leaderboard-card"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Filter, Info, BadgeCheck, MoonStar } from "lucide-react"
+import { Filter, Info, BadgeCheck, MoonStar, Sprout } from "lucide-react"
 import ReactDOM from "react-dom"
 import { Badge } from "@/components/ui/badge";
 
@@ -49,6 +49,7 @@ interface ModelData {
   losses: number
   avg_time: number
   is_active: boolean
+  small_category: boolean
 }
 
 interface TrueskillHistoryRow {
@@ -940,6 +941,14 @@ export function Leaderboard() {
                                   <BadgeCheck size={16} className="text-blue-400" />
                                   <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
                                     <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Standard model</p>
+                                  </div>
+                                </div>
+                              )}
+                              {model.small_category && (
+                                <div className="relative group">
+                                  <Sprout size={16} className="text-green-400" />
+                                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
+                                    <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Small model</p>
                                   </div>
                                 </div>
                               )}

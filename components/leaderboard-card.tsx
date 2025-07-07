@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
-import { BadgeCheck, MoonStar } from "lucide-react"
+import { BadgeCheck, MoonStar, Sprout } from "lucide-react"
 
 interface LeaderboardCardProps {
   rank: number
@@ -19,6 +19,7 @@ interface LeaderboardCardProps {
     avg_time: number
     is_standard: boolean
     is_active: boolean
+    small_category: boolean
   }
   selectedSubset: string // Add this line
 }
@@ -41,13 +42,21 @@ export function LeaderboardCard({ rank, model, selectedSubset }: LeaderboardCard
               </Link>
               
               {/* Absolutely positioned badges that will always appear after the model name */}
-              {(model.is_standard || !model.is_active) && (
+              {(model.is_standard || !model.is_active || model.small_category) && (
                 <div className="absolute top-1 right-0 flex items-center">
                   {model.is_standard && (
                     <div className="relative group mr-1">
                       <BadgeCheck size={20} className="text-blue-400" />
                       <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
                         <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Standard model</p>
+                      </div>
+                    </div>
+                  )}
+                  {model.small_category && (
+                    <div className="relative group mr-1">
+                      <Sprout size={20} className="text-green-400" />
+                      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-background p-1.5 rounded-lg border border-navbar shadow-lg z-20">
+                        <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">Small category</p>
                       </div>
                     </div>
                   )}
