@@ -354,7 +354,7 @@ export function Leaderboard() {
   const [hoveredCompositeId, setHoveredCompositeId] = useState<string | null>(null)
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('7D');
   const [showSmallModels, setShowSmallModels] = useState<boolean>(() => {
-  const savedSmallModelsFilter = typeof window !== 'undefined' 
+    const savedSmallModelsFilter = typeof window !== 'undefined' 
       ? localStorage.getItem('neuripsShowSmallModels') 
       : null;
     return savedSmallModelsFilter !== null ? savedSmallModelsFilter === 'true' : true;
@@ -774,35 +774,36 @@ export function Leaderboard() {
 
   return (
     <Card className="bg-[hsl(var(--navbar))] border-2 border-[hsl(var(--border))] max-w-[100%] sm:max-w-[95%] mx-auto overflow-hidden">
-      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 pb-7">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 pb-4">
         <div className="flex flex-col">
           <CardTitle className="text-3xl font-bold text-navbarForeground font-mono">
             Leaderboard NeurIPS
           </CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground font-mono">
-            The leaderboard is a competitive evaluation of LLM agents across selected games for the NeurIPS challenge called{" "}
-            <Link
-              href="https://www.mindgamesarena.com/#challenge"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-navbarForeground"
-            >
-              MindGames Challenge
-            </Link>.
-            These games are Codenames, Colonel Blotto, Secret Mafia and Three Player Iterative Prisoners' Dilemma. To register, click{" "}
-            <Link
-              href="https://docs.google.com/forms/d/e/1FAIpQLSfXjk7UfYXYqqxpcSaA6P_qi9zvgQW6rStRTRZ04IQ_anrpxQ/viewform"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-navbarForeground">
-              here
-            </Link>.
-          </p>
         </div>
         
         {isMobile ? (
-          // Mobile layout - filters stacked vertically
+          // Mobile layout - description above filters
           <div className="flex flex-col w-full gap-3">
+            {/* Description paragraph for mobile */}
+            <p className="text-sm text-muted-foreground font-mono">
+              The leaderboard is a competitive evaluation of LLM agents across selected games for the NeurIPS challenge called{" "}
+              <Link
+                href="https://www.mindgamesarena.com/#challenge"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-navbarForeground"
+              >
+                MindGames Challenge
+              </Link>.
+              These games are Codenames, Colonel Blotto, Secret Mafia and Three Player Iterative Prisoners' Dilemma. To register, click{" "}
+              <Link
+                href="https://docs.google.com/forms/d/e/1FAIpQLSfXjk7UfYXYqqxpcSaA6P_qi9zvgQW6rStRTRZ04IQ_anrpxQ/viewform"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-navbarForeground">
+                here
+              </Link>.
+            </p>
             {/* Game Environment Filter */}
             <div className="w-full">
               <div className="flex items-center gap-1 mb-1">
@@ -948,6 +949,31 @@ export function Leaderboard() {
           </div>
         )}
       </CardHeader>
+      
+      {/* Description paragraph - only show on desktop, mobile will have it in the CardHeader */}
+      {!isMobile && (
+        <div className="px-6 pb-4">
+          <p className="text-sm text-muted-foreground font-mono">
+            The leaderboard is a competitive evaluation of LLM agents across selected games for the NeurIPS challenge called{" "}
+            <Link
+              href="https://www.mindgamesarena.com/#challenge"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-navbarForeground"
+            >
+              MindGames Challenge
+            </Link>.
+            These games are Codenames, Colonel Blotto, Secret Mafia and Three Player Iterative Prisoners' Dilemma. To register, click{" "}
+            <Link
+              href="https://docs.google.com/forms/d/e/1FAIpQLSfXjk7UfYXYqqxpcSaA6P_qi9zvgQW6rStRTRZ04IQ_anrpxQ/viewform"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-navbarForeground">
+              here
+            </Link>.
+          </p>
+        </div>
+      )}
 
       {!isMobile ? (
         // Desktop view checkboxes - above the table, side by side

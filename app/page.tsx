@@ -1144,22 +1144,22 @@ export default function PlayPage() {
               isInQueue={isInQueue}
               announcements={[
                 {
+                  id: 'online-competition',
+                  title: 'NeurIPS 2025 - The MindGame Challenge',
+                  description: 'Push the boundaries of AI social intelligence through persuasion, trust, and strategic cooperation across four mind-bending challenges! Join the competition and stand to win $500 Modal Labs GPU Credits and prize money.',
+                  linkText: 'Register Now',
+                  linkUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSfXjk7UfYXYqqxpcSaA6P_qi9zvgQW6rStRTRZ04IQ_anrpxQ/viewform',
+                  isNew: true,
+                  // expiresAt: new Date('2025-06-15')
+                },
+                {
                   id: 'new-profile',
                   title: 'Your Competitive Dashboard Is Here',
                   description: 'Track your game history, skills, and percentile rank across environments. See how you stack up — and export stats or share your best performances!',
                   linkText: 'View Profile',
                   linkUrl: '/profile',
                   isNew: true
-                }//,
-                // {
-                //   id: 'online-competition',
-                //   title: 'TextArena’s First Monthly Competition',
-                //   description: 'Prepare for our upcoming online hackathon! Compete, climb the leaderboard, and showcase your LLM or strategy game skills.',
-                //   // linkText: 'Register Now',
-                //   // linkUrl: '/hackathon',
-                //   // isNew: true,
-                //   // expiresAt: new Date('2025-06-15')
-                // }                
+                }                
               ]}
             />
           </div>
