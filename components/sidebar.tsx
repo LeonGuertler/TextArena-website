@@ -21,6 +21,7 @@ const topMenuItems = [
   // { name: "Watch", icon: Eye, href: "/watch" },
   { name: "Leaderboard", icon: Trophy, href: "/leaderboard" },
   { name: "Environments", icon: Globe, href: "/environments" },
+  { name: "NeurIPS", icon: "/neurips-navbar-logo.svg", href: "/neurips", isNew: true },
 ]
 
 const bottomMenuItems = [
@@ -99,12 +100,24 @@ const NavItem = ({ item, isCollapsed, setIsMainCollapsed, isMobile }) => {
               )}
             >
               <span className="relative inline-block">
-                <item.icon
-                  className={cn(
-                    "transition-transform duration-200 group-hover:scale-110",
-                    isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3"
-                  )}
-                />
+                {typeof item.icon === "string" ? (
+                  <img
+                    src={item.icon}
+                    alt={item.name}
+                    className={cn(
+                      "transition-transform duration-200 group-hover:scale-110",
+                      isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3"
+                    )}
+                  />
+                ) : (
+                  <item.icon
+                    className={cn(
+                      "transition-transform duration-200 group-hover:scale-110",
+                      isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3"
+                    )}
+                  />
+                )}
+
                 {item.isNew && isCollapsed && (
                   <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#3B82F6] border-[2px] border-[#021213]" />
                 )}
