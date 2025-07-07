@@ -354,10 +354,10 @@ export function Leaderboard() {
   const [hoveredCompositeId, setHoveredCompositeId] = useState<string | null>(null)
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('7D');
   const [showSmallModels, setShowSmallModels] = useState<boolean>(() => {
-    const savedSmallModelsFilter = typeof window !== 'undefined' 
+  const savedSmallModelsFilter = typeof window !== 'undefined' 
       ? localStorage.getItem('neuripsShowSmallModels') 
       : null;
-    return savedSmallModelsFilter === 'true';
+    return savedSmallModelsFilter !== null ? savedSmallModelsFilter === 'true' : true;
   });
   const [showInactive, setShowInactive] = useState<boolean>(() => {
     const savedInactiveFilter = typeof window !== 'undefined' 
