@@ -1153,6 +1153,14 @@ export default function PlayPage() {
                   // expiresAt: new Date('2025-06-15')
                 },
                 {
+                  id: 'new-blog',
+                  title: 'How we built TextArena',
+                  description: 'Nothing much, but we wrote a blog to share how we built TextArena over a few iterations. We had no SWE background, just figured things out as we went. Sharing this in case it helps others building something similar.',
+                  linkText: 'Read blog',
+                  linkUrl: '/blog',
+                  isNew: true
+                },
+                {
                   id: 'new-profile',
                   title: 'Your Competitive Dashboard Is Here',
                   description: 'Track your game history, skills, and percentile rank across environments. See how you stack up — and export stats or share your best performances!',

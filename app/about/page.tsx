@@ -218,13 +218,14 @@ export default function AboutPage() {
         </h2>
         <p className="font-mono text-gray-400">
           We would also like to thank our other contributors: <br />
+          <span className="font-medium font-mono">Simone Romeo</span>,{" "}
           <span className="font-medium font-mono">Henry Mao</span>,{" "}
           <span className="font-medium font-mono">Gabriel Chua</span>,{" "}
+          <span className="font-medium font-mono">Charin Polpanumas</span>,{" "}
+          <span className="font-medium font-mono">Ananya Balehithlu</span>,{" "}
           <span className="font-medium font-mono">Romir Patel</span>,{" "}
           <span className="font-medium font-mono">Ayudh Saxena</span>,{" "}
           <span className="font-medium font-mono">Vincent Cheng</span>, and{" "}
-          {/* To add in Simon. */}
-
           <span className="font-medium font-mono">Dylan Hillier</span>.
         </p>
       </section>

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import {
   Play, Eye, Trophy, Globe, BookOpen, Users,
   MessageSquare, ChevronLeft, ChevronRight,
-  Github, Twitter, Timer, Columns, CircleUserRound
+  Github, Twitter, Timer, Columns, CircleUserRound, Library
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
@@ -25,6 +25,7 @@ const topMenuItems = [
 ]
 
 const bottomMenuItems = [
+  { name: "Blog", icon: Library, href: "/blog", isNew: true},
   { name: "Documentation", icon: BookOpen, href: "/docs/overview" },
   { name: "About Us", icon: Users, href: "/about" },
   {
